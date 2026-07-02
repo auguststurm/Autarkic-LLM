@@ -17,6 +17,7 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 rm -rf build
 mkdir build && cd build
 
+# Apple Silicon: first apply the Metal rnorm patch from ../local-setup.md (step 2), or the shader fails to compile when llama-server starts
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 
@@ -55,12 +56,12 @@ pkill -9 llama-server
   --n-predict 8192 \
   --cache-ram 4096 \
   --slot-save-path ./kv-cache \
-  --checkpoint-every-n-tokens 16384 \
+  --checkpoint-min-step 16384 \
   --ctx-checkpoints 8 \
   --log-verbosity 2
 ```
 
-> **Checkpoint flags on Qwen3.6:** `--slot-save-path`, `--checkpoint-every-n-tokens`, and `--ctx-checkpoints` are kept here (harmless in the tested runs), but may be **no-ops on Qwen3.6** — its hybrid Gated-DeltaNet attention hits a known llama.cpp bug where context checkpoints aren't restored, forcing full prompt reprocessing each turn. Watch the log; if you see repeated full reprocessing, drop these three flags. Details: [checkpointing caveat](../llama-cpp-turboquant.md#prompt-cache--checkpointing).
+> **Checkpoint flags on Qwen3.6:** `--slot-save-path`, `--checkpoint-min-step`, and `--ctx-checkpoints` are kept here (harmless in the tested runs), but may be **no-ops on Qwen3.6** — its hybrid Gated-DeltaNet attention hits a known llama.cpp bug where context checkpoints aren't restored, forcing full prompt reprocessing each turn. Watch the log; if you see repeated full reprocessing, drop these three flags. Details: [checkpointing caveat](../llama-cpp-turboquant.md#prompt-cache--checkpointing).
 
 ## Performance Notes
 

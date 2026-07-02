@@ -52,6 +52,8 @@ cmake --build . --config Release -j$(nproc)
 
 **macOS (Metal):**
 
+> ⚠️ **Apple Silicon build fix (required as of fork commit `0c8fcfe73`, June 2026).** The fork dropped the dead `rnorm` field from the `block_turbo4_0` CPU struct (`ggml/src/ggml-common.h`, now 66 bytes) but left two writes to it in the Metal shader. macOS compiles that shader at `llama-server` **startup**, so the build links fine and then crashes on launch with `no member named 'rnorm'`. Delete the two offending lines first — in `ggml/src/ggml-metal/ggml-metal.metal`, remove the line `dst.rnorm = half(0.0f);` and the line `blk.rnorm = half(0.0f);  // reserved field, unused in 4-bit mode` (search for `rnorm`; both are zero-writes to a now-removed field, safe to delete). No upstream fix is open as of June 2026 — apply this patch until the fork gates these writes behind `#if !TURBO4_USE_4BIT` or removes them.
+
 ```bash
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
