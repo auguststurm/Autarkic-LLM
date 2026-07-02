@@ -1,8 +1,8 @@
-# M4 Mac Mini (16 GB) - Gemma 4 E2B
+# M2 Mac Mini (16 GB) - Gemma 4 E2B
 
-Alternative lightweight multimodal setup for Mac Mini M4 with 16 GB unified memory.
+Recommended lightweight multimodal setup for Mac Mini M2 with 16 GB unified memory.
 
-> ⚠️ **Not yet tested on this hardware.** This is a best-effort starting config, but at ~3 GB the model leaves comfortable headroom on 16 GB, so it should be low-risk. If you run it, please report your results via an issue.
+> ⚠️ **Not yet tested on this hardware.** This is a best-effort starting config, but at ~3 GB the model leaves comfortable headroom on 16 GB, so it should be low-risk. The base M2's lower memory bandwidth (~100 GB/s vs the M4 Mini's ~120 GB/s) makes this small dense model the most comfortable daily driver on this machine. If you run it, please report your results via an issue.
 
 ## Recommended Model
 
@@ -83,15 +83,27 @@ Without `--mmproj` the server runs text-only.
 
 - Extremely lightweight (~3 GB loaded): easily fits with macOS overhead on 16 GB.
 - Multimodal capable (text + image + audio) once you pass `--mmproj` (see above); text-only otherwise.
-- Fast inference and very responsive for agentic tasks.
-- Excellent alternative or companion to the Qwen3.6-27B Q4 when memory is constrained.
+- On the base M2's ~100 GB/s bandwidth this small dense model still stays responsive for agentic tasks; it is the recommended choice on this machine over the tight [Qwen3.6-35B-A3B experiment](M2-Mac-Mini-Qwen3.6.md).
+
+## Measured Results
+
+> 📝 **Placeholder — pending a real run on a 16 GB M2 Mac Mini.** Replace each *TBD* once measured.
+
+| Metric | Value |
+| --- | --- |
+| Largest `--ctx-size` that loaded | *TBD* |
+| Peak memory (startup log + Activity Monitor) | *TBD* |
+| Prefill / prompt-eval (tok/s) | *TBD* |
+| Decode / generation (tok/s) | *TBD* |
+| Multimodal tested (`--mmproj`)? | *TBD* |
+| llama-cpp-turboquant commit built | *TBD* |
 
 ## Pi Coding Agent models.json Snippet
 
 ```json
 {
   "id": "gemma-4-e2b",
-  "name": "Gemma 4 E2B Q4_K_S (32k) - M4 Mini",
+  "name": "Gemma 4 E2B Q4_K_S (32k) - M2 Mini",
   "contextWindow": 32768,
   "maxTokens": 8192
 }

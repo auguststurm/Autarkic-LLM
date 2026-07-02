@@ -1,8 +1,8 @@
-# M4 Mac Mini (16 GB) - Qwen3.6-35B-A3B
+# M2 Mac Mini (16 GB) - Qwen3.6-35B-A3B
 
-Setup for Mac Mini M4 with 16 GB unified memory.
+Setup for Mac Mini M2 with 16 GB unified memory.
 
-> ⚠️ **Untested on hardware. 16 GB is a tight fit for this model.** Qwen3.6-35B-A3B is a 35B-parameter MoE; even though only ~3B params are active per token, the *full* weights must be resident in memory. The 4-bit quants are 21–22 GB and **cannot load on a 16 GB machine**. Only the heavily-compressed IQ2/IQ1 quants fit, and only with a reduced context and a raised GPU memory limit (see below). If you just want a reliable model on 16 GB, use the **[Gemma 4 E2B config](M4-Mac-Mini-Gemma-4-E2B.md)** in this folder (~3 GB, lots of headroom). Treat this Qwen guide as an experiment for people who want to push the limit and report back.
+> ⚠️ **Untested on hardware. 16 GB is a tight fit for this model.** Qwen3.6-35B-A3B is a 35B-parameter MoE; even though only ~3B params are active per token, the *full* weights must be resident in memory. The 4-bit quants are 21–22 GB and **cannot load on a 16 GB machine**. Only the heavily-compressed IQ2/IQ1 quants fit, and only with a reduced context and a raised GPU memory limit (see below). If you just want a reliable model on 16 GB, use the **[Gemma 4 E2B config](M2-Mac-Mini-Gemma-4-E2B.md)** in this folder (~3 GB, lots of headroom). Treat this Qwen guide as an experiment for people who want to push the limit and report back. On the base M2's ~100 GB/s memory bandwidth (vs ~120 GB/s on the M4 Mini), expect slower decode than the [M4 Mac Mini config](../M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md).
 
 ## Memory Budget (16 GB unified)
 
@@ -90,25 +90,41 @@ pkill -9 llama-server
 ## Performance Notes
 
 - 16 GB is the binding constraint here, not compute: the MoE's low *active* parameter count helps speed, but the full weights still have to be resident, so quant choice is driven entirely by the memory budget above.
+- The base M2's memory bandwidth (~100 GB/s) is lower than the M4 Mini's (~120 GB/s), and decode on a memory-bound MoE scales with bandwidth — expect generation a bit slower than the M4 Mini numbers. If decode feels too slow at IQ2, the Gemma config is the better daily driver.
 - `--ctx-size 16384` keeps the KV cache (~0.8 GB at q8_0) small enough to leave room for the weights. Lower it further if you hit OOM; raise it only if you have headroom to spare.
 - Close other apps and run `sudo sysctl iogpu.wired_limit_mb=13000` before launching, or the GPU allocation cap will reject the model.
 - `--fit on --fit-target 256` (in the command above) lets llama-server auto-tune context/offload to fit available memory, but note it **cannot shrink the weights**: a 22 GB Q4 still won't load on 16 GB no matter the context, which is why this guide uses an IQ2 quant.
-- Expect IQ2-level quality (noticeably below the Q5/Q6 configs on larger machines). For everyday use on 16 GB, the [Gemma 4 E2B config](M4-Mac-Mini-Gemma-4-E2B.md) is the better choice; this guide is for testers who want to see how far a 35B MoE can be pushed on 16 GB.
+- Expect IQ2-level quality (noticeably below the Q5/Q6 configs on larger machines). For everyday use on 16 GB, the [Gemma 4 E2B config](M2-Mac-Mini-Gemma-4-E2B.md) is the better choice; this guide is for testers who want to see how far a 35B MoE can be pushed on 16 GB.
 
 ## Pi Coding Agent models.json Snippet
 
 ```json
 {
   "id": "qwen3.6-35b-a3b",
-  "name": "Qwen3.6-35B-A3B IQ2_M (16k) - M4 Mini",
+  "name": "Qwen3.6-35B-A3B IQ2_M (16k) - M2 Mini",
   "contextWindow": 16384,
   "maxTokens": 8192
 }
 ```
 
+## Measured Results
+
+> 📝 **Placeholder — pending a real run on a 16 GB M2 Mac Mini.** Replace each *TBD* once measured.
+
+| Metric | Value |
+| --- | --- |
+| Quant used | *TBD* |
+| Largest `--ctx-size` that loaded | *TBD* |
+| `iogpu.wired_limit_mb` needed | *TBD* |
+| Peak memory (startup log + Activity Monitor) | *TBD* |
+| Prefill / prompt-eval (tok/s) | *TBD* |
+| Decode / generation (tok/s) | *TBD* |
+| Subjective quality at IQ2 | *TBD* |
+| llama-cpp-turboquant commit built | *TBD* |
+
 ## Report Your Results
 
-This config is untested on real hardware. If you run it on a 16 GB M4 Mac Mini, please open an issue with:
+This config is untested on real hardware. If you run it on a 16 GB M2 Mac Mini, please open an issue with:
 
 - **Quant used** (e.g. `UD-IQ2_M`) and whether it loaded or OOM'd.
 - **Context that actually fit**: the largest `--ctx-size` that loaded without OOM.

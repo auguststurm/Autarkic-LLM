@@ -59,7 +59,7 @@ pkill -9 llama-server
   --n-predict 4096 \
   --cache-ram 1024 \
   --slot-save-path ./kv-cache \
-  --checkpoint-every-n-tokens 8192 \
+  --checkpoint-min-step 8192 \
   --ctx-checkpoints 4 \
   --kv-unified \
   --log-verbosity 2
