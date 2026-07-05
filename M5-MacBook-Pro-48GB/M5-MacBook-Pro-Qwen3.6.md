@@ -21,7 +21,7 @@ mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 
-cd ../bin
+cd bin
 mkdir -p ./kv-cache
 ```
 
@@ -39,8 +39,6 @@ pkill -9 llama-server
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
   --flash-attn on \
-  --fit on \
-  --fit-target 256 \
   --no-context-shift \
   --parallel 1 \
   --ubatch-size 512 \
@@ -68,6 +66,7 @@ pkill -9 llama-server
 - Excellent balance of quality and speed on 48 GB unified memory.
 - Strong agentic performance with Hermes and Godot MCP workflows.
 - Metal backend provides good efficiency on Apple Silicon.
+- **No `--fit` here (intentional):** 48 GB has ample room for the ~20 GB model at 196608 context, so the context is pinned explicitly. `--fit` is omitted because the current fork aborts it when `--n-gpu-layers`/`--ctx-size` are set — this guide sets both. If you ever hit an OOM (e.g. running a larger quant), lower `--ctx-size` rather than adding `--fit`.
 
 ## Pi Coding Agent models.json Snippet
 

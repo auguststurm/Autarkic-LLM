@@ -21,7 +21,7 @@ mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 
-cd ../bin
+cd bin
 mkdir -p ./kv-cache
 ```
 
@@ -39,8 +39,6 @@ pkill -9 llama-server
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
   --flash-attn on \
-  --fit on \
-  --fit-target 256 \
   --no-context-shift \
   --parallel 1 \
   --ubatch-size 256 \
@@ -85,6 +83,7 @@ Without `--mmproj` the server runs text-only.
 - Multimodal capable (text + image + audio) once you pass `--mmproj` (see above); text-only otherwise.
 - Fast inference and very responsive for agentic tasks.
 - Excellent alternative or companion to the Qwen3.6-27B Q4 when memory is constrained.
+- **No `--fit` here (intentional):** at ~3 GB the model leaves plenty of room, so `--ctx-size 32768` is pinned and guaranteed. `--fit` is omitted because the current fork aborts it when `--n-gpu-layers`/`--ctx-size` are set. If you ever want a bigger context and hit an OOM, lower `--ctx-size`.
 
 ## Pi Coding Agent models.json Snippet
 

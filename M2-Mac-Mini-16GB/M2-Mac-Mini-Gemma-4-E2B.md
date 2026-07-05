@@ -21,7 +21,7 @@ mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 
-cd ../bin
+cd bin
 mkdir -p ./kv-cache
 ```
 
@@ -39,8 +39,6 @@ pkill -9 llama-server
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
   --flash-attn on \
-  --fit on \
-  --fit-target 256 \
   --no-context-shift \
   --parallel 1 \
   --ubatch-size 256 \
@@ -84,6 +82,7 @@ Without `--mmproj` the server runs text-only.
 - Extremely lightweight (~3 GB loaded): easily fits with macOS overhead on 16 GB.
 - Multimodal capable (text + image + audio) once you pass `--mmproj` (see above); text-only otherwise.
 - On the base M2's ~100 GB/s bandwidth this small dense model still stays responsive for agentic tasks; it is the recommended choice on this machine over the tight [Qwen3.6-35B-A3B experiment](M2-Mac-Mini-Qwen3.6.md).
+- **No `--fit` here (intentional):** at ~3 GB the model leaves plenty of room, so `--ctx-size 32768` is pinned and guaranteed. `--fit` is omitted because the current fork aborts it when `--n-gpu-layers`/`--ctx-size` are set. If you ever want a bigger context and hit an OOM, lower `--ctx-size`.
 
 ## Measured Results
 

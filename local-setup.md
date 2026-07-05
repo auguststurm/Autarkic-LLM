@@ -96,8 +96,8 @@ hf download unsloth/gemma-4-E2B-it-GGUF \
 ## 4. Create KV Cache Directory
 
 ```bash
-# From the build directory; the llama-server binary is in ../bin
-cd ../bin
+# From the build directory; the llama-server binary is in build/bin
+cd bin
 mkdir -p ./kv-cache
 ```
 
@@ -106,7 +106,7 @@ mkdir -p ./kv-cache
 - **Network exposure (read this).** Every command in these guides binds `--host 0.0.0.0`, which serves the model to *every device on your network with no authentication* — and typically with a shell-capable [agentic harness](agentic-harnesses.md) behind it. That is at odds with the "nothing leaves the box" goal. For a truly self-contained machine, use `--host 127.0.0.1` (loopback only). Keep `0.0.0.0` **only** on a trusted LAN where you deliberately reach the server from other machines, and put it behind a firewall.
 - Always run `pkill -9 llama-server` before starting a new instance. The `-9` (SIGKILL) is deliberate, not lazy: llama-server's graceful shutdown can hang on SIGTERM/SIGINT (upstream issues [#11742](https://github.com/ggml-org/llama.cpp/issues/11742), [#20921](https://github.com/ggml-org/llama.cpp/issues/20921)), and it does **not** auto-save KV state on exit — slot saves to `--slot-save-path` happen only on explicit API calls, and checkpoints (`--cache-ram`) are ephemeral — so a hard kill loses nothing persistent.
 - Use `--no-mmap` on systems with sufficient RAM.
-- On memory-constrained machines, add `--fit on --fit-target <MiB>` (e.g. `256`): llama-server auto-fits the model to free memory, adjusting GPU-layer offload and reducing the *effective* context below your requested `--ctx-size` if needed. Treat `--ctx-size` as a ceiling and check the startup log for what was actually allocated. (Used in the M4 MacBook Air guide.)
+- On memory-constrained machines, add `--fit on --fit-target <MiB>` (e.g. `256`): llama-server auto-fits the model to free memory by adjusting GPU-layer offload and choosing an effective context. **Leave `--n-gpu-layers` and `--ctx-size` unset when using `--fit`** — on the current fork it aborts if `--n-gpu-layers` is set and won't shrink a pinned `--ctx-size`, so the two approaches are mutually exclusive. Check the startup log for the context it allocated. (Used in the M4 MacBook Air and 16 GB Mini Qwen guides; roomier configs pin context explicitly and skip `--fit`.)
 - Monitor resources:
   - Linux: `htop`, `nvidia-smi -l 1`
   - macOS: `htop` + Activity Monitor

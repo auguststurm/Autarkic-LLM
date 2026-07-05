@@ -26,7 +26,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release \
 
 cmake --build . --config Release -j$(nproc)
 
-cd ../bin
+cd bin
 mkdir -p ./kv-cache
 ```
 
