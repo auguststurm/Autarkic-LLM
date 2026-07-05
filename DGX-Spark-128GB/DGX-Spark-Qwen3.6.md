@@ -20,7 +20,7 @@ mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON
 cmake --build . --config Release -j$(nproc)
 
-cd ../bin
+cd bin
 mkdir -p ./kv-cache
 ```
 

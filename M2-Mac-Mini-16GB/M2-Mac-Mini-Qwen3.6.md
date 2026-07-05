@@ -25,13 +25,13 @@ Raise the Metal GPU memory limit before launching (hands ~13 GB to the GPU; reve
 sudo sysctl iogpu.wired_limit_mb=13000
 ```
 
-> ⚠️ **This leaves only ~3 GB for macOS** (13 GB of 16 GB handed to the GPU) — below Apple's recommended headroom and at the bottom of this machine's own ~3–4 GB OS overhead, so expect memory pressure. Watch **Activity Monitor → Memory → Memory Pressure** and back off the moment it turns yellow/red or the system starts swapping: lower the limit, drop to `UD-IQ1_M`, or reduce `--ctx-size`. The `iogpu.wired_limit_mb` change is **not** persistent — a reboot restores the default (~⅔ of RAM). The `13000` value is sized for the ~11.5 GB `IQ2_M` plus its KV/compute buffers; if you run the smaller `UD-IQ1_M` (~10 GB), a lower limit (e.g. `12000`) leaves more OS headroom.
+> ⚠️ **This leaves only ~3 GB for macOS** (13 GB of 16 GB handed to the GPU) — below Apple's recommended headroom and at the bottom of this machine's own ~3–4 GB OS overhead, so expect memory pressure. Watch **Activity Monitor → Memory → Memory Pressure** and back off the moment it turns yellow/red or the system starts swapping: lower the limit or drop to `UD-IQ1_M` (with `--fit`, the context auto-shrinks to match). The `iogpu.wired_limit_mb` change is **not** persistent — a reboot restores the default (~⅔ of RAM). The `13000` value is sized for the ~11.5 GB `IQ2_M` plus its KV/compute buffers; if you run the smaller `UD-IQ1_M` (~10 GB), a lower limit (e.g. `12000`) leaves more OS headroom.
 
 ## Recommended Model
 
 - **Model**: `Qwen3.6-35B-A3B-UD-IQ2_M.gguf` (MoE; IQ2 chosen so it fits 16 GB: expect a noticeable quality drop vs. Q4+)
 - **Path**: `~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-IQ2_M.gguf`
-- **Fallback if it OOMs**: drop to `UD-IQ1_M` (10 GB) and/or lower `--ctx-size`.
+- **Fallback if it OOMs**: drop to `UD-IQ1_M` (10 GB); `--fit` will size the context to whatever memory remains.
 
 ## Build Instructions
 
@@ -45,7 +45,7 @@ mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 
-cd ../bin
+cd bin
 mkdir -p ./kv-cache
 ```
 
@@ -57,8 +57,6 @@ pkill -9 llama-server
 ./llama-server \
   --model ~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-IQ2_M.gguf \
   --host 0.0.0.0 --port 8080 \
-  --ctx-size 16384 \
-  --n-gpu-layers 99 \
   --no-mmap \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
@@ -91,9 +89,9 @@ pkill -9 llama-server
 
 - 16 GB is the binding constraint here, not compute: the MoE's low *active* parameter count helps speed, but the full weights still have to be resident, so quant choice is driven entirely by the memory budget above.
 - The base M2's memory bandwidth (~100 GB/s) is lower than the M4 Mini's (~120 GB/s), and decode on a memory-bound MoE scales with bandwidth — expect generation a bit slower than the M4 Mini numbers. If decode feels too slow at IQ2, the Gemma config is the better daily driver.
-- `--ctx-size 16384` keeps the KV cache (~0.8 GB at q8_0) small enough to leave room for the weights. Lower it further if you hit OOM; raise it only if you have headroom to spare.
+- With `--ctx-size` and `--n-gpu-layers` omitted, `--fit on --fit-target 256` auto-sizes the context to whatever fits after the ~11.5 GB weights — expect a small context on 16 GB; check the startup log for the number it chose. Raising the wired limit (below) gives fit more room.
 - Close other apps and run `sudo sysctl iogpu.wired_limit_mb=13000` before launching, or the GPU allocation cap will reject the model.
-- `--fit on --fit-target 256` (in the command above) lets llama-server auto-tune context/offload to fit available memory, but note it **cannot shrink the weights**: a 22 GB Q4 still won't load on 16 GB no matter the context, which is why this guide uses an IQ2 quant.
+- `--fit on --fit-target 256` manages the load: we **omit `--ctx-size`/`--n-gpu-layers`** so fit can auto-tune context and offload (pinning either makes it abort on the current fork). It **cannot shrink the weights**, though — a 22 GB Q4 still won't load on 16 GB no matter the context, which is why this guide uses an IQ2 quant.
 - Expect IQ2-level quality (noticeably below the Q5/Q6 configs on larger machines). For everyday use on 16 GB, the [Gemma 4 E2B config](M2-Mac-Mini-Gemma-4-E2B.md) is the better choice; this guide is for testers who want to see how far a 35B MoE can be pushed on 16 GB.
 
 ## Pi Coding Agent models.json Snippet
@@ -101,11 +99,13 @@ pkill -9 llama-server
 ```json
 {
   "id": "qwen3.6-35b-a3b",
-  "name": "Qwen3.6-35B-A3B IQ2_M (16k) - M2 Mini",
-  "contextWindow": 16384,
-  "maxTokens": 8192
+  "name": "Qwen3.6-35B-A3B IQ2_M (fit-sized) - M2 Mini",
+  "contextWindow": 4096,
+  "maxTokens": 2048
 }
 ```
+
+> **`contextWindow` is provisional (untested).** `--fit` chooses the real context at launch; the `4096` above is a conservative placeholder. After your first run, set `contextWindow` to the effective `n_ctx` from the startup log (and `maxTokens` to no more than half of it).
 
 ## Measured Results
 
