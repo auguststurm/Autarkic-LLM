@@ -4,12 +4,30 @@ Optimized setup for MacBook Air M4 with 24 GB unified memory.
 
 > ✅ **Tested by the maintainer on this hardware.** The settings below come from real runs; expect some variance with thermals and background load.
 
-## Recommended Model
+## Pi Coding Agent: read this first
 
-- **Model**: `Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` (MoE - low active parameters)
+Pi needs a **large `contextWindow`** (system prompt + tools consume several thousand tokens before your task). If the server only allocates **~4096 tokens** (`n_ctx_seq (4096)` in the log), Pi will stop almost immediately with *"maximum output token limit"*.
+
+**Do not use bare `--fit on` without a pinned `--ctx-size` on Q4_K_XL** — fit shrinks context to ~4096 on 24 GB, which is too small for Pi.
+
+**Recommended for Pi:** the **IQ4_NL quant** (~18 GB) below — it frees enough memory for **32k+ context** on 24 GB. The Q4_K_XL path is kept as a higher-quality option but is tight on 24 GB with current fork builds.
+
+## Recommended Model (Pi / agentic use)
+
+- **Model**: `Qwen3.6-35B-A3B-UD-IQ4_NL.gguf` (~18 GB — best balance for Pi on 24 GB)
+- **Path**: `~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-IQ4_NL.gguf`
+
+```bash
+hf download unsloth/Qwen3.6-35B-A3B-GGUF \
+  Qwen3.6-35B-A3B-UD-IQ4_NL.gguf \
+  --local-dir ~/Documents/AIML/Models/unsloth/Qwen/LLM
+```
+
+## Alternative model (higher quality, tighter on 24 GB)
+
+- **Model**: `Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf` (~22 GB)
 - **Path**: `~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf`
-
-> **How a ~22 GB model runs on 24 GB (and why there's no `--ctx-size`/`--n-gpu-layers`):** the weights (~22.4 GB) plus KV cache exceed 24 GB once macOS overhead is counted, so this config leans on `--fit on --fit-target 256` to auto-fit — it adjusts layer offload and **chooses the effective context itself**, leaving ~256 MiB headroom. We deliberately **omit `--ctx-size` and `--n-gpu-layers`**: on the current fork, `--fit` _aborts_ if `--n-gpu-layers` is set and _won't shrink_ a context you pin, so pinning either re-breaks the load. On this machine fit lands around **4096 tokens** (measured) — fine for lighter agentic use but small. For a larger usable context, drop to a smaller quant (e.g. a ~16–18 GB Q3/IQ4 variant) to free room for KV cache. Check the startup log for the context fit actually allocated. Close other apps for the best result.
+- Use the **Q4 command block** in the server section below. If you Metal-OOM at startup or on first token, switch to IQ4_NL.
 
 ## Build Instructions
 
@@ -27,20 +45,23 @@ cd bin
 mkdir -p ./kv-cache
 ```
 
-## Optimized llama-server Command
+> **Fork version:** build from `feature/turboquant-kv-cache` at commit **`91b4f8cc8` or later** (Metal `rnorm` fix, [PR #200](https://github.com/TheTom/llama-cpp-turboquant/pull/200)). Rebuild after `git pull` — the Jun 2026 turbo4 merge (`0c8fcfe`) breaks Apple Silicon startup without this patch.
+
+## Optimized llama-server Command (IQ4_NL — recommended for Pi)
 
 ```bash
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf \
+  --model ~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-IQ4_NL.gguf \
   --host 0.0.0.0 --port 8080 \
+  --ctx-size 32768 \
+  --n-gpu-layers 99 \
   --no-mmap \
-  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --cache-type-k q8_0 --cache-type-v turbo4 \
   --jinja \
   --flash-attn on \
-  --fit on \
-  --fit-target 256 \
+  --fit off \
   --no-context-shift \
   --parallel 1 \
   --ubatch-size 128 \
@@ -54,31 +75,79 @@ pkill -9 llama-server
   --repeat-last-n 1024 \
   --threads 0 --temp 0.65 --top-p 0.90 \
   --n-predict 8192 \
-  --cache-ram 1024 \
-  --slot-save-path ./kv-cache \
-  --checkpoint-min-step 16384 \
-  --ctx-checkpoints 4 \
   --log-verbosity 2
 ```
 
-> **Checkpoint flags on Qwen3.6:** `--slot-save-path`, `--checkpoint-min-step`, and `--ctx-checkpoints` are kept here (harmless in the tested runs), but may be **no-ops on Qwen3.6** — its hybrid Gated-DeltaNet attention hits a known llama.cpp bug where context checkpoints aren't restored, forcing full prompt reprocessing each turn. Watch the log; if you see repeated full reprocessing, drop these three flags. Details: [checkpointing caveat](../llama-cpp-turboquant.md#prompt-cache--checkpointing).
+> **`--fit off` + pinned `--ctx-size`:** fit is disabled so context stays at 32k for Pi. `turbo4` V-cache saves KV RAM on Metal (requires `--flash-attn on`). Confirm the startup log shows `n_ctx_seq (32768)`.
+
+## Optimized llama-server Command (Q4_K_XL — higher quality, tighter)
+
+Same flags, swap `--model` to the Q4 path. Try `--ctx-size 32768` first; only raise to `65536` if the log shows it loaded and inference does not Metal-OOM.
+
+```bash
+pkill -9 llama-server
+
+./llama-server \
+  --model ~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf \
+  --host 0.0.0.0 --port 8080 \
+  --ctx-size 32768 \
+  --n-gpu-layers 99 \
+  --no-mmap \
+  --cache-type-k q8_0 --cache-type-v turbo4 \
+  --jinja \
+  --flash-attn on \
+  --fit off \
+  --no-context-shift \
+  --parallel 1 \
+  --ubatch-size 64 \
+  --batch-size 64 \
+  --reasoning on \
+  --reasoning-budget 0 \
+  --repeat-penalty 1.10 \
+  --presence-penalty 0.0 \
+  --frequency-penalty 0.0 \
+  --min-p 0.0 \
+  --repeat-last-n 1024 \
+  --threads 0 --temp 0.65 --top-p 0.90 \
+  --n-predict 8192 \
+  --log-verbosity 2
+```
+
+> **Checkpoint flags omitted** — they do not help on Qwen3.6 hybrid attention and only add log noise. See [checkpointing caveat](../llama-cpp-turboquant.md#prompt-cache--checkpointing).
 
 ## Performance Notes
 
 - MoE architecture (low active parameters) keeps decode fast despite the 35B total size.
-- `--fit on --fit-target 256` is what makes this config viable on 24 GB: with `--ctx-size` and `--n-gpu-layers` omitted, it auto-sizes context and layer offload to guarantee a load (≈4096 tokens here, measured). Watch the startup log for the `fit` line reporting the effective context.
-- `--ubatch-size`/`--batch-size` are kept at 128 to limit the compute-buffer footprint on tight memory.
-- Good balance for lighter agentic tasks and daily development use; close memory-hungry apps before launching.
+- `n_ctx_seq (32768) < n_ctx_train (262144)` is normal — you are not using the model's full 262k train length.
+- Close memory-hungry apps before launching. If you see `kIOGPUCommandBufferCallbackErrorOutOfMemory`, lower `--ctx-size` to `16384` or switch to IQ4_NL.
+- After a fork rebuild, always check the log for the actual `n_ctx_seq` and match Pi's `contextWindow` to that value.
 
 ## Pi Coding Agent models.json Snippet
+
+Use the block that matches the model and `--ctx-size` you launched. `maxTokens` must not exceed `--n-predict` (8192).
+
+**IQ4_NL @ 32k (recommended):**
 
 ```json
 {
   "id": "qwen3.6-35b-a3b",
-  "name": "Qwen3.6-35B-A3B Q4_K_XL (4k) - M4 Air",
-  "contextWindow": 4096,
-  "maxTokens": 2048
+  "name": "Qwen3.6-35B-A3B IQ4_NL (32k) - M4 Air",
+  "contextWindow": 32768,
+  "maxTokens": 8192
 }
 ```
+
+**Q4_K_XL @ 32k:**
+
+```json
+{
+  "id": "qwen3.6-35b-a3b",
+  "name": "Qwen3.6-35B-A3B Q4_K_XL (32k) - M4 Air",
+  "contextWindow": 32768,
+  "maxTokens": 8192
+}
+```
+
+Nest either entry in the full `providers` wrapper from [`local-setup.md`](../local-setup.md#6-pi-coding-agent--hermes-integration). Point Pi at `http://127.0.0.1:8080/v1`.
 
 **Last Updated:** July 2026
