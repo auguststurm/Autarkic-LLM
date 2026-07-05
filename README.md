@@ -84,6 +84,6 @@ Autarkic-LLM/
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** June 2026  
+**Last Updated:** July 2026  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)

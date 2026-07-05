@@ -135,4 +135,4 @@ This config is untested on real hardware. If you run it on a 16 GB M2 Mac Mini, 
 
 That feedback lets us replace the estimates above with measured numbers.
 
-**Last Updated:** June 2026
+**Last Updated:** July 2026

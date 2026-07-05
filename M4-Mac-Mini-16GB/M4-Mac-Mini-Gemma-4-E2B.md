@@ -96,4 +96,4 @@ Without `--mmproj` the server runs text-only.
 }
 ```
 
-**Last Updated:** June 2026
+**Last Updated:** July 2026
