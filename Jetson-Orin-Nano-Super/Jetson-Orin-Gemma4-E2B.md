@@ -79,7 +79,7 @@ pkill -9 llama-server
   "id": "gemma-4-e2b",
   "name": "Gemma 4 E2B Q4_K_S - Jetson Orin Nano Super",
   "contextWindow": 32768,
-  "maxTokens": 8192
+  "maxTokens": 4096
 }
 ```
 

@@ -18,6 +18,22 @@ This is **not** the standard Unsloth UD quant — it's ByteShape's **ShapeLearn-
 
 > **Build requirement:** MTP support requires a recent build of llama.cpp (the `draft-mtp` value for `--spec-type` was added in b9235 ). If your `./llama-server --help` output does not list `draft-mtp` under `--spec-type`, please update to a newer build from the [llama.cpp releases](https://github.com/ggml-org/llama.cpp/releases).
 
+## Build Instructions
+
+```bash
+cd ~/Documents/GitHub/llama-cpp-turboquant
+
+rm -rf build
+mkdir build && cd build
+
+# AMD RDNA3: use Vulkan, not CUDA
+cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
+cmake --build . --config Release -j$(nproc)
+
+cd bin
+mkdir -p ./kv-cache
+```
+
 ## Optimized llama-server Command
 
 ```bash
