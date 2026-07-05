@@ -75,12 +75,56 @@ pkill -9 llama-server
   "id": "qwen3.6-27b",
   "name": "Qwen3.6-27B Q5_K_XL (196k) - M5 Pro",
   "contextWindow": 196608,
-  "maxTokens": 32768
+  "maxTokens": 8192
+}
+```
+
+## Alternate: MoE upgrade (untested)
+
+Primary config above is the **tested baseline**. For stronger agentic quality at similar memory:
+
+- **Model**: `Qwen3.6-35B-A3B-UD-IQ4_NL.gguf` (~18 GB MoE)
+- **Path**: `~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-IQ4_NL.gguf`
+
+```bash
+pkill -9 llama-server
+
+./llama-server \
+  --model ~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-IQ4_NL.gguf \
+  --host 0.0.0.0 --port 8080 \
+  --ctx-size 65536 \
+  --n-gpu-layers 99 \
+  --no-mmap \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --jinja \
+  --flash-attn on \
+  --no-context-shift \
+  --parallel 1 \
+  --ubatch-size 512 \
+  --batch-size 512 \
+  --reasoning on \
+  --reasoning-budget 0 \
+  --repeat-penalty 1.10 \
+  --presence-penalty 0.0 \
+  --frequency-penalty 0.0 \
+  --min-p 0.0 \
+  --repeat-last-n 1024 \
+  --threads 0 --temp 0.65 --top-p 0.90 \
+  --n-predict 8192 \
+  --cache-ram 4096 \
+  --slot-save-path ./kv-cache \
+  --checkpoint-min-step 16384 \
+  --ctx-checkpoints 8 \
+  --log-verbosity 2
+```
+
+```json
+{
+  "id": "qwen3.6-35b-a3b",
+  "name": "Qwen3.6-35B-A3B IQ4_NL (64k) - M5 Pro",
+  "contextWindow": 65536,
+  "maxTokens": 8192
 }
 ```
 
 **Last Updated:** July 2026
-
----
-
-Ready for review. Let me know if adjustments are needed before we continue to the next hardware.

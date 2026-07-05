@@ -50,6 +50,24 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON
 cmake --build . --config Release -j$(nproc)
 ```
 
+> **CUDA architectures (optional but recommended).** Omit `-DCMAKE_CUDA_ARCHITECTURES` to autodetect on the build machine. Set it explicitly when cross-compiling or sharing binaries:
+>
+> | GPU | `-DCMAKE_CUDA_ARCHITECTURES` |
+> | --- | --- |
+> | Jetson Orin Nano | `"87"` |
+> | RTX 4090 (Ada) | `"89"` |
+> | RTX 6000 Pro Max-Q (Blackwell) | `"120"` |
+> | DGX Spark GB10 | `"121"` |
+
+**Linux / Vulkan (AMD RDNA3):**
+
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
+cmake --build . --config Release -j$(nproc)
+```
+
+> Vulkan is the recommended backend on AMD Radeon GPUs (e.g. RX 7900 XTX). Do not build with `-DGGML_CUDA=ON` unless you also have an NVIDIA GPU.
+
 **macOS (Metal):**
 
 > ⚠️ **Apple Silicon build fix (required as of fork commit `0c8fcfe73`, June 2026).** The fork dropped the dead `rnorm` field from the `block_turbo4_0` CPU struct (`ggml/src/ggml-common.h`, now 66 bytes) but left two writes to it in the Metal shader. macOS compiles that shader at `llama-server` **startup**, so the build links fine and then crashes on launch with `no member named 'rnorm'`. Delete the two offending lines first — in `ggml/src/ggml-metal/ggml-metal.metal`, remove the line `dst.rnorm = half(0.0f);` and the line `blk.rnorm = half(0.0f);  // reserved field, unused in 4-bit mode` (search for `rnorm`; both are zero-writes to a now-removed field, safe to delete). A fix is proposed upstream ([PR #200](https://github.com/TheTom/llama-cpp-turboquant/pull/200)) but not yet merged as of July 2026 — apply this patch until it lands (or until the fork otherwise gates these writes behind `#if !TURBO4_USE_4BIT`).

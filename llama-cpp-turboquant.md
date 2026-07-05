@@ -87,9 +87,10 @@ Separate from the KV cache, the fork can quantize *model weights* to `TQ4_1S` (~
 From [`local-setup.md`](local-setup.md) and the per-hardware guides. See the [llama.cpp build docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md).
 
 - **`-DGGML_CUDA=ON`**: build the CUDA backend (NVIDIA: DGX, RTX cards, Jetson).
+- **`-DGGML_VULKAN=ON`**: build the Vulkan backend (AMD RDNA3: RX 7900 XTX, etc.). Used in the AMD guides.
 - **`-DGGML_METAL=ON`**: build the Metal backend (Apple Silicon).
 - **`-DGGML_METAL_EMBED_LIBRARY=ON`**: embed the Metal shader library into the binary so there's no external `.metallib` to ship/locate. Standard for Apple builds.
-- **`-DCMAKE_CUDA_ARCHITECTURES="87"`**: compile for a specific GPU compute capability (Jetson Orin = `87`/sm_87). Omit to let CMake autodetect (the DGX guide does).
+- **`-DCMAKE_CUDA_ARCHITECTURES="…"`**: compile for a specific GPU compute capability. Common values: Jetson Orin `"87"`, RTX 4090 `"89"`, RTX 6000 Pro Max-Q `"120"`, DGX Spark GB10 `"121"`. Omit to let CMake autodetect on the build machine.
 - **`-DGGML_CUDA_F16=ON`**: enable FP16 CUDA compute paths (faster on capable GPUs).
 - **`-DGGML_CUDA_FA_ALL_QUANTS=ON`**: compile flash-attention CUDA kernels for **all** KV-quant type combinations. Needed when you want arbitrary quantized KV (e.g. turbo/odd combos) with flash attention; **significantly longer compile time**. Used in the Jetson guide.
 - **`-DLLAMA_CURL=ON`**: link libcurl so the binary can fetch models remotely (`-hf` etc.). Needs `libcurl4-openssl-dev` on Debian/Ubuntu.

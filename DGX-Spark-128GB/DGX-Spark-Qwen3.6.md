@@ -17,7 +17,7 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 rm -rf build
 mkdir build && cd build
 
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="121"
 cmake --build . --config Release -j$(nproc)
 
 cd bin
@@ -74,7 +74,24 @@ pkill -9 llama-server
   "id": "qwen3.6-27b",
   "name": "Qwen3.6-27B Q6_K_XL (262k) - DGX Spark",
   "contextWindow": 262144,
-  "maxTokens": 32768
+  "maxTokens": 8192
+}
+```
+
+## Alternate: higher quality (untested)
+
+Primary config above is the **tested baseline**. If you want maximum quality and have headroom to spare:
+
+- **Model**: `Qwen3.6-27B-UD-Q8_K_XL.gguf` (~35.3 GB)
+- **Path**: `~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-27B-UD-Q8_K_XL.gguf`
+- Use the same `llama-server` command as above, swapping only `--model`. ~90 GB remains for KV at 262k context.
+
+```json
+{
+  "id": "qwen3.6-27b",
+  "name": "Qwen3.6-27B Q8_K_XL (262k) - DGX Spark",
+  "contextWindow": 262144,
+  "maxTokens": 8192
 }
 ```
 
