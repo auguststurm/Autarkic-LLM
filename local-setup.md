@@ -70,7 +70,7 @@ cmake --build . --config Release -j$(nproc)
 
 **macOS (Metal):**
 
-> ⚠️ **Apple Silicon build fix (required as of fork commit `0c8fcfe73`, June 2026).** The fork dropped the dead `rnorm` field from the `block_turbo4_0` CPU struct (`ggml/src/ggml-common.h`, now 66 bytes) but left two writes to it in the Metal shader. macOS compiles that shader at `llama-server` **startup**, so the build links fine and then crashes on launch with `no member named 'rnorm'`. Delete the two offending lines first — in `ggml/src/ggml-metal/ggml-metal.metal`, remove the line `dst.rnorm = half(0.0f);` and the line `blk.rnorm = half(0.0f);  // reserved field, unused in 4-bit mode` (search for `rnorm`; both are zero-writes to a now-removed field, safe to delete). A fix is proposed upstream ([PR #200](https://github.com/TheTom/llama-cpp-turboquant/pull/200)) but not yet merged as of July 2026 — apply this patch until it lands (or until the fork otherwise gates these writes behind `#if !TURBO4_USE_4BIT`).
+> **Metal turbo4 `rnorm`:** on current TheTom tip (**`b01afefed` / PR #200 content or later**), no manual Metal shader edit is required — Apple hardware guides assume this. If you are on an older fork commit and `llama-server` crashes at startup with `no member named 'rnorm'`, either `git pull` to tip or delete the two zero-writes to `rnorm` in `ggml/src/ggml-metal/ggml-metal.metal` (`dst.rnorm = half(0.0f);` and `blk.rnorm = half(0.0f);…`). Details: [PR #200](https://github.com/TheTom/llama-cpp-turboquant/pull/200).
 
 ```bash
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
@@ -99,14 +99,15 @@ Collections: [Qwen3.6 (Unsloth)](https://huggingface.co/collections/unsloth/qwen
 pip install -U huggingface_hub hf_transfer
 
 # Qwen example (hf is the current CLI; older docs use `huggingface-cli download`)
+# Hardware guides use ~/Documents/AIML/models as a flat local-dir; any path works if --model matches.
 hf download unsloth/Qwen3.6-27B-GGUF \
   Qwen3.6-27B-UD-Q6_K_XL.gguf \
-  --local-dir ~/Documents/AIML/Models/unsloth/Qwen/LLM
+  --local-dir ~/Documents/AIML/models
 
-# Gemma example (for the Jetson / Mac Mini guides)
+# Gemma example (Mac Mini / Jetson guides)
 hf download unsloth/gemma-4-E2B-it-GGUF \
   gemma-4-E2B-it-Q4_K_S.gguf \
-  --local-dir ~/Documents/AIML/Models/unsloth/gemma-4-E2B
+  --local-dir ~/Documents/AIML/models
 ```
 
 > **Gated models:** the Unsloth GGUF repos above are generally open, but the *original* Google/Qwen weights (and some mirrors) may be gated. If a download 401s, run `hf auth login` and accept the model's license on its Hugging Face page first. Confirm the exact quant filename on the repo's "Files" tab: available quants vary per model.
@@ -121,10 +122,11 @@ mkdir -p ./kv-cache
 
 ## 5. Common Best Practices
 
-- **Network exposure (read this).** Every command in these guides binds `--host 0.0.0.0`, which serves the model to *every device on your network with no authentication* — and typically with a shell-capable [agentic harness](agentic-harnesses.md) behind it. That is at odds with the "nothing leaves the box" goal. For a truly self-contained machine, use `--host 127.0.0.1` (loopback only). Keep `0.0.0.0` **only** on a trusted LAN where you deliberately reach the server from other machines, and put it behind a firewall.
-- Always run `pkill -9 llama-server` before starting a new instance. The `-9` (SIGKILL) is deliberate, not lazy: llama-server's graceful shutdown can hang on SIGTERM/SIGINT (upstream issues [#11742](https://github.com/ggml-org/llama.cpp/issues/11742), [#20921](https://github.com/ggml-org/llama.cpp/issues/20921)), and it does **not** auto-save KV state on exit — slot saves to `--slot-save-path` happen only on explicit API calls, and checkpoints (`--cache-ram`) are ephemeral — so a hard kill loses nothing persistent.
-- Use `--no-mmap` on systems with sufficient RAM.
-- On memory-constrained machines, add `--fit on --fit-target <MiB>` (e.g. `256`): llama-server auto-fits the model to free memory by adjusting GPU-layer offload and choosing an effective context. **Leave `--n-gpu-layers` and `--ctx-size` unset when using `--fit`** — on the current fork it aborts if `--n-gpu-layers` is set and won't shrink a pinned `--ctx-size`, so the two approaches are mutually exclusive. Check the startup log for the context it allocated. (Used in the M4 MacBook Air and 16 GB Mini Qwen guides; roomier configs pin context explicitly and skip `--fit`.)
+- **Network exposure (read this).** Guides default to `--host 127.0.0.1` (loopback only). Binding `--host 0.0.0.0` serves the model to *every device on your network with no authentication* — and typically with a shell-capable [agentic harness](agentic-harnesses.md) behind it. That is at odds with the "nothing leaves the box" goal. Keep `0.0.0.0` **only** on a trusted LAN where you deliberately reach the server from other machines, and put it behind a firewall.
+- Always run `pkill -9 llama-server` before starting a new instance. The `-9` (SIGKILL) is deliberate, not lazy: llama-server's graceful shutdown can hang on SIGTERM/SIGINT (upstream issues [#11742](https://github.com/ggml-org/llama.cpp/issues/11742), [#20921](https://github.com/ggml-org/llama.cpp/issues/20921)), and it does **not** auto-save useful long-term KV on exit — so a hard kill loses nothing you were relying on for persistence.
+- Use `--no-mmap` on systems with sufficient RAM (common on CUDA/Vulkan guides). Memory-tight Metal configs may omit it.
+- **Prefer pinned `--ctx-size` + `--fit off` for agent use (Pi / Hermes).** Default `--fit on` can crush context (sometimes toward ~4096) and break long sessions — documented on the [M4 MacBook Air guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). **All hardware guides in this repo pin context and set `--fit off`.** If you experiment with `--fit on --fit-target <MiB>`, **leave `--n-gpu-layers` and `--ctx-size` unset** — on the current fork it aborts if `--n-gpu-layers` is set and won't shrink a pinned `--ctx-size`. Check the startup log for the context it allocated.
+- **Qwen3.6 + agents:** use `--reasoning off` and `--chat-template-kwargs '{"enable_thinking":false}'` so clients get normal `message.content` (empty replies are a common failure mode when thinking stays enabled). Do not rely on context-checkpoint flags for Qwen3.6 hybrid attention — see [checkpointing caveat](llama-cpp-turboquant.md#prompt-cache--checkpointing).
 - Monitor resources:
   - Linux: `htop`, `nvidia-smi -l 1`
   - macOS: `htop` + Activity Monitor
@@ -138,7 +140,7 @@ Create a `models.json` file pointing to your local server:
 > **Important:** match these settings to the model you actually loaded with `llama-server`. Mismatched values cause truncation, errors, or wasted memory.
 >
 > - **`id`** / **`name`**: identify the real model you launched.
-> - **`contextWindow`**: must not exceed your `--ctx-size` (and the effective context after `--fit` — check the startup log).
+> - **`contextWindow`**: must equal (or not exceed) your real server `n_ctx_seq` — copy from the hardware guide / startup log. With pinned `--ctx-size` + `--fit off`, this is your `--ctx-size`.
 > - **`maxTokens`**: must not exceed your `--n-predict`.
 > - Each hardware guide lists the exact snippet for its model — copy from there.
 
@@ -153,14 +155,16 @@ Create a `models.json` file pointing to your local server:
         {
           "id": "your-model",
           "name": "Your Model Name",
-          "contextWindow": 262144,
-          "maxTokens": 32768
+          "contextWindow": 61440,
+          "maxTokens": 8192
         }
       ]
     }
   }
 }
 ```
+
+> Example numbers above match the [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) pattern only as a shape reference — **always use the values from your hardware guide**.
 
 ## Next Steps
 

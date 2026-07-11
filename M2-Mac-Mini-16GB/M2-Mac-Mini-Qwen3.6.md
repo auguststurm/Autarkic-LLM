@@ -1,12 +1,26 @@
-# M2 Mac Mini (16 GB) - Qwen3.6-35B-A3B
+# M2 Mac Mini (16 GB) - Qwen3.6-35B-A3B (experimental)
 
-Setup for Mac Mini M2 with 16 GB unified memory.
+Experimental setup for Mac Mini M2 with 16 GB unified memory, using **llama-cpp-turboquant**. Structure follows the [M4 MacBook Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md), but **16 GB cannot run the Air’s IQ4_NL (~18 GB) quant**. This guide only makes sense if you want to push a heavily compressed MoE; for daily use prefer **[Gemma 4 E2B](M2-Mac-Mini-Gemma-4-E2B.md)** (~3 GB, lots of headroom).
 
-> ⚠️ **Untested on hardware. 16 GB is a tight fit for this model.** Qwen3.6-35B-A3B is a 35B-parameter MoE; even though only ~3B params are active per token, the *full* weights must be resident in memory. The 4-bit quants are 21–22 GB and **cannot load on a 16 GB machine**. Only the heavily-compressed IQ2/IQ1 quants fit, and only with a reduced context and a raised GPU memory limit (see below). If you just want a reliable model on 16 GB, use the **[Gemma 4 E2B config](M2-Mac-Mini-Gemma-4-E2B.md)** in this folder (~3 GB, lots of headroom). Treat this Qwen guide as an experiment for people who want to push the limit and report back. On the base M2's ~100 GB/s memory bandwidth (vs ~120 GB/s on the M4 Mini), expect slower decode than the [M4 Mac Mini config](../M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md).
+> ⚠️ **Untested on hardware. 16 GB is a tight fit for this model.** Qwen3.6-35B-A3B is a 35B-parameter MoE; even though only ~3B params are active per token, the *full* weights must be resident. 4-bit quants (21–22 GB) **cannot load**. Only IQ2/IQ1-class quants fit, with a raised GPU wired limit and a modest pinned context. On the base M2’s ~100 GB/s bandwidth (vs ~120 GB/s on the M4 Mini), expect slower decode than the [M4 Mini Qwen experiment](../M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md). Treat this as an experiment for people who want to push the limit and report back.
 
-## Memory Budget (16 GB unified)
+## Why TurboQuant matters here
 
-Usable budget after macOS overhead (~3–4 GB) and the default GPU wired-memory cap (~⅔ of RAM ≈ 10.7 GB) is small. The model weights + KV cache + compute buffers must all fit. Actual GGUF sizes for `unsloth/Qwen3.6-35B-A3B-GGUF`:
+On 16 GB the weights already consume most of usable memory. **Any useful context only fits if the KV cache is compressed.** The Air guide proved that on 24 GB with IQ4; here the same idea applies with a smaller quant and smaller window.
+
+| Tier | ~bits / value | Role on this Mini |
+| --- | --- | --- |
+| `turbo4` | ~4.25 | Milder; less context |
+| `turbo3` | ~3.25 | Middle ground |
+| **`turbo2`** | ~2.0 | **Starting V-cache** — max context under extreme pressure |
+
+Asymmetric config below: **K = `q8_0`**, **V = `turbo2`**. **Requires** `--flash-attn on` and this fork (upstream rejects `turbo*`).
+
+**Do not use bare `--fit on` for Pi.** The Air lesson: default fit can crush context toward ~4096. Pin `--ctx-size` and set `--fit off`; if you OOM, lower the pin.
+
+## Memory reality (read this)
+
+Usable budget after macOS overhead (~3–4 GB) and the default GPU wired-memory cap (~⅔ of RAM ≈ 10.7 GB) is small. Actual GGUF sizes for `unsloth/Qwen3.6-35B-A3B-GGUF`:
 
 ```text
 Quant        Size      Fits 16 GB?
@@ -16,6 +30,7 @@ UD-IQ2_XXS   10.8 GB   marginal
 UD-IQ2_M     11.5 GB   marginal  <- recommended starting point
 UD-Q2_K_XL   12.3 GB   tight; needs raised wired limit
 UD-Q3_K_S    15.4 GB   no
+UD-IQ4_NL    ~18 GB    no (Air quant — does not fit)
 UD-Q4_K_XL   22.4 GB   no
 ```
 
@@ -25,23 +40,49 @@ Raise the Metal GPU memory limit before launching (hands ~13 GB to the GPU; reve
 sudo sysctl iogpu.wired_limit_mb=13000
 ```
 
-> ⚠️ **This leaves only ~3 GB for macOS** (13 GB of 16 GB handed to the GPU) — below Apple's recommended headroom and at the bottom of this machine's own ~3–4 GB OS overhead, so expect memory pressure. Watch **Activity Monitor → Memory → Memory Pressure** and back off the moment it turns yellow/red or the system starts swapping: lower the limit or drop to `UD-IQ1_M` (with `--fit`, the context auto-shrinks to match). The `iogpu.wired_limit_mb` change is **not** persistent — a reboot restores the default (~⅔ of RAM). The `13000` value is sized for the ~11.5 GB `IQ2_M` plus its KV/compute buffers; if you run the smaller `UD-IQ1_M` (~10 GB), a lower limit (e.g. `12000`) leaves more OS headroom.
+> ⚠️ **This leaves only ~3 GB for macOS** (13 GB of 16 GB handed to the GPU) — below Apple’s recommended headroom. Watch **Activity Monitor → Memory → Memory Pressure** and back off the moment it turns yellow/red or the system starts swapping: lower the wired limit, drop context, or switch to `UD-IQ1_M`. The `iogpu.wired_limit_mb` change is **not** persistent — a reboot restores the default (~⅔ of RAM). `13000` is sized for ~11.5 GB `IQ2_M` plus KV/compute; for `UD-IQ1_M` (~10 GB), try `12000` for more OS headroom.
 
-## Recommended Model
+- **Pinned context below is a starting estimate (untested), not a verified decode matrix.** Confirm **first decode**, not only load (Air lesson: process can report `n_ctx` and still Metal-OOM on first token).
+- Close heavy apps. Prefer **one** long-lived `llama-server` — avoid rapid stop/start thrash on unified memory.
 
-- **Model**: `Qwen3.6-35B-A3B-UD-IQ2_M.gguf` (MoE; IQ2 chosen so it fits 16 GB: expect a noticeable quality drop vs. Q4+)
-- **Path**: `~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-IQ2_M.gguf`
-- **Fallback if it OOMs**: drop to `UD-IQ1_M` (10 GB); `--fit` will size the context to whatever memory remains.
+## Pi Coding Agent: read this first
 
-## Build Instructions
+Pi needs a realistic `contextWindow` matching the server’s real `n_ctx_seq`.
+
+**Always pin `--ctx-size` and set `--fit off`.**
+
+**Thinking / empty replies** (Qwen3.6):
+
+- `--reasoning off`
+- `--chat-template-kwargs '{"enable_thinking":false}'`
+
+Expect a **small** context on 16 GB even with turbo2. Gemma is the better Pi daily driver on this machine.
+
+## Recommended model
+
+- **Model:** `Qwen3.6-35B-A3B-UD-IQ2_M.gguf` (~11.5 GB MoE; expect a noticeable quality drop vs Q4+/IQ4)
+- **Path:** `~/Documents/AIML/models/Qwen3.6-35B-A3B-UD-IQ2_M.gguf`
+- **Fallback if OOM:** `UD-IQ1_M` (~10 GB)
+
+```bash
+hf download unsloth/Qwen3.6-35B-A3B-GGUF \
+  Qwen3.6-35B-A3B-UD-IQ2_M.gguf \
+  --local-dir ~/Documents/AIML/models
+```
+
+## Build instructions (TurboQuant fork)
 
 ```bash
 cd ~/Documents/GitHub/llama-cpp-turboquant
 
+# TheTom TurboQuant fork — not ggml-org/llama.cpp
+# https://github.com/TheTom/llama-cpp-turboquant
+git checkout feature/turboquant-kv-cache
+git pull
+
 rm -rf build
 mkdir build && cd build
 
-# Apple Silicon: first apply the Metal rnorm patch from ../local-setup.md (step 2), or the shader fails to compile when llama-server starts
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 
@@ -49,25 +90,36 @@ cd bin
 mkdir -p ./kv-cache
 ```
 
-## Optimized llama-server Command
+Confirm the binary accepts turbo types:
+
+```bash
+./llama-server --help | grep -A2 cache-type-v
+# must list turbo2, turbo3, turbo4
+```
+
+> **Fork version:** tip that includes Metal turbo4 `rnorm` fix (**`b01afefed` / PR #200 content or later**). No manual Metal shader edit on current TheTom tip. Rebuild after `git pull`.
+
+## Optimized llama-server command (IQ2_M + TurboQuant @ 8k start)
+
+Run from `~/Documents/GitHub/llama-cpp-turboquant/build/bin`. Raise wired limit first (see above).
 
 ```bash
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-IQ2_M.gguf \
-  --host 0.0.0.0 --port 8080 \
-  --no-mmap \
-  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --model ~/Documents/AIML/models/Qwen3.6-35B-A3B-UD-IQ2_M.gguf \
+  --host 127.0.0.1 --port 8080 \
+  --ctx-size 8192 \
+  --fit off \
+  --cache-type-k q8_0 --cache-type-v turbo2 \
   --jinja \
+  --chat-template-kwargs '{"enable_thinking":false}' \
   --flash-attn on \
-  --fit on \
-  --fit-target 256 \
   --no-context-shift \
   --parallel 1 \
-  --ubatch-size 128 \
-  --batch-size 128 \
-  --reasoning on \
+  --ubatch-size 64 \
+  --batch-size 64 \
+  --reasoning off \
   --reasoning-budget 0 \
   --repeat-penalty 1.10 \
   --presence-penalty 0.0 \
@@ -76,45 +128,60 @@ pkill -9 llama-server
   --repeat-last-n 1024 \
   --threads 0 --temp 0.65 --top-p 0.90 \
   --n-predict 4096 \
-  --cache-ram 1024 \
-  --slot-save-path ./kv-cache \
-  --checkpoint-min-step 8192 \
-  --ctx-checkpoints 4 \
-  --log-verbosity 2
+  --kv-unified \
+  --log-verbosity 1
 ```
 
-> **Checkpoint flags on Qwen3.6:** `--slot-save-path`, `--checkpoint-min-step`, and `--ctx-checkpoints` are included here, but may be **no-ops on Qwen3.6** — its hybrid Gated-DeltaNet attention hits a known llama.cpp bug where context checkpoints aren't restored, forcing full prompt reprocessing each turn. On this memory-tight config, dropping them also frees the `--cache-ram` reservation. Details: [checkpointing caveat](../llama-cpp-turboquant.md#prompt-cache--checkpointing).
+### Why these values
 
-## Performance Notes
+| Flag / value | Why |
+| --- | --- |
+| `--ctx-size 8192` | Conservative **untested** pin so Pi sees a real window; raise only after decode works |
+| `--cache-type-k q8_0 --cache-type-v turbo2` | TurboQuant on V so context can exist after ~11.5 GB weights |
+| `--flash-attn on` | Required for turbo KV types |
+| `--ubatch-size` / `--batch-size` **64** | Matches Air’s tight-batch lesson; drop to 32 if peak OOM (M2 may prefer 32 sooner) |
+| `--fit off` | Avoid silent context collapse; pin deliberately |
+| Thinking off | Agent-friendly non-thinking Qwen3.6 |
+| `--host 127.0.0.1` | Local-only default (use `0.0.0.0` only if you intend LAN exposure — no auth) |
+| No checkpoint flags | Qwen3.6 hybrid attention often won’t restore checkpoints usefully — see [checkpointing caveat](../llama-cpp-turboquant.md#prompt-cache--checkpointing) |
 
-- 16 GB is the binding constraint here, not compute: the MoE's low *active* parameter count helps speed, but the full weights still have to be resident, so quant choice is driven entirely by the memory budget above.
-- The base M2's memory bandwidth (~100 GB/s) is lower than the M4 Mini's (~120 GB/s), and decode on a memory-bound MoE scales with bandwidth — expect generation a bit slower than the M4 Mini numbers. If decode feels too slow at IQ2, the Gemma config is the better daily driver.
-- With `--ctx-size` and `--n-gpu-layers` omitted, `--fit on --fit-target 256` auto-sizes the context to whatever fits after the ~11.5 GB weights — expect a small context on 16 GB; check the startup log for the number it chose. Raising the wired limit (below) gives fit more room.
-- Close other apps and run `sudo sysctl iogpu.wired_limit_mb=13000` before launching, or the GPU allocation cap will reject the model.
-- `--fit on --fit-target 256` manages the load: we **omit `--ctx-size`/`--n-gpu-layers`** so fit can auto-tune context and offload (pinning either makes it abort on the current fork). It **cannot shrink the weights**, though — a 22 GB Q4 still won't load on 16 GB no matter the context, which is why this guide uses an IQ2 quant.
-- Expect IQ2-level quality (noticeably below the Q5/Q6 configs on larger machines). For everyday use on 16 GB, the [Gemma 4 E2B config](M2-Mac-Mini-Gemma-4-E2B.md) is the better choice; this guide is for testers who want to see how far a 35B MoE can be pushed on 16 GB.
+Confirm **`n_ctx` / `n_ctx_seq`** in the log or `GET /v1/models`, then **run a short decode**.
 
-## Pi Coding Agent models.json Snippet
+### Fallbacks if you Metal-OOM
 
-```json
-{
-  "id": "qwen3.6-35b-a3b",
-  "name": "Qwen3.6-35B-A3B IQ2_M (fit-sized) - M2 Mini",
-  "contextWindow": 4096,
-  "maxTokens": 2048
-}
+1. Confirm `sudo sysctl iogpu.wired_limit_mb=13000` and close other apps.
+2. Drop batch to `32`.
+3. Drop `--ctx-size` to `4096`.
+4. Switch weights to `UD-IQ1_M`.
+5. Do **not** switch to IQ4_NL / Q4_K_XL — TurboQuant compresses **KV**, not weights.
+
+### If 8k is stable (raise carefully)
+
+```bash
+# Same flags, try in order and confirm decode each time:
+#   --ctx-size 12288
+#   --ctx-size 16384
+# Stop at the first Metal OOM; report the max that worked.
 ```
 
-> **`contextWindow` is provisional (untested).** `--fit` chooses the real context at launch; the `4096` above is a conservative placeholder. After your first run, set `contextWindow` to the effective `n_ctx` from the startup log (and `maxTokens` to no more than half of it).
+## Performance notes
 
-## Measured Results
+- 16 GB is the binding constraint, not compute. Quant choice is driven entirely by the memory budget above.
+- Base M2 bandwidth (~100 GB/s) is lower than M4 Mini (~120 GB/s); expect somewhat slower decode on this memory-bound MoE.
+- Expect IQ2-level quality (noticeably below Q5/Q6 or Air IQ4). For everyday use, prefer [Gemma 4 E2B](M2-Mac-Mini-Gemma-4-E2B.md).
+- turbo2 V costs some decode speed vs `q8_0`/`turbo4` — that is the trade for any usable context.
+- Watch logs for `kIOGPUCommandBufferCallbackErrorOutOfMemory` and Memory Pressure.
+- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Pattern reference: [M4 Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
+
+## Measured results
 
 > 📝 **Placeholder — pending a real run on a 16 GB M2 Mac Mini.** Replace each *TBD* once measured.
 
 | Metric | Value |
 | --- | --- |
 | Quant used | *TBD* |
-| Largest `--ctx-size` that loaded | *TBD* |
+| Largest `--ctx-size` that decoded | *TBD* |
+| KV types / batch | *TBD* |
 | `iogpu.wired_limit_mb` needed | *TBD* |
 | Peak memory (startup log + Activity Monitor) | *TBD* |
 | Prefill / prompt-eval (tok/s) | *TBD* |
@@ -122,17 +189,33 @@ pkill -9 llama-server
 | Subjective quality at IQ2 | *TBD* |
 | llama-cpp-turboquant commit built | *TBD* |
 
-## Report Your Results
+## Pi Coding Agent `models.json` snippet
+
+`maxTokens` ≤ `--n-predict` (4096). `contextWindow` = the **`--ctx-size` you actually ran** (default start: 8192).
+
+```json
+{
+  "id": "qwen3.6-35B-A3B",
+  "name": "Qwen3.6-35B-A3B IQ2_M turbo2 (8k) - M2 Mini",
+  "contextWindow": 8192,
+  "maxTokens": 4096
+}
+```
+
+> **Provisional until measured.** After your first stable run, set `contextWindow` to the effective `n_ctx_seq` from the log.
+
+Nest in the full `providers` wrapper from [`local-setup.md`](../local-setup.md#6-pi-coding-agent--hermes-integration). Point Pi at `http://127.0.0.1:8080/v1`.
+
+## Report your results
 
 This config is untested on real hardware. If you run it on a 16 GB M2 Mac Mini, please open an issue with:
 
-- **Quant used** (e.g. `UD-IQ2_M`) and whether it loaded or OOM'd.
-- **Context that actually fit**: the largest `--ctx-size` that loaded without OOM.
-- **Peak memory**: from the `llama-server` startup log (model buffer + KV cache + compute buffer sizes) and Activity Monitor's "Memory Used" while generating.
-- **`iogpu.wired_limit_mb`** value you needed (or whether the default worked).
-- **Speed**: prompt eval (prefill) and generation (decode) tokens/sec, reported by `llama-server` per request.
-- **Subjective quality** at IQ2 for your tasks, and whether dropping to `UD-IQ1_M` or moving up to `UD-Q2_K_XL` worked better.
-
-That feedback lets us replace the estimates above with measured numbers.
+- **Quant used** and whether it loaded or OOM’d
+- **Largest `--ctx-size` that decoded** (not just loaded), with KV types and batch
+- **`iogpu.wired_limit_mb`** value needed
+- **Peak memory** (startup log + Activity Monitor)
+- **Speed** (prefill / decode tok/s)
+- **Subjective quality** at IQ2 vs Gemma for your tasks
+- **llama-cpp-turboquant commit** built
 
 **Last Updated:** July 2026

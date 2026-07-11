@@ -1,23 +1,46 @@
 # M4 Mac Mini (16 GB) - Gemma 4 E2B
 
-Alternative lightweight multimodal setup for Mac Mini M4 with 16 GB unified memory.
+Recommended lightweight multimodal setup for Mac Mini M4 with 16 GB unified memory, using **llama-cpp-turboquant**. Command shape and Pi integration follow the [M4 MacBook Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md); this model is small enough that TurboQuant V is optional, not required to fit.
 
-> ⚠️ **Not yet tested on this hardware.** This is a best-effort starting config, but at ~3 GB the model leaves comfortable headroom on 16 GB, so it should be low-risk. If you run it, please report your results via an issue.
+> ⚠️ **Not yet tested on this hardware.** Best-effort starting config. At ~3 GB the model leaves comfortable headroom on 16 GB, so risk is low. If you run it, please report results via an issue. For a hard 35B MoE experiment on this box, see [M4-Mac-Mini-Qwen3.6.md](M4-Mac-Mini-Qwen3.6.md).
 
-## Recommended Model
+## Memory reality (read this)
 
-- **Model**: `gemma-4-E2B-it-Q4_K_S.gguf`
-- **Path**: `~/Documents/AIML/Models/unsloth/gemma-4-E2B/gemma-4-E2B-it-Q4_K_S.gguf`
+- **Weights:** Gemma 4 E2B `Q4_K_S` is ~3 GB — easily fits with macOS overhead on 16 GB.
+- **Context:** this guide pins **32768** with `--fit off`. You can often raise context further; if you Metal-OOM, drop `--ctx-size` rather than enabling bare `--fit on` (fit can crush agent context — lesson from the Air guide).
+- **KV:** primary uses **`q8_0` / `q8_0`** for quality. Optional turbo V only if you push a much larger window.
+- Close heavy apps before launch. Prefer **one** long-lived `llama-server` process.
 
-## Build Instructions
+## Pi Coding Agent: read this first
+
+Pi needs a large `contextWindow`. Match it to the server’s real `n_ctx_seq`.
+
+**Always pin `--ctx-size` and set `--fit off`.** Default `--fit on` can shrink context and break long-agent sessions.
+
+## Recommended model
+
+- **Model:** `gemma-4-E2B-it-Q4_K_S.gguf` (~3 GB)
+- **Path:** `~/Documents/AIML/models/gemma-4-E2B-it-Q4_K_S.gguf`
+
+```bash
+hf download unsloth/gemma-4-E2B-it-GGUF \
+  gemma-4-E2B-it-Q4_K_S.gguf \
+  --local-dir ~/Documents/AIML/models
+```
+
+## Build instructions (TurboQuant fork)
 
 ```bash
 cd ~/Documents/GitHub/llama-cpp-turboquant
 
+# TheTom TurboQuant fork — not ggml-org/llama.cpp
+# https://github.com/TheTom/llama-cpp-turboquant
+git checkout feature/turboquant-kv-cache
+git pull
+
 rm -rf build
 mkdir build && cd build
 
-# Apple Silicon: first apply the Metal rnorm patch from ../local-setup.md (step 2), or the shader fails to compile when llama-server starts
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 
@@ -25,17 +48,27 @@ cd bin
 mkdir -p ./kv-cache
 ```
 
-## Optimized llama-server Command
+Confirm the binary accepts turbo types (optional path):
+
+```bash
+./llama-server --help | grep -A2 cache-type-v
+# must list turbo2, turbo3, turbo4
+```
+
+> **Fork version:** tip that includes Metal turbo4 `rnorm` fix (**`b01afefed` / PR #200 content or later**). No manual Metal shader edit on current TheTom tip. Rebuild after `git pull`.
+
+## Optimized llama-server command (Q4_K_S @ 32k)
+
+Run from `~/Documents/GitHub/llama-cpp-turboquant/build/bin`.
 
 ```bash
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/Models/unsloth/gemma-4-E2B/gemma-4-E2B-it-Q4_K_S.gguf \
-  --host 0.0.0.0 --port 8080 \
+  --model ~/Documents/AIML/models/gemma-4-E2B-it-Q4_K_S.gguf \
+  --host 127.0.0.1 --port 8080 \
   --ctx-size 32768 \
-  --n-gpu-layers 99 \
-  --no-mmap \
+  --fit off \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
   --flash-attn on \
@@ -43,7 +76,7 @@ pkill -9 llama-server
   --parallel 1 \
   --ubatch-size 256 \
   --batch-size 256 \
-  --reasoning on \
+  --reasoning off \
   --reasoning-budget 0 \
   --repeat-penalty 1.10 \
   --presence-penalty 0.0 \
@@ -52,40 +85,61 @@ pkill -9 llama-server
   --repeat-last-n 512 \
   --threads 0 --temp 0.75 --top-p 0.92 \
   --n-predict 4096 \
-  --cache-ram 1024 \
-  --slot-save-path ./kv-cache \
-  --checkpoint-min-step 8192 \
-  --ctx-checkpoints 4 \
-  --log-verbosity 2
+  --kv-unified \
+  --log-verbosity 1
 ```
 
-## Enable Multimodal (optional)
+### Why these values
 
-Gemma 4 E2B is natively multimodal (text + image + audio), but llama-server only loads the vision/audio projector if you pass one. Download an mmproj file and add the flag:
+| Flag / value | Why |
+| --- | --- |
+| `--ctx-size 32768` | Solid agent window with lots of headroom on 16 GB |
+| `--cache-type-k q8_0 --cache-type-v q8_0` | Quality default; model is tiny so turbo is optional |
+| `--flash-attn on` | Fast path; required if you later use turbo* V |
+| `--ubatch-size` / `--batch-size` **256** | Comfortable for this size; drop if OOM |
+| `--fit off` | Keep the pinned context agent-visible |
+| `--reasoning off` | Prefer direct content for agent harnesses |
+| `--host 127.0.0.1` | Local-only default (use `0.0.0.0` only if you intend LAN exposure — no auth) |
+| Gemma sampling | `temp 0.75` / `top-p 0.92` — Gemma baseline in this repo |
+
+Confirm **`n_ctx` / `n_ctx_seq (32768)`** in the log or `GET /v1/models`.
+
+### Fallbacks if you Metal-OOM
+
+1. Close other apps.
+2. Drop batch to `128` or `64`.
+3. Drop `--ctx-size` (e.g. `16384`).
+4. Do **not** rely on bare `--fit on` for Pi — pin a smaller context instead.
+
+## Enable multimodal (optional)
+
+Gemma 4 E2B is natively multimodal (text + image + audio), but llama-server only loads the vision/audio projector if you pass one:
 
 ```bash
 hf download unsloth/gemma-4-E2B-it-GGUF \
   mmproj-F16.gguf \
-  --local-dir ~/Documents/AIML/Models/unsloth/gemma-4-E2B
+  --local-dir ~/Documents/AIML/models
 ```
 
-Then add to the `llama-server` command above:
+Add to the `llama-server` command:
 
 ```bash
-  --mmproj ~/Documents/AIML/Models/unsloth/gemma-4-E2B/mmproj-F16.gguf \
+  --mmproj ~/Documents/AIML/models/mmproj-F16.gguf \
 ```
 
 Without `--mmproj` the server runs text-only.
 
-## Performance Notes
+## Performance notes
 
-- Extremely lightweight (~3 GB loaded): easily fits with macOS overhead on 16 GB.
-- Multimodal capable (text + image + audio) once you pass `--mmproj` (see above); text-only otherwise.
-- Fast inference and very responsive for agentic tasks.
-- Excellent alternative or companion to the Qwen3.6-27B Q4 when memory is constrained.
-- **No `--fit` here (intentional):** at ~3 GB the model leaves plenty of room, so `--ctx-size 32768` is pinned and guaranteed. `--fit` is omitted because the current fork aborts it when `--n-gpu-layers`/`--ctx-size` are set. If you ever want a bigger context and hit an OOM, lower `--ctx-size`.
+- Extremely lightweight (~3 GB loaded): the recommended daily driver on 16 GB Minis.
+- Multimodal once you pass `--mmproj`; text-only otherwise.
+- Fast and responsive for agentic tasks compared with a tight 35B MoE experiment on the same box.
+- After rebuilds, re-check actual `n_ctx` and keep Pi’s `contextWindow` in sync.
+- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Pattern reference: [M4 Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
 
-## Pi Coding Agent models.json Snippet
+## Pi Coding Agent `models.json` snippet
+
+`maxTokens` ≤ `--n-predict` (4096). `contextWindow` = `--ctx-size`.
 
 ```json
 {
@@ -95,5 +149,7 @@ Without `--mmproj` the server runs text-only.
   "maxTokens": 4096
 }
 ```
+
+Nest in the full `providers` wrapper from [`local-setup.md`](../local-setup.md#6-pi-coding-agent--hermes-integration). Point Pi at `http://127.0.0.1:8080/v1`.
 
 **Last Updated:** July 2026

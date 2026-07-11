@@ -1,18 +1,35 @@
 # Dual RTX 6000 Pro Max-Q (192 GB) - Qwen3.6-27B
 
-Optimized setup for dual NVIDIA RTX 6000 Pro Max-Q GPUs (192 GB total VRAM) on Ubuntu.
+Optimized setup for dual NVIDIA RTX 6000 Pro Max-Q GPUs (192 GB total VRAM) on Ubuntu, using **llama-cpp-turboquant**. Command shape follows the [M4 MacBook Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) conventions (host, thinking off, pinned context, no Qwen checkpoint flags), with CUDA multi-GPU options.
 
-> ⚠️ **Not yet tested on this hardware.** This is a best-effort starting config based on the model size and llama.cpp options: performance figures are estimates. If you run it, please report your results via an issue.
+> ⚠️ **Not yet tested on this hardware.** Best-effort starting config from model size + llama.cpp options. If you run it, please report results via an issue.
 
-## Recommended Model (primary — single GPU)
+## Pi Coding Agent: read this first
 
-- **Model**: `Qwen3.6-27B-UD-Q8_K_XL.gguf` (~35.3 GB — best quality with massive KV headroom on 192 GB)
-- **Path**: `~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-27B-UD-Q8_K_XL.gguf`
+**Always pin `--ctx-size` and set `--fit off`.** Match Pi’s `contextWindow` to real `n_ctx_seq`.
 
-## Build Instructions
+**Thinking / empty replies** (Qwen3.6): `--reasoning off` and `--chat-template-kwargs '{"enable_thinking":false}'`.
+
+## Recommended model (primary — single GPU)
+
+- **Model:** `Qwen3.6-27B-UD-Q8_K_XL.gguf` (~35.3 GB — best quality with massive KV headroom on 192 GB)
+- **Path:** `~/Documents/AIML/models/Qwen3.6-27B-UD-Q8_K_XL.gguf`
+
+```bash
+hf download unsloth/Qwen3.6-27B-GGUF \
+  Qwen3.6-27B-UD-Q8_K_XL.gguf \
+  --local-dir ~/Documents/AIML/models
+```
+
+## Build instructions (TurboQuant fork)
 
 ```bash
 cd ~/Documents/GitHub/llama-cpp-turboquant
+
+# TheTom TurboQuant fork — not ggml-org/llama.cpp
+# https://github.com/TheTom/llama-cpp-turboquant
+git checkout feature/turboquant-kv-cache
+git pull
 
 rm -rf build
 mkdir build && cd build
@@ -24,27 +41,36 @@ cd bin
 mkdir -p ./kv-cache
 ```
 
-> Omit `-DCMAKE_CUDA_ARCHITECTURES="120"` to autodetect on the build machine; set it explicitly when cross-compiling or sharing binaries (Blackwell = CC 12.0).
+Confirm turbo types:
 
-## Optimized llama-server Command
+```bash
+./llama-server --help | grep -A2 cache-type-v
+# must list turbo2, turbo3, turbo4
+```
+
+> Omit `-DCMAKE_CUDA_ARCHITECTURES="120"` to autodetect; set explicitly when cross-compiling (Blackwell = CC 12.0).
+
+## Optimized llama-server command (Q8_K_XL @ 262k, single GPU)
 
 ```bash
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-27B-UD-Q8_K_XL.gguf \
-  --host 0.0.0.0 --port 8080 \
+  --model ~/Documents/AIML/models/Qwen3.6-27B-UD-Q8_K_XL.gguf \
+  --host 127.0.0.1 --port 8080 \
   --ctx-size 262144 \
+  --fit off \
   --n-gpu-layers 99 \
   --no-mmap \
   --cache-type-k q8_0 --cache-type-v turbo4 \
   --jinja \
+  --chat-template-kwargs '{"enable_thinking":false}' \
   --flash-attn on \
   --no-context-shift \
   --parallel 1 \
   --ubatch-size 1024 \
   --batch-size 1024 \
-  --reasoning on \
+  --reasoning off \
   --reasoning-budget 0 \
   --repeat-penalty 1.10 \
   --presence-penalty 0.0 \
@@ -53,23 +79,28 @@ pkill -9 llama-server
   --repeat-last-n 1024 \
   --threads 32 --temp 0.65 --top-p 0.90 \
   --n-predict 8192 \
-  --cache-ram 8192 \
-  --slot-save-path ./kv-cache \
-  --checkpoint-min-step 16384 \
-  --ctx-checkpoints 8 \
   --kv-unified \
-  --log-verbosity 2
+  --log-verbosity 1
 ```
 
-> **Checkpoint flags on Qwen3.6:** `--slot-save-path`, `--checkpoint-min-step`, and `--ctx-checkpoints` are kept here (harmless in the tested runs), but may be **no-ops on Qwen3.6** — its hybrid Gated-DeltaNet attention hits a known llama.cpp bug where context checkpoints aren't restored, forcing full prompt reprocessing each turn. Watch the log; if you see repeated full reprocessing, drop these three flags. Details: [checkpointing caveat](../llama-cpp-turboquant.md#prompt-cache--checkpointing).
+### Why these values
 
-## Performance Notes
+| Flag / value | Why |
+| --- | --- |
+| `--ctx-size 262144` | Full train window; one 96 GB card has room for Q8 + KV |
+| `--cache-type-v turbo4` | CUDA quality-leaning TurboQuant V |
+| `--n-gpu-layers 99` | Full offload on the primary GPU |
+| `--fit off` + thinking off + `127.0.0.1` | Same agent/autarky defaults as the Air reference |
+| No checkpoint flags | Qwen3.6 hybrid caveat — see [checkpointing](../llama-cpp-turboquant.md#prompt-cache--checkpointing) |
 
-- Primary config uses **one GPU** by default — simple and fast for a 35 GB model. ~157 GB VRAM remains for KV cache at 262k context.
-- For heavier models or extreme context, see the multi-GPU section below.
-- Ideal for heavy agentic workloads and long-context Godot development.
+## Performance notes
 
-## Pi Coding Agent models.json Snippet
+- Primary config uses **one GPU** by default — simple and fast for a ~35 GB model. Large VRAM remains for KV at 262k.
+- For heavier models or extreme multi-card use, see the multi-GPU section below.
+- Ideal for heavy agentic workloads and long-context development.
+- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
+
+## Pi Coding Agent `models.json` snippet
 
 ```json
 {
@@ -80,19 +111,26 @@ pkill -9 llama-server
 }
 ```
 
+Nest in the full `providers` wrapper from [`local-setup.md`](../local-setup.md#6-pi-coding-agent--hermes-integration). Point Pi at `http://127.0.0.1:8080/v1`.
+
 ## Alternate: multi-GPU layer split
 
-> ⚠️ **Untested on this hardware.** Use when the model does not fit on one card or you want to spread KV across both 96 GB GPUs.
+> ⚠️ **Untested on this hardware.** Use when the model does not fit on one card or you want to spread load across both 96 GB GPUs.
 
-Split layers evenly across both GPUs:
+```bash
+hf download unsloth/Qwen3.6-35B-A3B-GGUF \
+  Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf \
+  --local-dir ~/Documents/AIML/models
+```
 
 ```bash
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf \
-  --host 0.0.0.0 --port 8080 \
+  --model ~/Documents/AIML/models/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf \
+  --host 127.0.0.1 --port 8080 \
   --ctx-size 262144 \
+  --fit off \
   --n-gpu-layers 99 \
   --split-mode layer \
   --tensor-split 96,96 \
@@ -100,12 +138,13 @@ pkill -9 llama-server
   --no-mmap \
   --cache-type-k q8_0 --cache-type-v turbo4 \
   --jinja \
+  --chat-template-kwargs '{"enable_thinking":false}' \
   --flash-attn on \
   --no-context-shift \
   --parallel 1 \
   --ubatch-size 1024 \
   --batch-size 1024 \
-  --reasoning on \
+  --reasoning off \
   --reasoning-budget 0 \
   --repeat-penalty 1.10 \
   --presence-penalty 0.0 \
@@ -114,17 +153,16 @@ pkill -9 llama-server
   --repeat-last-n 1024 \
   --threads 32 --temp 0.65 --top-p 0.90 \
   --n-predict 8192 \
-  --cache-ram 8192 \
   --kv-unified \
-  --log-verbosity 2
+  --log-verbosity 1
 ```
 
-- **Model**: `Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf` (~38.5 GB MoE)
+- **Model:** `Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf` (~38.5 GB MoE)
 - Multi-GPU adds PCIe sync overhead; benchmark against the single-GPU primary before committing.
 
 ```json
 {
-  "id": "qwen3.6-35b-a3b",
+  "id": "qwen3.6-35B-A3B",
   "name": "Qwen3.6-35B-A3B Q8_K_XL (262k) - Dual RTX 6000",
   "contextWindow": 262144,
   "maxTokens": 8192
