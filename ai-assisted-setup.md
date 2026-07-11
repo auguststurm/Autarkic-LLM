@@ -7,7 +7,7 @@ This repository is designed to be used _by an AI assistant on your behalf_. Whet
 - the prerequisites + clone & build commands for your backend,
 - the right model and quant for your memory (with the `hf download` command),
 - a tuned `llama-server` command,
-- and a [Pi Coding Agent](agentic-harnesses.md) `models.json` snippet to drive it.
+- and a complete [Pi Coding Agent](agentic-harnesses.md) `models.json` (full `providers` file) to drive it.
 
 It works for experienced users (a fast, repo-consistent starting point) and first-timers alike (it explains the memory math and asks before guessing).
 
@@ -39,7 +39,7 @@ https://github.com/auguststurm/Autarkic-LLM
 
 Read at minimum:
 - README.md .................. overview + the hardware table (note Tested vs Untested)
-- local-setup.md ............. prerequisites, build, model download, models.json wrapper
+- local-setup.md ............. prerequisites, build, model download, models.json shape
 - llama-cpp-turboquant.md .... flag-by-flag reference (what each flag does, and when NOT to use it)
 - the hardware guide closest to my machine (folders like DGX-Spark-128GB/, M5-MacBook-Pro-48GB/)
 - agentic-harnesses.md ....... how Pi Coding Agent connects
@@ -50,7 +50,7 @@ YOUR GOAL — produce a complete, copy-pasteable setup for MY HARDWARE (below):
   2. The clone + CMake build commands for the correct backend (CUDA / Metal / etc.).
   3. The exact model + quant to download, chosen to fit my memory, with the `hf download` command.
   4. A tuned `llama-server` command.
-  5. A Pi Coding Agent `models.json` snippet that matches that command.
+  5. A complete Pi Coding Agent `models.json` (full providers file) that matches that command.
 Explain the memory math (weights + KV cache + OS overhead) so I understand why you chose that
 model/quant. If something won't fit, say so and pick the next size down.
 
@@ -76,10 +76,11 @@ The rest is judgment:
   attention (see llama-cpp-turboquant.md).
 
 PI CODING AGENT — the only harness we are configuring:
-Once the server runs, give me the `models.json` for Pi: the full `providers` wrapper shown in
-local-setup.md, with my single model entry. `contextWindow` must not exceed my actual `--ctx-size`
-(or the effective context after `--fit` — tell me to check the startup log); `maxTokens` must not
-exceed my `--n-predict`. Point Pi at http://127.0.0.1:8080/v1. Do not cover anything else about Pi.
+Once the server runs, give me a complete Pi `models.json` I can save as-is — the full object with
+`providers.llama-cpp` (`baseUrl` http://127.0.0.1:8080/v1, `api` openai-completions, `apiKey` 1337)
+and my single model entry. Do NOT give a bare model object that needs a wrapper. `contextWindow`
+must match my pinned `--ctx-size`; `maxTokens` must not exceed my `--n-predict`. Do not cover
+anything else about Pi.
 
 PROCESS:
 - If any hardware detail below is missing or "unknown", ASK me before guessing — or infer and

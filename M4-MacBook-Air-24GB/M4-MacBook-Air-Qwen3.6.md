@@ -165,7 +165,9 @@ Older “it worked if only two terminals were open” runs were oversubscribed a
 - After rebuilds, re-check actual `n_ctx` and keep Pi’s `contextWindow` in sync.
 - Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
 
-## Pi Coding Agent `models.json` snippet
+## Pi Coding Agent `models.json`
+
+Save this **entire** file as Pi’s `models.json` (copy-paste as-is — do not assemble a wrapper).
 
 `maxTokens` ≤ `--n-predict` (8192). `contextWindow` = `--ctx-size`.
 
@@ -173,10 +175,21 @@ Older “it worked if only two terminals were open” runs were oversubscribed a
 
 ```json
 {
-  "id": "qwen3.6-35B-A3B",
-  "name": "Qwen3.6-35B-A3B IQ4_NL turbo2 (61k) - M4 Air",
-  "contextWindow": 61440,
-  "maxTokens": 8192
+  "providers": {
+    "llama-cpp": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "models": [
+        {
+          "id": "qwen3.6-35B-A3B",
+          "name": "Qwen3.6-35B-A3B IQ4_NL turbo2 (61k) - M4 Air",
+          "contextWindow": 61440,
+          "maxTokens": 8192
+        }
+      ]
+    }
+  }
 }
 ```
 
@@ -184,13 +197,23 @@ Older “it worked if only two terminals were open” runs were oversubscribed a
 
 ```json
 {
-  "id": "qwen3.6-35B-A3B",
-  "name": "Qwen3.6-35B-A3B IQ4_NL turbo4 (48k) - M4 Air",
-  "contextWindow": 49152,
-  "maxTokens": 8192
+  "providers": {
+    "llama-cpp": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "models": [
+        {
+          "id": "qwen3.6-35B-A3B",
+          "name": "Qwen3.6-35B-A3B IQ4_NL turbo4 (48k) - M4 Air",
+          "contextWindow": 49152,
+          "maxTokens": 8192
+        }
+      ]
+    }
+  }
 }
 ```
 
-Nest in the full `providers` wrapper from [`local-setup.md`](../local-setup.md#6-pi-coding-agent--hermes-integration). Point Pi at `http://127.0.0.1:8080/v1`.
 
 **Last Updated:** July 2026

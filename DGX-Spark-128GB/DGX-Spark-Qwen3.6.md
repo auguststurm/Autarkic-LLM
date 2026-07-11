@@ -111,20 +111,32 @@ Confirm **`n_ctx` / `n_ctx_seq (262144)`** in the log or `GET /v1/models`.
 - Excellent for long agentic tasks with Hermes / Pi Coding Agent.
 - Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
 
-## Pi Coding Agent `models.json` snippet
+## Pi Coding Agent `models.json`
+
+Save this **entire** file as Pi’s `models.json` (copy-paste as-is — do not assemble a wrapper).
 
 `maxTokens` ≤ `--n-predict` (8192). `contextWindow` = `--ctx-size`.
 
 ```json
 {
-  "id": "qwen3.6-27b",
-  "name": "Qwen3.6-27B Q6_K_XL (262k) - DGX Spark",
-  "contextWindow": 262144,
-  "maxTokens": 8192
+  "providers": {
+    "llama-cpp": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "models": [
+        {
+          "id": "qwen3.6-27b",
+          "name": "Qwen3.6-27B Q6_K_XL (262k) - DGX Spark",
+          "contextWindow": 262144,
+          "maxTokens": 8192
+        }
+      ]
+    }
+  }
 }
 ```
 
-Nest in the full `providers` wrapper from [`local-setup.md`](../local-setup.md#6-pi-coding-agent--hermes-integration). Point Pi at `http://127.0.0.1:8080/v1`.
 
 ## Alternate: higher quality (untested)
 
@@ -142,10 +154,21 @@ hf download unsloth/Qwen3.6-27B-GGUF \
 
 ```json
 {
-  "id": "qwen3.6-27b",
-  "name": "Qwen3.6-27B Q8_K_XL (262k) - DGX Spark",
-  "contextWindow": 262144,
-  "maxTokens": 8192
+  "providers": {
+    "llama-cpp": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "models": [
+        {
+          "id": "qwen3.6-27b",
+          "name": "Qwen3.6-27B Q8_K_XL (262k) - DGX Spark",
+          "contextWindow": 262144,
+          "maxTokens": 8192
+        }
+      ]
+    }
+  }
 }
 ```
 
