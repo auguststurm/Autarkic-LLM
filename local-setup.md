@@ -135,7 +135,7 @@ mkdir -p ./kv-cache
 
 ## 6. Pi Coding Agent / Hermes Integration
 
-Each hardware guide includes a **complete** Pi Coding Agent `models.json` — copy the entire JSON block from your guide into Pi as-is. The shape is always:
+Each hardware guide includes a **complete** Pi Coding Agent `models.json`. Copy the entire JSON block from your guide into **`~/.pi/agent/models.json`** as-is (`mkdir -p ~/.pi/agent` first if needed). The shape is always:
 
 ```json
 {
