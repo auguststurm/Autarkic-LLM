@@ -14,7 +14,7 @@ These are independent third-party projects; local-model support evolves, so chec
 
 ## Connecting to your server
 
-Each hardware guide includes a **complete** Pi `models.json` — the full `providers` → `llama-cpp` object with `baseUrl`, `api`, `apiKey`, and your model. Copy the entire JSON block into Pi’s `models.json` as-is. Do not assemble a wrapper by hand.
+Each hardware guide includes a **complete** Pi `models.json` — the full `providers` → `llama-cpp` object with `baseUrl`, `api`, `apiKey`, and your model. Copy the entire JSON block into **`~/.pi/agent/models.json`** as-is (`mkdir -p ~/.pi/agent` first if needed). Do not assemble a wrapper by hand.
 
 ```json
 {

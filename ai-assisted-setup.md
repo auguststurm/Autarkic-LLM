@@ -76,11 +76,13 @@ The rest is judgment:
   attention (see llama-cpp-turboquant.md).
 
 PI CODING AGENT — the only harness we are configuring:
-Once the server runs, give me a complete Pi `models.json` I can save as-is — the full object with
-`providers.llama-cpp` (`baseUrl` http://127.0.0.1:8080/v1, `api` openai-completions, `apiKey` 1337)
-and my single model entry. Do NOT give a bare model object that needs a wrapper. `contextWindow`
-must match my pinned `--ctx-size`; `maxTokens` must not exceed my `--n-predict`. Do not cover
-anything else about Pi.
+Once the server runs, give me a complete Pi `models.json` I can save as-is to
+`~/.pi/agent/models.json` — the full object with `providers.llama-cpp`
+(`baseUrl` http://127.0.0.1:8080/v1, `api` openai-completions, `apiKey` 1337)
+and my single model entry. Do NOT give a bare model object that needs a wrapper.
+Tell me to write it to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent` if needed).
+`contextWindow` must match my pinned `--ctx-size`; `maxTokens` must not exceed my
+`--n-predict`. Do not cover anything else about Pi.
 
 PROCESS:
 - If any hardware detail below is missing or "unknown", ASK me before guessing — or infer and
@@ -115,5 +117,5 @@ MY HARDWARE:
 ## After it runs
 
 - Start the server with the command it gave you, then watch the startup log — confirm **`n_ctx` / `n_ctx_seq`** match what you pinned (and that **decode** works, not only load). Keep Pi’s `contextWindow` in sync.
-- Drop the `models.json` it produced where Pi expects it, point Pi at `http://127.0.0.1:8080/v1`, and you're running fully offline.
+- Write the `models.json` it produced to **`~/.pi/agent/models.json`**, start Pi, and you're running fully offline against `http://127.0.0.1:8080/v1`.
 - **Ran this on hardware that isn't in the [table](README.md#hardware-configurations-included) yet?** Please open an issue or PR with what worked — that's how the untested configs become tested ones.

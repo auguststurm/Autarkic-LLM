@@ -174,7 +174,7 @@ Confirm **`n_ctx` / `n_ctx_seq`** in the log or `GET /v1/models`, then **run a s
 
 ## Pi Coding Agent `models.json`
 
-Save this **entire** file as Pi’s `models.json` (copy-paste as-is — do not assemble a wrapper).
+Save this **entire** file to `~/.pi/agent/models.json` (copy-paste as-is — do not assemble a wrapper). Create parent dirs if needed: `mkdir -p ~/.pi/agent`.
 
 `maxTokens` ≤ `--n-predict` (4096). `contextWindow` = the **`--ctx-size` you actually ran** (default start: 8192).
 
