@@ -111,17 +111,29 @@ pkill -9 llama-server
 - 24 GB is the hard limit — quant + context are a trade, same idea as the Air’s unified-memory matrix.
 - Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
 
-## Pi Coding Agent `models.json` snippet
+## Pi Coding Agent `models.json`
+
+Save this **entire** file as Pi’s `models.json` (copy-paste as-is — do not assemble a wrapper).
 
 ```json
 {
-  "id": "qwen3.6-27b",
-  "name": "Qwen3.6-27B Q5_K_XL (32k) - RTX 4090",
-  "contextWindow": 32768,
-  "maxTokens": 8192
+  "providers": {
+    "llama-cpp": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "models": [
+        {
+          "id": "qwen3.6-27b",
+          "name": "Qwen3.6-27B Q5_K_XL (32k) - RTX 4090",
+          "contextWindow": 32768,
+          "maxTokens": 8192
+        }
+      ]
+    }
+  }
 }
 ```
 
-Nest in the full `providers` wrapper from [`local-setup.md`](../local-setup.md#6-pi-coding-agent--hermes-integration). Point Pi at `http://127.0.0.1:8080/v1`.
 
 **Last Updated:** July 2026

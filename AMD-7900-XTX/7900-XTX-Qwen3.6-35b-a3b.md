@@ -105,19 +105,31 @@ pkill -9 llama-server
 - Vulkan on AMD is well-supported; MTP often ~1.2–2× vs non-MTP (less for MoE).
 - Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
 
-## Pi Coding Agent `models.json` snippet
+## Pi Coding Agent `models.json`
+
+Save this **entire** file as Pi’s `models.json` (copy-paste as-is — do not assemble a wrapper).
 
 ```json
 {
-  "id": "qwen3.6-35b-a3b-mtp",
-  "name": "Qwen3.6-35B-A3B-MTP IQ4_XS (262k) - 7900 XTX",
-  "contextWindow": 262144,
-  "maxTokens": 65536
+  "providers": {
+    "llama-cpp": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "models": [
+        {
+          "id": "qwen3.6-35b-a3b-mtp",
+          "name": "Qwen3.6-35B-A3B-MTP IQ4_XS (262k) - 7900 XTX",
+          "contextWindow": 262144,
+          "maxTokens": 65536
+        }
+      ]
+    }
+  }
 }
 ```
 
 > Note: `maxTokens` matches this guide’s high `--n-predict`; for typical agent turns you may prefer a lower `maxTokens` (e.g. 8192).
 
-Nest in the full `providers` wrapper from [`local-setup.md`](../local-setup.md#6-pi-coding-agent--hermes-integration). Point Pi at `http://127.0.0.1:8080/v1`.
 
 **Last Updated:** July 2026

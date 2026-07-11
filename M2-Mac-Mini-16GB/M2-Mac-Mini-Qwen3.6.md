@@ -189,22 +189,34 @@ Confirm **`n_ctx` / `n_ctx_seq`** in the log or `GET /v1/models`, then **run a s
 | Subjective quality at IQ2 | *TBD* |
 | llama-cpp-turboquant commit built | *TBD* |
 
-## Pi Coding Agent `models.json` snippet
+## Pi Coding Agent `models.json`
+
+Save this **entire** file as Pi’s `models.json` (copy-paste as-is — do not assemble a wrapper).
 
 `maxTokens` ≤ `--n-predict` (4096). `contextWindow` = the **`--ctx-size` you actually ran** (default start: 8192).
 
 ```json
 {
-  "id": "qwen3.6-35B-A3B",
-  "name": "Qwen3.6-35B-A3B IQ2_M turbo2 (8k) - M2 Mini",
-  "contextWindow": 8192,
-  "maxTokens": 4096
+  "providers": {
+    "llama-cpp": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "models": [
+        {
+          "id": "qwen3.6-35B-A3B",
+          "name": "Qwen3.6-35B-A3B IQ2_M turbo2 (8k) - M2 Mini",
+          "contextWindow": 8192,
+          "maxTokens": 4096
+        }
+      ]
+    }
+  }
 }
 ```
 
 > **Provisional until measured.** After your first stable run, set `contextWindow` to the effective `n_ctx_seq` from the log.
 
-Nest in the full `providers` wrapper from [`local-setup.md`](../local-setup.md#6-pi-coding-agent--hermes-integration). Point Pi at `http://127.0.0.1:8080/v1`.
 
 ## Report your results
 

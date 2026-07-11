@@ -39,7 +39,7 @@ Each hardware guide has the exact build flags and `llama-server` command for one
 
 1. **Build the engine and get a model**: follow [`local-setup.md`](local-setup.md) for prerequisites, the clone & build, and the model catalog + download commands.
 2. **Run your hardware's command**: open your machine's guide from the table above and run its exact `llama-server` command.
-3. **(Optional) Drive it with an agent**: point an [agentic harness](agentic-harnesses.md) at `http://127.0.0.1:8080/v1` using the `models.json` snippet in your guide.
+3. **(Optional) Drive it with an agent**: copy the complete `models.json` from your hardware guide into Pi Coding Agent (see [agentic harnesses](agentic-harnesses.md)).
 
 New to local inference? Start with the [Glossary](glossary.md).
 

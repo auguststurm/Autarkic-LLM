@@ -135,14 +135,7 @@ mkdir -p ./kv-cache
 
 ## 6. Pi Coding Agent / Hermes Integration
 
-Create a `models.json` file pointing to your local server:
-
-> **Important:** match these settings to the model you actually loaded with `llama-server`. Mismatched values cause truncation, errors, or wasted memory.
->
-> - **`id`** / **`name`**: identify the real model you launched.
-> - **`contextWindow`**: must equal (or not exceed) your real server `n_ctx_seq` — copy from the hardware guide / startup log. With pinned `--ctx-size` + `--fit off`, this is your `--ctx-size`.
-> - **`maxTokens`**: must not exceed your `--n-predict`.
-> - Each hardware guide lists the exact snippet for its model — copy from there.
+Each hardware guide includes a **complete** Pi Coding Agent `models.json` — copy the entire JSON block from your guide into Pi as-is. The shape is always:
 
 ```json
 {
@@ -150,7 +143,7 @@ Create a `models.json` file pointing to your local server:
     "llama-cpp": {
       "baseUrl": "http://127.0.0.1:8080/v1",
       "api": "openai-completions",
-      "apiKey": "none",
+      "apiKey": "1337",
       "models": [
         {
           "id": "your-model",
@@ -164,7 +157,12 @@ Create a `models.json` file pointing to your local server:
 }
 ```
 
-> Example numbers above match the [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) pattern only as a shape reference — **always use the values from your hardware guide**.
+> **Important:** match these settings to the model you actually loaded with `llama-server`. Mismatched values cause truncation, errors, or wasted memory.
+>
+> - **`id`** / **`name`**: identify the real model you launched.
+> - **`contextWindow`**: must equal (or not exceed) your real server `n_ctx_seq` — with pinned `--ctx-size` + `--fit off`, this is your `--ctx-size`.
+> - **`maxTokens`**: must not exceed your `--n-predict`.
+> - Prefer the full file in your hardware guide over inventing numbers. Example values above match the [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) shape only.
 
 ## Next Steps
 

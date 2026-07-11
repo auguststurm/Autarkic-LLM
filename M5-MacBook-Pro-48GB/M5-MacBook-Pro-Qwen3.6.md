@@ -139,7 +139,9 @@ Verify output quality after enabling turbo on Metal (see [TurboQuant notes](../l
 - After rebuilds, re-check actual `n_ctx` and keep Pi’s `contextWindow` in sync.
 - Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Pattern reference: [M4 Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
 
-## Pi Coding Agent `models.json` snippet
+## Pi Coding Agent `models.json`
+
+Save this **entire** file as Pi’s `models.json` (copy-paste as-is — do not assemble a wrapper).
 
 `maxTokens` ≤ `--n-predict` (8192). `contextWindow` = `--ctx-size`.
 
@@ -147,14 +149,24 @@ Verify output quality after enabling turbo on Metal (see [TurboQuant notes](../l
 
 ```json
 {
-  "id": "qwen3.6-27b",
-  "name": "Qwen3.6-27B Q5_K_XL (196k) - M5 Pro",
-  "contextWindow": 196608,
-  "maxTokens": 8192
+  "providers": {
+    "llama-cpp": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "models": [
+        {
+          "id": "qwen3.6-27b",
+          "name": "Qwen3.6-27B Q5_K_XL (196k) - M5 Pro",
+          "contextWindow": 196608,
+          "maxTokens": 8192
+        }
+      ]
+    }
+  }
 }
 ```
 
-Nest in the full `providers` wrapper from [`local-setup.md`](../local-setup.md#6-pi-coding-agent--hermes-integration). Point Pi at `http://127.0.0.1:8080/v1`.
 
 ## Alternate: MoE upgrade (untested)
 
@@ -202,10 +214,21 @@ On 48 GB you can likely push MoE context well past 65k (the Air reaches ~61k wit
 
 ```json
 {
-  "id": "qwen3.6-35B-A3B",
-  "name": "Qwen3.6-35B-A3B IQ4_NL (64k) - M5 Pro",
-  "contextWindow": 65536,
-  "maxTokens": 8192
+  "providers": {
+    "llama-cpp": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "models": [
+        {
+          "id": "qwen3.6-35B-A3B",
+          "name": "Qwen3.6-35B-A3B IQ4_NL (64k) - M5 Pro",
+          "contextWindow": 65536,
+          "maxTokens": 8192
+        }
+      ]
+    }
+  }
 }
 ```
 
