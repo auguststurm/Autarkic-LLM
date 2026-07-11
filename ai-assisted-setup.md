@@ -56,7 +56,9 @@ model/quant. If something won't fit, say so and pick the next size down.
 
 HOW TO APPROACH IT — the repo guides hold the specifics (engine + branch, build flags, quant
 strategy, KV-cache tuning, per-backend patterns, sampling, model caveats). Read them instead of
-working from memory, and use the closest guide's conventions as your baseline. The rest is judgment:
+working from memory, and use the closest guide's conventions as your baseline. The M4 MacBook Air
+Qwen guide is the reference pattern for modern flags (host, fit, thinking, TurboQuant, models.json).
+The rest is judgment:
 - Optimize for the largest, highest-quality model that fits my memory with headroom to spare, tuned
   for fully-offline agentic use — and match the flags to MY hardware, not to whichever guide you read.
 - Stay current: if a newer or better-suited model or quant exists than the repo lists — a fresh
@@ -66,6 +68,12 @@ working from memory, and use the closest guide's conventions as your baseline. T
   a download command — never guess a filename (the #1 failure mode).
 - (always) Default the server to loopback (`--host 127.0.0.1`); expose it to my network only if I ask,
   and warn me that's unauthenticated.
+- (always) Pin `--ctx-size` and set `--fit off` for agent use. Do not rely on bare `--fit on` — it can
+  crush context and break Pi. Prefer lowering quant/context over silent fit.
+- (always for Qwen3.6 agents) `--reasoning off` and
+  `--chat-template-kwargs '{"enable_thinking":false}'`.
+- (always for Qwen3.6) omit context-checkpoint flags unless I ask; they often don't help on hybrid
+  attention (see llama-cpp-turboquant.md).
 
 PI CODING AGENT — the only harness we are configuring:
 Once the server runs, give me the `models.json` for Pi: the full `providers` wrapper shown in
@@ -105,6 +113,6 @@ MY HARDWARE:
 
 ## After it runs
 
-- Start the server with the command it gave you, then watch the startup log — confirm the **effective context** actually allocated (it can be lower than `--ctx-size` when `--fit` is on) and that the KV cache and model buffers fit.
+- Start the server with the command it gave you, then watch the startup log — confirm **`n_ctx` / `n_ctx_seq`** match what you pinned (and that **decode** works, not only load). Keep Pi’s `contextWindow` in sync.
 - Drop the `models.json` it produced where Pi expects it, point Pi at `http://127.0.0.1:8080/v1`, and you're running fully offline.
 - **Ran this on hardware that isn't in the [table](README.md#hardware-configurations-included) yet?** Please open an issue or PR with what worked — that's how the untested configs become tested ones.

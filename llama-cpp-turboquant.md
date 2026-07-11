@@ -8,9 +8,9 @@ A deeper companion to [`local-setup.md`](local-setup.md): what the **llama-cpp-t
 
 ## Key learnings (TL;DR)
 
-- **TurboQuant KV cache** (`--cache-type-k q8_0 --cache-type-v turbo4`) gives major speed/memory wins. `turbo*` is supported on Metal, CUDA, and Vulkan; the Mac guides use `q8_0`/`q8_0` as a conservative, tested baseline, but `turbo4`-V works there too (§2).
+- **TurboQuant KV cache** (`--cache-type-k q8_0 --cache-type-v turbo4` / `turbo2`) gives major speed/memory wins. `turbo*` is supported on Metal, CUDA, and Vulkan. Memory-bound Apple configs (M4 Air, 16 GB Mini Qwen experiment) use turbo V; roomier Macs may keep `q8_0`/`q8_0` as a quality baseline (§2).
 - **Stable sampling baseline:** `--repeat-penalty 1.10 --presence-penalty 0.0 --frequency-penalty 0.0 --min-p 0.0 --temp 0.65 --top-p 0.90` (Gemma: `--temp 0.75 --top-p 0.92`).
-- **Checkpointing + cache warming** (`--ctx-checkpoints`, `--cache-ram`, `--slot-save-path`) can improve prefill/long-context stability, but see the Qwen3.x caveat in §5: it may not restore on hybrid models.
+- **Checkpointing + cache warming** (`--ctx-checkpoints`, `--cache-ram`, `--slot-save-path`) can help on some non-hybrid models, but **this repo’s Qwen3.6 guides omit them** — hybrid Gated-DeltaNet often won’t restore checkpoints (see §5).
 - **Conservative batch sizes** and **`--no-context-shift`** prevent crashes / silent context loss on memory-constrained systems.
 - **Small dense models** (Gemma 4 E2B, ~2.3B effective params with Per-Layer Embeddings) and **MoE models with low active parameters** (Qwen3.6-35B-A3B) both excel on lower-memory devices, but the MoE's *full* weights must still fit in RAM. (Gemma 4 E2B is dense, "E" = edge/effective; the family's MoE member is the 26B-A4B.)
 
@@ -59,7 +59,8 @@ Step 4 (aggro):    --cache-type-k q8_0 --cache-type-v turbo2    # long context; 
 ### What this repo actually uses
 
 - **CUDA guides (DGX, Dual RTX 6000, Win 4090):** `--cache-type-k q8_0 --cache-type-v turbo4`, deliberately **more conservative** than the fork's `turbo3` default, prioritizing quality/stability.
-- **Metal guides (all Macs) and Jetson:** `--cache-type-k q8_0 --cache-type-v q8_0`, no turbo. `turbo*` *is* supported on Metal, but the maintainer uses plain `q8_0` as a tested baseline; try `turbo4`-V if you want more headroom.
+- **Metal — memory-bound (M4 Air tested; 16 GB Mini Qwen experimental):** `--cache-type-k q8_0 --cache-type-v turbo2` so long (or any useful) context fits after large weights. See the [M4 Air guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
+- **Metal — roomier (M5 Pro, Mini Gemma) and Jetson:** primary commands often keep `--cache-type-k q8_0 --cache-type-v q8_0` for quality; turbo V is optional headroom when you need more context.
 
 ### When NOT to use aggressive V compression
 
@@ -108,25 +109,26 @@ Grouped by purpose. "Repo values" = what the hardware guides typically set. Upst
 - **`--n-gpu-layers 99`** (`-ngl`): offload all layers to GPU. `99` just means "all." On unified-memory Macs everything shares one pool, so this mainly forces GPU/Metal use; on discrete GPUs it controls how much lives in VRAM. Lower it to spill layers to CPU if VRAM is short.
 - **`--no-mmap`**: load the whole model into RAM instead of memory-mapping it (upstream mmap is *on* by default). Repo uses it on machines with enough RAM for steadier latency (no page-in stalls). **Drop it (allow mmap) if the model is near your memory limit**: mmap lets the OS page weights instead of failing to allocate.
 - **`--mlock`**: pin the model in RAM (no swap/compression). Not used by default here; consider it on Linux if you see swap thrash.
-- **`--fit on` + `--fit-target <MiB>`** *(fork / recent)*: auto-fits the model to free device memory by adjusting GPU-layer offload and **choosing an effective context** that loads, leaving `<MiB>` headroom (we use `256`). **Critical: `--fit` only works when you leave `--n-gpu-layers` and `--ctx-size` unset.** In the current fork it *aborts* if `--n-gpu-layers` is set (`common/fit.cpp`: `"n_gpu_layers already set by user … abort"`) and it *will not shrink* a context you pin with `--ctx-size` (it only sizes context when `--ctx-size` is unset). So `--fit` and hand-pinned layers/context are mutually exclusive — pick one. **Check the startup log for the context fit allocated.** It cannot shrink the *weights*, so it won't rescue a quant larger than RAM (why the 16 GB Mac Mini needs an IQ2 quant, not Q4). Used in the memory-tight Mac guides (M4 Air, M4/M2 Mini Qwen); the roomier guides (M5 Pro, Gemma) pin `--ctx-size`/`--n-gpu-layers` explicitly instead and omit `--fit`.
+- **`--fit on` + `--fit-target <MiB>`** *(fork / recent)*: auto-fits the model to free device memory by adjusting GPU-layer offload and **choosing an effective context** that loads, leaving `<MiB>` headroom. **Critical: `--fit` only works when you leave `--n-gpu-layers` and `--ctx-size` unset.** In the current fork it *aborts* if `--n-gpu-layers` is set and it *will not shrink* a context you pin with `--ctx-size`. So `--fit` and hand-pinned layers/context are mutually exclusive. **It can crush context** (sometimes toward ~4096), which breaks Pi/agents. **All hardware guides in this repo pin `--ctx-size` and set `--fit off`.** If you experiment with bare fit, check the startup log for the context it allocated. Fit cannot shrink *weights* — a quant larger than RAM still won’t load (why 16 GB Minis need IQ2, not IQ4/Q4).
+- **`--fit off`**: explicit disable. Use with a pinned `--ctx-size` so the agent-visible window stays what you chose.
 
 ### KV cache & attention
 
 - **`--cache-type-k TYPE` / `--cache-type-v TYPE`**: KV cache precision. Upstream default `f16`; allowed `f32,f16,bf16,q8_0,q4_0,q4_1,iq4_nl,q5_0,q5_1`, **plus `turbo2/3/4` for V in this fork**. See §2.
 - **`--flash-attn on`** (`-fa`; values `on|off|auto`, default `auto`): the flash-attention kernel, faster and lower-memory. **Required for quantized KV** (q8_0/turbo). We set `on` explicitly.
-- **`--kv-unified`**: one shared KV buffer across all server slots instead of per-slot buffers; **saves VRAM** and lets larger contexts fit. Most useful with `--parallel >1`; with `--parallel 1` the effect is small. CUDA guides keep it; the maintainer's Mac commands omit it (Metal pattern). Note: had a regression around upstream build b5913; verify if you hit odd KV behavior.
+- **`--kv-unified`**: one shared KV buffer across all server slots instead of per-slot buffers; **saves VRAM** and lets larger contexts fit. Most useful with `--parallel >1`; with `--parallel 1` the effect is small. Current hardware guides include it. Note: had a regression around upstream build b5913; verify if you hit odd KV behavior.
 - **`--no-context-shift`**: when the context fills, **stop** instead of llama.cpp's default "rotating" behavior (silently discarding the oldest half and continuing). Important for **agentic correctness**: you want a clean stop, not silent context loss mid-task. Trade-off: long runs end at the limit rather than rolling.
 
 ### Prompt cache & checkpointing
 
 These reuse computed state across requests so repeated prompts/turns don't reprocess from scratch.
 
-- **`--slot-save-path ./kv-cache`**: directory to save/restore per-slot KV state (upstream default: disabled). Enables prompt-cache persistence.
-- **`--cache-ram N`** (`-cram`): max RAM (MiB) for cached state/checkpoints. Upstream default `8192`; `-1` = no limit, `0` = disable. Repo sets 1024–8192 by RAM budget. Checkpoints currently live in **system RAM**.
-- **`--ctx-checkpoints N`** (`-ctxcp`): max context checkpoints per slot (upstream default `32`). Repo uses `4–8` to bound RAM.
-- **`--checkpoint-min-step N`** (`-cms`): minimum spacing, in tokens, between context checkpoints (upstream default `256`). The repo's guides pass `8192–16384` to keep checkpoints sparse and bound RAM. **Flag history:** earlier fork commits carried a custom `--checkpoint-every-n-tokens`/`-cpent`; the fork has since dropped it in favor of upstream's `--checkpoint-min-step`/`-cms`, and current builds (≥ commit `0c8fcfe73`, June 2026) **reject the old name**. If your build predates that and rejects `-cms`, fall back to `--checkpoint-every-n-tokens`; either way, check `--help` for the name your build actually has.
+- **`--slot-save-path ./kv-cache`**: directory to save/restore per-slot KV state (upstream default: disabled). Enables prompt-cache persistence when the model/backend supports it.
+- **`--cache-ram N`** (`-cram`): max RAM (MiB) for cached state/checkpoints. Upstream default `8192`; `-1` = no limit, `0` = disable. Checkpoints currently live in **system RAM**.
+- **`--ctx-checkpoints N`** (`-ctxcp`): max context checkpoints per slot (upstream default `32`).
+- **`--checkpoint-min-step N`** (`-cms`): minimum spacing, in tokens, between context checkpoints (upstream default `256`). **Flag history:** older fork commits used `--checkpoint-every-n-tokens`/`-cpent`; current builds use `--checkpoint-min-step`/`-cms` and **reject the old name**. Check `--help` on your build.
 
-> ⚠️ **Checkpointing may not help on Qwen3.x.** Qwen3.5/3.6 use a **hybrid Gated-DeltaNet (recurrent) attention**, and llama.cpp has documented bugs where **context checkpoints are never restored on hybrid/recurrent models, forcing full prompt re-processing on every turn** (see issues [#20225](https://github.com/ggml-org/llama.cpp/issues/20225), [#19794](https://github.com/ggml-org/llama.cpp/issues/19794), [#22384](https://github.com/ggml-org/llama.cpp/issues/22384)). So on Qwen3.6 these flags may add overhead without the prefill savings. Watch your logs for "invalidated context checkpoint" / full reprocessing each turn; the savings are real on non-hybrid models. Whether the turboquant fork carries a fix is build-dependent: verify.
+> ⚠️ **Qwen3.6 guides in this repo omit checkpoint flags.** Qwen3.5/3.6 use **hybrid Gated-DeltaNet (recurrent) attention**, and llama.cpp has documented bugs where **context checkpoints are never restored on hybrid/recurrent models, forcing full prompt re-processing on every turn** (see issues [#20225](https://github.com/ggml-org/llama.cpp/issues/20225), [#19794](https://github.com/ggml-org/llama.cpp/issues/19794), [#22384](https://github.com/ggml-org/llama.cpp/issues/22384)). These flags may add overhead without prefill savings on Qwen3.6. They can still help on non-hybrid models (e.g. some Gemma setups) if you add them yourself.
 
 ### Batching & throughput
 
@@ -137,8 +139,9 @@ These reuse computed state across requests so repeated prompts/turns don't repro
 ### Generation & reasoning
 
 - **`--n-predict N`**: max tokens to generate per request (upstream default `-1` = unlimited). Repo caps at 4096–8192 as a safety bound.
-- **`--reasoning-budget N`**: thinking-token budget. `-1` unrestricted, **`0` = end thinking immediately** (no chain-of-thought), `N>0` = budget. Repo uses **`0`** to run Qwen3.6's thinking model in **non-thinking mode** for lower latency in agentic loops. Set `-1` (or a positive N) if you want the model to reason.
-- **`--reasoning on`** *(fork form; upstream uses `--reasoning-format none|deepseek|…`)*: enables reasoning-tag handling/parsing. Paired with `--reasoning-budget 0`, the net effect is: reasoning is parsed but no thinking tokens are emitted. Confirm the exact spelling on your build.
+- **`--reasoning-budget N`**: thinking-token budget. `-1` unrestricted, **`0` = end thinking immediately**, `N>0` = budget. Repo pairs **`0`** with reasoning off for agents.
+- **`--reasoning off`** *(preferred in this repo for Qwen3.6 + Pi)*: disable thinking-style output so clients receive normal `message.content`. Confirm spelling on your build (`--help`).
+- **`--chat-template-kwargs '{"enable_thinking":false}'`**: Qwen3.6 template knob used with reasoning off so thinking stays disabled in the chat template (avoids empty agent replies).
 - **`--jinja`**: use the model's Jinja chat template (upstream default: enabled). Set explicitly here; needed for correct chat/tool formatting on modern templates.
 
 ### Sampling (quality/determinism)
@@ -155,8 +158,8 @@ Repo defaults: `--temp 0.65 --top-p 0.90 --min-p 0.0 --repeat-penalty 1.10 --pre
 
 ### Server & logging
 
-- **`--host 0.0.0.0 --port 8080`**: bind address/port. `0.0.0.0` exposes the server on your network; use `127.0.0.1` if you only want local access.
-- **`--log-verbosity 2`**: verbose logs (useful for confirming the effective context after `--fit`, KV cache sizes, and checkpoint behavior).
+- **`--host 127.0.0.1 --port 8080`**: bind address/port. **Repo default is loopback.** Use `0.0.0.0` only if you intentionally expose the server on your LAN (no auth).
+- **`--log-verbosity 1`**: normal logs (repo default). Raise to `2` when debugging fit/KV/OOM.
 
 ---
 

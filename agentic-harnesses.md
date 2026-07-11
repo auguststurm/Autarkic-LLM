@@ -15,3 +15,11 @@ These are independent third-party projects; local-model support evolves, so chec
 ## Connecting to your server
 
 Each hardware guide includes a `models.json` snippet (a single model entry); [`local-setup.md`](local-setup.md) has the full `providers` wrapper to nest it in. Point the harness at `http://127.0.0.1:8080/v1` (or wherever you bound `--host`/`--port`).
+
+**Keep client and server aligned:**
+
+- `contextWindow` = the server’s real `n_ctx_seq` (your pinned `--ctx-size` when using `--fit off`).
+- `maxTokens` ≤ `--n-predict`.
+- For **Qwen3.6**, guides disable thinking (`--reasoning off` + `enable_thinking:false`) so agents get normal `message.content` instead of empty replies.
+
+The [M4 MacBook Air Qwen guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) is the reference for this agent-facing layout.

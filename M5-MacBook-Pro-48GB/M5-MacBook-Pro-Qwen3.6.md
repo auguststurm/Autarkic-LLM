@@ -1,23 +1,51 @@
 # M5 MacBook Pro (48 GB) - Qwen3.6-27B
 
-Optimized setup for Apple MacBook Pro with M5 Pro/Max chip and 48 GB unified memory.
+Optimized setup for MacBook Pro M5 Pro/Max with 48 GB unified memory, using **llama-cpp-turboquant**. Command shape and Pi integration follow the [M4 MacBook Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md); this machine has more headroom, so the primary config keeps high-quality KV (`q8_0`/`q8_0`) and a large pinned context.
 
-> ✅ **Tested by the maintainer on this hardware.** The settings below come from real runs; expect some variance with thermals and background load.
+> ✅ **Tested by the maintainer on this hardware.** Settings below come from real runs; expect variance with thermals and background load. Flag modernization (host, thinking off, `--fit off`, no checkpoint flags) matches the current Air reference — re-check `n_ctx` after rebuilds.
 
-## Recommended Model
+## Memory reality (read this)
 
-- **Model**: `Qwen3.6-27B-UD-Q5_K_XL.gguf`
-- **Path**: `~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-27B-UD-Q5_K_XL.gguf`
+- **Weights:** `UD-Q5_K_XL` is ~20 GB. On 48 GB that leaves comfortable room for OS + KV + compute.
+- **Model train context:** Qwen3.6-27B `n_ctx_train = 262144` (262k). This guide pins **196608** (~196k) as the tested agent-scale window — not full train length, but far above the Air’s verified ~61k.
+- **Why not turbo on the primary command?** The Air *needs* `turbo2` V so long context fits. Here, plain **`q8_0` / `q8_0`** was the tested quality baseline at 196k. Turbo is optional headroom (see alternate), not required for survival.
+- Close heavy apps before launch. Prefer **one** long-lived `llama-server` process.
 
-## Build Instructions
+## Pi Coding Agent: read this first
+
+Pi needs a large `contextWindow`. Match it to the server’s real `n_ctx_seq`.
+
+**Always pin `--ctx-size` and set `--fit off`.** Default `--fit on` can crush context (on tighter boxes it falls toward ~4096) and break Pi.
+
+**Thinking / empty replies:** disable thinking so Pi gets `message.content`:
+
+- `--reasoning off`
+- `--chat-template-kwargs '{"enable_thinking":false}'`
+
+## Recommended model
+
+- **Model:** `Qwen3.6-27B-UD-Q5_K_XL.gguf` (~20 GB)
+- **Tested path:** `~/Documents/AIML/models/Qwen3.6-27B-UD-Q5_K_XL.gguf`
+
+```bash
+hf download unsloth/Qwen3.6-27B-GGUF \
+  Qwen3.6-27B-UD-Q5_K_XL.gguf \
+  --local-dir ~/Documents/AIML/models
+```
+
+## Build instructions (TurboQuant fork)
 
 ```bash
 cd ~/Documents/GitHub/llama-cpp-turboquant
 
+# TheTom TurboQuant fork — not ggml-org/llama.cpp
+# https://github.com/TheTom/llama-cpp-turboquant
+git checkout feature/turboquant-kv-cache
+git pull
+
 rm -rf build
 mkdir build && cd build
 
-# Apple Silicon: first apply the Metal rnorm patch from ../local-setup.md (step 2), or the shader fails to compile when llama-server starts
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 
@@ -25,25 +53,36 @@ cd bin
 mkdir -p ./kv-cache
 ```
 
-## Optimized llama-server Command
+Confirm the binary accepts turbo types (needed if you try the optional turbo path):
+
+```bash
+./llama-server --help | grep -A2 cache-type-v
+# must list turbo2, turbo3, turbo4
+```
+
+> **Fork version:** tip that includes Metal turbo4 `rnorm` fix (**`b01afefed` / PR #200 content or later**). No manual Metal shader edit on current TheTom tip. Rebuild after `git pull`.
+
+## Optimized llama-server command (Q5_K_XL @ 196k)
+
+Run from `~/Documents/GitHub/llama-cpp-turboquant/build/bin`.
 
 ```bash
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-27B-UD-Q5_K_XL.gguf \
-  --host 0.0.0.0 --port 8080 \
+  --model ~/Documents/AIML/models/Qwen3.6-27B-UD-Q5_K_XL.gguf \
+  --host 127.0.0.1 --port 8080 \
   --ctx-size 196608 \
-  --n-gpu-layers 99 \
-  --no-mmap \
+  --fit off \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
+  --chat-template-kwargs '{"enable_thinking":false}' \
   --flash-attn on \
   --no-context-shift \
   --parallel 1 \
   --ubatch-size 512 \
   --batch-size 512 \
-  --reasoning on \
+  --reasoning off \
   --reasoning-budget 0 \
   --repeat-penalty 1.10 \
   --presence-penalty 0.0 \
@@ -52,23 +91,59 @@ pkill -9 llama-server
   --repeat-last-n 1024 \
   --threads 0 --temp 0.65 --top-p 0.90 \
   --n-predict 8192 \
-  --cache-ram 4096 \
-  --slot-save-path ./kv-cache \
-  --checkpoint-min-step 16384 \
-  --ctx-checkpoints 8 \
-  --log-verbosity 2
+  --kv-unified \
+  --log-verbosity 1
 ```
 
-> **Checkpoint flags on Qwen3.6:** `--slot-save-path`, `--checkpoint-min-step`, and `--ctx-checkpoints` are kept here (harmless in the tested runs), but may be **no-ops on Qwen3.6** — its hybrid Gated-DeltaNet attention hits a known llama.cpp bug where context checkpoints aren't restored, forcing full prompt reprocessing each turn. Watch the log; if you see repeated full reprocessing, drop these three flags. Details: [checkpointing caveat](../llama-cpp-turboquant.md#prompt-cache--checkpointing).
+### Why these values
 
-## Performance Notes
+| Flag / value | Why |
+| --- | --- |
+| `--ctx-size 196608` | Large agent window verified on this hardware with Q5 |
+| `--cache-type-k q8_0 --cache-type-v q8_0` | Quality baseline at 196k — room enough without turbo V |
+| `--flash-attn on` | Fast path; required if you later switch V to turbo* |
+| `--ubatch-size` / `--batch-size` **512** | Comfortable on 48 GB; drop if you Metal-OOM |
+| `--fit off` | Do not let fit shrink the context you pinned |
+| Thinking off | Agent-friendly non-thinking Qwen3.6 |
+| `--host 127.0.0.1` | Local-only default (use `0.0.0.0` only if you intend LAN exposure — no auth) |
+| No checkpoint flags | Qwen3.6 hybrid attention often won’t restore checkpoints usefully — see [checkpointing caveat](../llama-cpp-turboquant.md#prompt-cache--checkpointing) |
 
-- Excellent balance of quality and speed on 48 GB unified memory.
-- Strong agentic performance with Hermes and Godot MCP workflows.
-- Metal backend provides good efficiency on Apple Silicon.
-- **No `--fit` here (intentional):** 48 GB has ample room for the ~20 GB model at 196608 context, so the context is pinned explicitly. `--fit` is omitted because the current fork aborts it when `--n-gpu-layers`/`--ctx-size` are set — this guide sets both. If you ever hit an OOM (e.g. running a larger quant), lower `--ctx-size` rather than adding `--fit`.
+Confirm **`n_ctx` / `n_ctx_seq (196608)`** in the log or `GET /v1/models`.
 
-## Pi Coding Agent models.json Snippet
+### Fallbacks if you Metal-OOM
+
+1. Close other apps (browsers, IDEs, other local servers).
+2. Drop batch to `256` or `128`.
+3. Drop context (e.g. `131072` or `65536`) rather than enabling bare `--fit on`.
+4. Optional: keep context high and compress V with turbo (see below).
+
+### Optional: more context via TurboQuant V
+
+If you want headroom beyond 196k (or a heavier quant) and accept some decode cost:
+
+```bash
+# Same flags as above, but e.g.:
+#   --ctx-size 229376   # try upward carefully; confirm decode, not just load
+#   --cache-type-k q8_0 --cache-type-v turbo4   # safer first turbo step
+#   # or turbo3 / turbo2 if still tight
+```
+
+Verify output quality after enabling turbo on Metal (see [TurboQuant notes](../llama-cpp-turboquant.md#2-turboquant-kv-cache)).
+
+## Performance notes
+
+- Excellent quality/speed balance on 48 GB unified memory for dense Q5.
+- Strong agentic performance with Pi / Hermes and MCP workflows.
+- Metal backend is efficient on Apple Silicon; thermals on sustained load still matter on a laptop.
+- `n_ctx_seq (196608) < n_ctx_train (262144)` is expected.
+- After rebuilds, re-check actual `n_ctx` and keep Pi’s `contextWindow` in sync.
+- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Pattern reference: [M4 Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
+
+## Pi Coding Agent `models.json` snippet
+
+`maxTokens` ≤ `--n-predict` (8192). `contextWindow` = `--ctx-size`.
+
+**Q5_K_XL @ 196k (recommended):**
 
 ```json
 {
@@ -79,30 +154,38 @@ pkill -9 llama-server
 }
 ```
 
+Nest in the full `providers` wrapper from [`local-setup.md`](../local-setup.md#6-pi-coding-agent--hermes-integration). Point Pi at `http://127.0.0.1:8080/v1`.
+
 ## Alternate: MoE upgrade (untested)
 
-Primary config above is the **tested baseline**. For stronger agentic quality at similar memory:
+Primary config above is the **tested baseline**. For stronger agentic quality at similar weight size (~18 GB), try the same MoE quant proven on the Air:
 
-- **Model**: `Qwen3.6-35B-A3B-UD-IQ4_NL.gguf` (~18 GB MoE)
-- **Path**: `~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-IQ4_NL.gguf`
+- **Model:** `Qwen3.6-35B-A3B-UD-IQ4_NL.gguf` (~18 GB MoE)
+- **Path:** `~/Documents/AIML/models/Qwen3.6-35B-A3B-UD-IQ4_NL.gguf`
+
+```bash
+hf download unsloth/Qwen3.6-35B-A3B-GGUF \
+  Qwen3.6-35B-A3B-UD-IQ4_NL.gguf \
+  --local-dir ~/Documents/AIML/models
+```
 
 ```bash
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/Models/unsloth/Qwen/LLM/Qwen3.6-35B-A3B-UD-IQ4_NL.gguf \
-  --host 0.0.0.0 --port 8080 \
+  --model ~/Documents/AIML/models/Qwen3.6-35B-A3B-UD-IQ4_NL.gguf \
+  --host 127.0.0.1 --port 8080 \
   --ctx-size 65536 \
-  --n-gpu-layers 99 \
-  --no-mmap \
+  --fit off \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
+  --chat-template-kwargs '{"enable_thinking":false}' \
   --flash-attn on \
   --no-context-shift \
   --parallel 1 \
   --ubatch-size 512 \
   --batch-size 512 \
-  --reasoning on \
+  --reasoning off \
   --reasoning-budget 0 \
   --repeat-penalty 1.10 \
   --presence-penalty 0.0 \
@@ -111,16 +194,15 @@ pkill -9 llama-server
   --repeat-last-n 1024 \
   --threads 0 --temp 0.65 --top-p 0.90 \
   --n-predict 8192 \
-  --cache-ram 4096 \
-  --slot-save-path ./kv-cache \
-  --checkpoint-min-step 16384 \
-  --ctx-checkpoints 8 \
-  --log-verbosity 2
+  --kv-unified \
+  --log-verbosity 1
 ```
+
+On 48 GB you can likely push MoE context well past 65k (the Air reaches ~61k with turbo2 on **24 GB**). Start at 65k with `q8_0`/`q8_0`, then raise `--ctx-size` or switch V to `turbo4`/`turbo2` if you need more. Confirm **decode**, not only load.
 
 ```json
 {
-  "id": "qwen3.6-35b-a3b",
+  "id": "qwen3.6-35B-A3B",
   "name": "Qwen3.6-35B-A3B IQ4_NL (64k) - M5 Pro",
   "contextWindow": 65536,
   "maxTokens": 8192

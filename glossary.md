@@ -11,8 +11,9 @@ Plain-language definitions for readers new to local inference (skip if you live 
 - **E2B (Gemma)**: "edge/effective 2B", a small _dense_ model using Per-Layer Embeddings, not MoE.
 - **KV cache**: stored attention keys/values for the context; grows with context length. Quantizing it (`--cache-type-k/v`, TurboQuant) saves memory. See the [TurboQuant deep dive](llama-cpp-turboquant.md#2-turboquant-kv-cache).
 - **Flash attention (`--flash-attn`)**: a faster, lower-memory attention kernel.
-- **Auto-fit (`--fit on --fit-target <MiB>`)**: llama-server detects free memory and auto-adjusts (layer offload, and the _effective_ context) to make the model load. Lets a model that's borderline-too-big run, at the cost of silently capping context below your `--ctx-size`.
-- **Context window**: max tokens (prompt + output) the model can attend to; set with `--ctx-size`.
+- **Auto-fit (`--fit on --fit-target <MiB>`)**: llama-server detects free memory and auto-adjusts layer offload and the _effective_ context so the model loads. Can **silently crush context** (sometimes toward ~4096), which breaks coding agents. This repo’s hardware guides prefer **pinned `--ctx-size` + `--fit off`** and lower context or quant if you OOM. See the [M4 Air guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
+- **Context window**: max tokens (prompt + output) the model can attend to; set with `--ctx-size`. Match Pi’s `contextWindow` to the server’s real `n_ctx_seq`.
+- **Thinking / reasoning (Qwen3.6)**: models can emit “thinking” instead of normal chat content. For agents, guides use `--reasoning off` and `--chat-template-kwargs '{"enable_thinking":false}'` so Pi gets `message.content`.
 
 ## Further reading
 
