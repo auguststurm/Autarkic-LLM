@@ -43,6 +43,7 @@ Read at minimum:
 - llama-cpp-turboquant.md .... flag-by-flag reference (what each flag does, and when NOT to use it)
 - the hardware guide closest to my machine (folders like DGX-Spark-128GB/, M5-MacBook-Pro-48GB/)
 - agentic-harnesses.md ....... how Pi Coding Agent connects
+- pi-coding-agent-graphs.md .. Pi workflows/graphs + optional Tavily (only if I ask about multi-agent research)
 - glossary.md ................ plain-language terms, if I ask
 
 YOUR GOAL — produce a complete, copy-pasteable setup for MY HARDWARE (below):
