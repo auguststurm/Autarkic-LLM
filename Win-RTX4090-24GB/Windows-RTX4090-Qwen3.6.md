@@ -24,7 +24,7 @@ On the 4090, weights live in **VRAM**, not unified RAM. Host RAM only needs enou
 
 **Thinking / empty replies** (Qwen3.6): `--reasoning off` and `--chat-template-kwargs '{"enable_thinking":false}'`.
 
-**Pi + tools + pi-workflows fill context fast.** Primary pin is **65536**. Field run: multi-agent Korea research workflow hit **`request (32830) exceeds … (32768)`** while Pi status showed **`99.9%/33k`** — both server and client were still on **32k**. Parallel agents reported **41k–86k tok** each over the run; synthesis alone **~34k tok**. Match server + Pi or the overflow returns.
+**Pi + tools + pi-workflows fill context fast.** Primary pin is **65536**. Field run: multi-agent Korea research workflow hit **`request (32830) exceeds … (32768)`** while Pi status showed **`99.9%/33k`** — both server and client were still on **32k**. Parallel agents reported **41k–86k tok** each over the run; synthesis alone **~34k tok**. Match server + Pi or the overflow returns. For workflow packages, Tavily, and saving reports under `reports/`, see [Pi Coding Agent graphs](../pi-coding-agent-graphs.md).
 
 **Apply checklist (both required):**
 

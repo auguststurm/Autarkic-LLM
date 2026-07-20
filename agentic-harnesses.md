@@ -45,3 +45,9 @@ Each hardware guide includes a **complete** Pi `models.json` — the full `provi
 - For **Qwen3.6**, guides disable thinking (`--reasoning off` + `enable_thinking:false`) so agents get normal `message.content` instead of empty replies.
 
 The [M4 MacBook Air Qwen guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) is the reference for this agent-facing layout.
+
+## Multi-agent workflows, Tavily & research graphs
+
+Once Pi points at your local server, you can layer **dynamic workflows** (parallel specialists, synthesis) and optional **Tavily** web search for structured reports written under project **`reports/`**. Packages, launch (`TAVILY_API_KEY`), layout, and gotchas (context overflow, max tokens, Qwen tool paths) are in **[Pi Coding Agent graphs](pi-coding-agent-graphs.md)**.
+
+> Tavily is cloud search: the model stays local; search traffic does not. Skip it for pure offline use.
