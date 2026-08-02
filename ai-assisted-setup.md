@@ -71,10 +71,11 @@ The rest is judgment:
   and warn me that's unauthenticated.
 - (always) Pin `--ctx-size` and set `--fit off` for agent use. Do not rely on bare `--fit on` — it can
   crush context and break Pi. Prefer lowering quant/context over silent fit.
-- (always for Qwen3.6 agents) `--reasoning off` and
-  `--chat-template-kwargs '{"enable_thinking":false}'`.
+- (always for Qwen3.6 agents) `--reasoning off` and `--reasoning-budget 0` so Pi gets message.content
+  (prefer this over deprecated enable_thinking chat-template-kwargs alone on current llama-server).
 - (always for Qwen3.6) omit context-checkpoint flags unless I ask; they often don't help on hybrid
-  attention (see llama-cpp-turboquant.md).
+  attention (see llama-cpp-turboquant.md). For Pi + Qwen3.6-27B tool stability (no DRY, sampling,
+  contextWindow vs maxTokens, K/V), follow agentic-harnesses.md and the hardware guide.
 
 PI CODING AGENT — the only harness we are configuring:
 Once the server runs, give me a complete Pi `models.json` I can save as-is to

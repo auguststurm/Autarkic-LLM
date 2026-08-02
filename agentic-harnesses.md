@@ -42,12 +42,53 @@ Each hardware guide includes a **complete** Pi `models.json` — the full `provi
 
 - `contextWindow` = the server’s real `n_ctx_seq` (your pinned `--ctx-size` when using `--fit off`).
 - `maxTokens` ≤ `--n-predict`.
-- For **Qwen3.6**, guides disable thinking (`--reasoning off` + `enable_thinking:false`) so agents get normal `message.content` instead of empty replies.
+- Restart **both** `llama-server` and Pi after changing either side. Pi’s status bar must match the pin (stale `models.json` is a common failure mode).
 
-The [M4 MacBook Air Qwen guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) is the reference for this agent-facing layout.
+Hardware-specific numbers always come from **your** guide. The [M4 MacBook Air Qwen guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) is the reference for agent-facing *layout* (host, fit, thinking, `models.json` shape). Field-validated **Pi + Qwen3.6-27B** agent lessons (any hardware) are below.
+
+## Qwen3.6-27B + Pi Coding Agent (cross-hardware)
+
+These apply whenever Pi drives **Qwen3.6-27B** (dense) via this repo’s server. Exact `--ctx-size`, quant, and KV types stay in the **hardware guide**.
+
+### Two different limits
+
+| Knob | Server | Pi | Failure mode |
+| --- | --- | --- | --- |
+| **Input window** | `--ctx-size` | `contextWindow` | `request (N) exceeds the available context size` |
+| **Output per turn** | `--n-predict` | `maxTokens` | `Model stopped because it reached the maximum output token limit` |
+
+Raising one does not fix the other. Multi-agent workflows (Tavily, parallel specialists, long skills) often need **larger input** than a short chat (field overflows past **32k/64k**, single requests **~70k+** on heavy runs). Long market reports often need **larger output** than 4k–8k.
+
+### Server flags that matter for Pi tools
+
+| Prefer for Pi + Qwen3.6 | Avoid for tool/agent sessions |
+| --- | --- |
+| **`--reasoning off`** (+ `--reasoning-budget 0`) so Pi gets `message.content` / tools | Relying only on deprecated `--chat-template-kwargs '{"enable_thinking":false}'` when the server warns to use `--reasoning` |
+| **`--fit off`** + pinned `--ctx-size` | Bare `--fit on` (can crush context) |
+| **No DRY** (`--dry-multiplier`, …) | DRY — causes path/name corruption on Qwen3.6 tool loops ([llama.cpp #20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
+| Tool-oriented sampling: e.g. **`temp 0.6`**, **`top_p 0.95`**, **`top_k 20`**, **`presence_penalty 0`**, **`repeat_penalty 1.0`** | High **presence** (e.g. 1.5 chat non-thinking) during path-heavy tool use — can warp reused path tokens |
+| Hybrid Qwen: omit checkpoint flags; consider **`--cache-ram 0`** if multi-turn state looks corrupt | Assuming checkpoints speed hybrid Gated-DeltaNet (often they do not — see [turboquant deep dive](llama-cpp-turboquant.md#prompt-cache--checkpointing)) |
+
+### KV cache (K vs V) — stability vs context
+
+Weights are fixed; **KV grows with context**. **K** (keys) routes attention and should stay precise (`q8_0` / f16). **V** (values) is more compressible (`q8_0` → `turbo4` → `turbo3` → `turbo2`). Policy:
+
+1. Prefer **`q8_0` / `q8_0`** while it fits and tools stay coherent.  
+2. Raise **`--ctx-size`** (and Pi `contextWindow`) when prompts overflow.  
+3. Only then compress **V** with turbo* if VRAM/RAM is tight — smoke-test real `ls`/`read` paths on a **new** session first.  
+4. Never crush **K** before **V**.
+
+TurboQuant **fork** ≠ must use turbo **types**. Roomier machines (e.g. [M5 48 GB](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) ~196k q8/q8) keep high-precision KV; tighter boxes (Air, 24 GB CUDA under load) use turbo V to buy window. Field-validated 24 GB CUDA agent baseline: [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (**96k q8/q8**, large `maxTokens`).
+
+### Operational habits
+
+- **New Pi session** (`/new`) after path soup, phrase loops, or wrong-tool thrash — compaction does not un-poison history.  
+- After changing server pins, **restart Pi** so the status bar matches.  
+- Prefer agents **writing long reports to disk** (`reports/`) and summarizing in chat when output length is the bottleneck.  
+- Multi-agent graphs, Tavily, and `reports/` layout: **[Pi Coding Agent graphs](pi-coding-agent-graphs.md)**.
 
 ## Multi-agent workflows, Tavily & research graphs
 
-Once Pi points at your local server, you can layer **dynamic workflows** (parallel specialists, synthesis) and optional **Tavily** web search for structured reports written under project **`reports/`**. Packages, launch (`TAVILY_API_KEY`), layout, and gotchas (context overflow, max tokens, Qwen tool paths) are in **[Pi Coding Agent graphs](pi-coding-agent-graphs.md)**.
+Once Pi points at your local server, you can layer **dynamic workflows** (parallel specialists, synthesis) and optional **Tavily** web search for structured reports under project **`reports/`**. Packages, launch (`TAVILY_API_KEY`), layout, and workflow gotchas are in **[Pi Coding Agent graphs](pi-coding-agent-graphs.md)**.
 
 > Tavily is cloud search: the model stays local; search traffic does not. Skip it for pure offline use.
