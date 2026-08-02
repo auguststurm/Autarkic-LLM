@@ -10,10 +10,7 @@ Pi needs a large `contextWindow`. Match it to the server’s real `n_ctx_seq`.
 
 **Always pin `--ctx-size` and set `--fit off`.** Default `--fit on` can crush context and break Pi.
 
-**Thinking / empty replies** (Qwen3.6):
-
-- `--reasoning off`
-- `--chat-template-kwargs '{"enable_thinking":false}'`
+**Thinking / empty replies** (Qwen3.6): prefer **`--reasoning off`** (+ `--reasoning-budget 0`) for Pi `message.content`. Shared Pi + Qwen3.6-27B lessons: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 ## Recommended model
 

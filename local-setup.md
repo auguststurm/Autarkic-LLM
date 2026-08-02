@@ -126,7 +126,7 @@ mkdir -p ./kv-cache
 - Always run `pkill -9 llama-server` before starting a new instance. The `-9` (SIGKILL) is deliberate, not lazy: llama-server's graceful shutdown can hang on SIGTERM/SIGINT (upstream issues [#11742](https://github.com/ggml-org/llama.cpp/issues/11742), [#20921](https://github.com/ggml-org/llama.cpp/issues/20921)), and it does **not** auto-save useful long-term KV on exit — so a hard kill loses nothing you were relying on for persistence.
 - Use `--no-mmap` on systems with sufficient RAM (common on CUDA/Vulkan guides). Memory-tight Metal configs may omit it.
 - **Prefer pinned `--ctx-size` + `--fit off` for agent use (Pi / Hermes).** Default `--fit on` can crush context (sometimes toward ~4096) and break long sessions — documented on the [M4 MacBook Air guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). **All hardware guides in this repo pin context and set `--fit off`.** If you experiment with `--fit on --fit-target <MiB>`, **leave `--n-gpu-layers` and `--ctx-size` unset** — on the current fork it aborts if `--n-gpu-layers` is set and won't shrink a pinned `--ctx-size`. Check the startup log for the context it allocated.
-- **Qwen3.6 + agents:** use `--reasoning off` and `--chat-template-kwargs '{"enable_thinking":false}'` so clients get normal `message.content` (empty replies are a common failure mode when thinking stays enabled). Do not rely on context-checkpoint flags for Qwen3.6 hybrid attention — see [checkpointing caveat](llama-cpp-turboquant.md#prompt-cache--checkpointing).
+- **Qwen3.6 + agents (Pi):** prefer **`--reasoning off`** (+ `--reasoning-budget 0`) so clients get normal `message.content` / tools. Current llama-server builds often **deprecate** `enable_thinking` via `--chat-template-kwargs` in favor of `--reasoning on|off`. Do not rely on context-checkpoint flags for hybrid Qwen — see [checkpointing caveat](llama-cpp-turboquant.md#prompt-cache--checkpointing). For Pi tool stability (no DRY, sampling, KV K/V, `contextWindow` vs `maxTokens`), see [agentic harnesses — Qwen3.6-27B + Pi](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 - Monitor resources:
   - Linux: `htop`, `nvidia-smi -l 1`
   - macOS: `htop` + Activity Monitor
@@ -160,11 +160,13 @@ Each hardware guide includes a **complete** Pi Coding Agent `models.json`. Copy 
 > **Important:** match these settings to the model you actually loaded with `llama-server`. Mismatched values cause truncation, errors, or wasted memory.
 >
 > - **`id`** / **`name`**: identify the real model you launched.
-> - **`contextWindow`**: must equal (or not exceed) your real server `n_ctx_seq` — with pinned `--ctx-size` + `--fit off`, this is your `--ctx-size`.
-> - **`maxTokens`**: must not exceed your `--n-predict`.
+> - **`contextWindow`**: must equal (or not exceed) your real server `n_ctx_seq` — with pinned `--ctx-size` + `--fit off`, this is your `--ctx-size`. **Input** limit (history + tools).
+> - **`maxTokens`**: must not exceed your `--n-predict`. **Output** limit (one reply). Long reports need both sides raised together (e.g. 8192–16384).
 > - Prefer the full file in your hardware guide over inventing numbers. Example values above match the [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) shape only.
+> - Restart Pi after every change so the status bar matches the server.
 
 ## Next Steps
 
-- Go to your hardware-specific folder (e.g. `DGX-Spark-128GB/`) for exact build flags, model recommendations, and optimized `llama-server` commands.
+- Go to your hardware-specific folder (e.g. `DGX-Spark-128GB/`, `Win-RTX4090-24GB/`) for exact build flags, model recommendations, and optimized `llama-server` commands.
+- Pi multi-agent research / Tavily: [`pi-coding-agent-graphs.md`](pi-coding-agent-graphs.md).
 - For what the TurboQuant fork adds and what every `llama-server` flag does (and when *not* to use it), see [`llama-cpp-turboquant.md`](llama-cpp-turboquant.md).

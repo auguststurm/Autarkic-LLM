@@ -17,10 +17,7 @@ Pi needs a large `contextWindow`. Match it to the server’s real `n_ctx_seq`.
 
 **Always pin `--ctx-size` and set `--fit off`.** Default `--fit on` can crush context (on tighter boxes it falls toward ~4096) and break Pi.
 
-**Thinking / empty replies:** disable thinking so Pi gets `message.content`:
-
-- `--reasoning off`
-- `--chat-template-kwargs '{"enable_thinking":false}'`
+**Thinking / empty replies:** prefer **`--reasoning off`** (+ `--reasoning-budget 0`) so Pi gets `message.content`. Cross-hardware Pi + Qwen3.6-27B notes (two token limits, no DRY, K/V): [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 ## Recommended model
 

@@ -15,6 +15,7 @@ Each hardware guide has the exact build flags and `llama-server` command for one
 - Primary engine: **llama-cpp-turboquant** (the TurboQuant fork of llama.cpp); build it via [`local-setup.md`](local-setup.md)
 - Preferred models: Qwen3.6 series (dense + MoE) with Unsloth UD quants; Gemma 4 E2B for edge devices
 - Emphasis on KV-cache optimization (TurboQuant), flash attention, agent-friendly Qwen settings (thinking off, pinned context), and stable sampling (details in the [deep dive](llama-cpp-turboquant.md))
+- **Pi Coding Agent + Qwen3.6-27B:** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware); multi-agent research in [Pi graphs](pi-coding-agent-graphs.md)
 
 ## Hardware Configurations Included
 
@@ -30,7 +31,7 @@ Each hardware guide has the exact build flags and `llama-server` command for one
 | AMD 7900 XTX | 24 GB | Vulkan | [Qwen3.6-27B IQ4_NL](https://huggingface.co/unsloth/Qwen3.6-27B-MTP-GGUF) (tight) | ✅ Tested | [guide](AMD-7900-XTX/7900-XTX-Qwen3.6-27b.md) |
 | AMD 7900 XTX | 24 GB | Vulkan | [Qwen3.6-35B-A3B IQ4_XS](https://huggingface.co/byteshape/Qwen3.6-35B-A3B-MTP-GGUF) | ✅ Tested | [guide](AMD-7900-XTX/7900-XTX-Qwen3.6-35b-a3b.md) |
 | MacBook Air M4 | 24 GB | Metal | [Qwen3.6-35B-A3B UD-IQ4_NL](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) (MoE, turbo2 V, 61k ctx) | ✅ Tested | [guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) |
-| Windows RTX 4090 (WSL2) | 24 GB | CUDA | [Qwen3.6-27B UD-Q4_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | ✅ Tested | [guide](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) |
+| Windows RTX 4090 (WSL2) | 24 GB | CUDA | [Qwen3.6-27B UD-Q4_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (96k q8/q8 Pi agent) | ✅ Tested | [guide](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) |
 | MacBook Pro M5 | 48 GB | Metal | [Qwen3.6-27B UD-Q5_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (196k ctx) | ✅ Tested | [guide](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.6-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | ✅ Tested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.6.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.6-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | ⚠️ Untested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md) |
@@ -86,6 +87,6 @@ Autarkic-LLM/
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** July 2026  
+**Last Updated:** August 2026  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)

@@ -8,7 +8,7 @@ Optimized setup for dual NVIDIA RTX 6000 Pro Max-Q GPUs (192 GB total VRAM) on U
 
 **Always pin `--ctx-size` and set `--fit off`.** Match Pi’s `contextWindow` to real `n_ctx_seq`.
 
-**Thinking / empty replies** (Qwen3.6): `--reasoning off` and `--chat-template-kwargs '{"enable_thinking":false}'`.
+**Thinking / empty replies** (Qwen3.6): prefer **`--reasoning off`** (+ `--reasoning-budget 0`) for Pi. Shared Pi + Qwen3.6-27B lessons: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 ## Recommended model (primary — single GPU)
 

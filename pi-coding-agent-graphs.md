@@ -26,7 +26,7 @@ Use a **fresh session** per report (`/new`) so runs stay independent.
 3. **Pi `models.json`** from the same guide → `~/.pi/agent/models.json`. Keep `contextWindow` = server `--ctx-size` and `maxTokens` ≤ `--n-predict` ([agentic harnesses](agentic-harnesses.md)).
 4. **Pi Coding Agent** installed ([pi.dev](https://pi.dev)).
 
-Long **pi-workflows** (parallel specialists + synthesis) need a **large** context pin. Workflows have overflowed **32k**; prefer guides that document **~64k** agent profiles (or raise both server and Pi to match). Small windows cause `request exceeds the available context size` and incomplete turns.
+Long **pi-workflows** need a large **input** pin (field overflows at **32k/64k**, single requests **~70k+**) and enough **output** (`maxTokens` / `--n-predict`) for synthesis — often **8192–16384**, not 4k. Exact numbers are in your **hardware guide**. Cross-hardware Qwen3.6 + Pi rules (no DRY, thinking off, K/V, two limits): [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Field-validated 24 GB CUDA baseline: [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (**96k q8/q8**, `maxTokens` **16384**). Match server and Pi; **new session** after garbage.
 
 ## Core stack
 
@@ -39,17 +39,19 @@ Long **pi-workflows** (parallel specialists + synthesis) need a **large** contex
 
 Install per each package’s current docs. After installs, run **`/reload`** in Pi. Project **trust** is required for local `.pi/` resources.
 
-## Model configuration
+## Model configuration (Qwen3.6-27B + Pi)
 
 | Piece | Recommendation |
 | --- | --- |
 | Server | This repo’s **llama-cpp-turboquant** `llama-server` |
-| Model / quant | From **your** hardware guide (example: `Qwen3.6-27B-UD-Q4_K_XL` on 24 GB-class cards) |
-| Context | Large enough for multi-agent tool dumps (**64k**-class for workflows; 32k is often too small) |
-| Orchestrator | Local Qwen as primary; optional model tiers for lighter subagents if you add endpoints |
-| Qwen thinking | **Off** — same as hardware guides (`--reasoning off` + `enable_thinking:false`) so Pi gets `message.content` and tools |
+| Model / quant | From **your** hardware guide (dense **Qwen3.6-27B** UD quants are the usual Pi driver on mid/large boxes) |
+| Input window | Hardware guide `--ctx-size` = Pi `contextWindow`. Multi-agent research often needs **≫32k** |
+| Output ceiling | Pi `maxTokens` ≤ `--n-predict` (report runs: **8192–16384** so synthesis is not truncated) |
+| Thinking | **`--reasoning off`** (+ budget 0). Prefer over deprecated `enable_thinking` kwargs alone |
+| Tools | **No DRY**; presence **0** for path-heavy agents; see [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware) |
+| KV | Prefer **q8/q8** while it fits; turbo **V** only to buy context (K stays high precision) |
 
-Agent-oriented flags validated on Pi tool loops (no DRY, `presence_penalty 0`, `--cache-ram 0` on hybrid Qwen): see [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md). Apply the same ideas on other CUDA boxes when using long workflows.
+Example field-validated pin (24 GB CUDA only — do not copy numbers to a 48 GB Mac without reading that guide): [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md).
 
 ## Configuration & launch
 
@@ -146,8 +148,9 @@ Run journals: `~/.pi/workflows/.../runs/*.json` — useful if chat hits max toke
 | `/workflows save` before any success | Complete a run first, then save |
 | `request exceeds the available context size` | Raise server `--ctx-size` **and** Pi `contextWindow` to the same value; restart both |
 | Pi bar still shows **33k** after a guide bump | Rewrite `models.json` and **restart Pi** |
-| `maximum output token limit` | Raise `--n-predict` and Pi `maxTokens` (e.g. 4096); open the run JSON if synthesis finished |
-| Path soup / tool loops on Qwen3.6 | No DRY; tool-friendly sampling — [RTX 4090 guide](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) |
+| `maximum output token limit` | Raise **both** `--n-predict` and Pi `maxTokens` (e.g. 8192–16384); or write `reports/*.md` and summarize in chat; open run JSON if synthesis finished |
+| Path soup / tool loops on Qwen3.6 | No DRY; tool sampling; q8 V before turbo — [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware) |
+| Turn-1 garbage after turbo V | New session; fall back to **q8/q8** at your pin; A/B only V type |
 | Context bleed between countries | Fresh session (`/new`) per report |
 | Manual “save under reports/” every time | Temporary; bake into saved workflow or skill (roadmap) |
 
@@ -173,4 +176,4 @@ Run journals: `~/.pi/workflows/.../runs/*.json` — useful if chat hits max toke
 
 **Stack summary:** official Tavily tools + dynamic workflows give a practical multi-agent research “graph” without a custom orchestrator; the LLM remains the local model from this repo.
 
-**Last Updated:** July 2026
+**Last Updated:** August 2026
