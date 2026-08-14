@@ -1,5 +1,7 @@
 # Dual RTX 6000 Pro Max-Q (192 GB) - Qwen3.6-27B
 
+> **Qwen3.8 (✅ tested 2026-08-14):** [Dual-RTX6000-Qwen3.8.md](Dual-RTX6000-Qwen3.8.md) — same knobs, new weights, field-validated with Pi.
+
 Optimized setup for dual NVIDIA RTX 6000 Pro Max-Q GPUs (192 GB total VRAM) on Ubuntu, using **llama-cpp-turboquant**. Pi / tool conventions follow the field-validated [Windows RTX 4090 Qwen guide](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) and [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware); compute and memory knobs stay CUDA multi-GPU / high-VRAM.
 
 > ✅ **Tested** on this hardware (**Saturday, August 8, 2026**). Primary config below is **field-validated working** with **Pi Coding Agent** — full **262k** pin, **Q8_K_XL** weights, **q8/q8** KV on a single 96 GB card, stable tools + strong agent quality. Expect variance with thermals and background load; re-check `n_ctx_seq` after rebuilds. Cross-hardware Pi notes: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).

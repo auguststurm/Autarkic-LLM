@@ -1,5 +1,7 @@
 # DGX Spark Founders Edition (128 GB) - Qwen3.6-27B
 
+> **Qwen3.8 day-zero port:** [DGX-Spark-Qwen3.8.md](DGX-Spark-Qwen3.8.md) (same knobs, new weights — ⚠️ untested).
+
 Optimized setup for the NVIDIA DGX Spark Founders Edition (GB10 GPU, 128 GB system RAM), using **llama-cpp-turboquant**. Command shape and Pi integration follow the same conventions as the [M4 MacBook Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) (host, thinking off, pinned context, no Qwen checkpoint flags), with CUDA-specific layers and TurboQuant V.
 
 > ✅ **Tested by the maintainer on this hardware.** Settings below come from real runs; expect variance with thermals and background load. Re-check `n_ctx` after rebuilds.

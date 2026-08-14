@@ -21,12 +21,12 @@ Use a **fresh session** per report (`/new`) so runs stay independent.
 
 ## Prerequisites
 
-1. **Engine + model:** [local-setup.md](local-setup.md) and your [hardware guide](README.md#hardware-configurations-included) (e.g. [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) for Qwen3.6-27B Q4 agent settings).
+1. **Engine + model:** [local-setup.md](local-setup.md) and your [hardware guide](README.md#hardware-configurations-included) (e.g. [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) for Qwen3.6-27B Q4; [Dual RTX Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) for roomy CUDA — ✅ tested; other 3.8 ports in [README](README.md#qwen38-2026-08-14)).
 2. **`llama-server` running** with that guide’s command.
 3. **Pi `models.json`** from the same guide → `~/.pi/agent/models.json`. Keep `contextWindow` = server `--ctx-size` and `maxTokens` ≤ `--n-predict` ([agentic harnesses](agentic-harnesses.md)).
 4. **Pi Coding Agent** installed ([pi.dev](https://pi.dev)).
 
-Long **pi-workflows** need a large **input** pin (field overflows at **32k/64k**, single requests **~70k+**) and enough **output** (`maxTokens` / `--n-predict`) for synthesis — often **8192–16384**, not 4k. Exact numbers are in your **hardware guide**. Cross-hardware Qwen3.6 + Pi rules (no DRY, thinking off, K/V, two limits): [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Field-validated 24 GB CUDA baseline: [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (**96k q8/q8**, `maxTokens` **16384**). Match server and Pi; **new session** after garbage.
+Long **pi-workflows** need a large **input** pin (field overflows at **32k/64k**, single requests **~70k+**) and enough **output** (`maxTokens` / `--n-predict`) for synthesis — often **8192–16384**, not 4k. Exact numbers are in your **hardware guide**. Cross-hardware dense Qwen 27B + Pi rules (3.6 / 3.8; no DRY, thinking off, K/V, two limits): [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Field-validated baselines: [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (**96k q8/q8**, `maxTokens` **16384**); [Dual RTX 6000 Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) (**262k q8/q8**, `maxTokens` **16384**). Match server and Pi; **new session** after garbage.
 
 ## Core stack
 
@@ -39,19 +39,19 @@ Long **pi-workflows** need a large **input** pin (field overflows at **32k/64k**
 
 Install per each package’s current docs. After installs, run **`/reload`** in Pi. Project **trust** is required for local `.pi/` resources.
 
-## Model configuration (Qwen3.6-27B + Pi)
+## Model configuration (dense Qwen 27B + Pi)
 
 | Piece | Recommendation |
 | --- | --- |
-| Server | This repo’s **llama-cpp-turboquant** `llama-server` |
-| Model / quant | From **your** hardware guide (dense **Qwen3.6-27B** UD quants are the usual Pi driver on mid/large boxes) |
+| Server | This repo’s **llama-cpp-turboquant** `llama-server` (fresh build for **Qwen3.8** / `qwen35`) |
+| Model / quant | From **your** hardware guide — dense **Qwen3.6-27B** or **Qwen3.8-27B** UD quants on mid/large boxes (Dual RTX 3.8 ✅ tested) |
 | Input window | Hardware guide `--ctx-size` = Pi `contextWindow`. Multi-agent research often needs **≫32k** |
 | Output ceiling | Pi `maxTokens` ≤ `--n-predict` (report runs: **8192–16384** so synthesis is not truncated) |
 | Thinking | **`--reasoning off`** (+ budget 0). Prefer over deprecated `enable_thinking` kwargs alone |
 | Tools | **No DRY**; presence **0** for path-heavy agents; see [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware) |
 | KV | Prefer **q8/q8** while it fits; turbo **V** only to buy context (K stays high precision) |
 
-Example field-validated pin (24 GB CUDA only — do not copy numbers to a 48 GB Mac without reading that guide): [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md).
+Example field-validated pins (do not copy numbers across hardware without reading that guide): [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (24 GB) · [Dual RTX 6000 Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) (192 GB, ✅ tested). Other 3.8 ports: [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) · [M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md).
 
 ## Configuration & launch
 
@@ -149,7 +149,7 @@ Run journals: `~/.pi/workflows/.../runs/*.json` — useful if chat hits max toke
 | `request exceeds the available context size` | Raise server `--ctx-size` **and** Pi `contextWindow` to the same value; restart both |
 | Pi bar still shows **33k** after a guide bump | Rewrite `models.json` and **restart Pi** |
 | `maximum output token limit` | Raise **both** `--n-predict` and Pi `maxTokens` (e.g. 8192–16384); or write `reports/*.md` and summarize in chat; open run JSON if synthesis finished |
-| Path soup / tool loops on Qwen3.6 | No DRY; tool sampling; q8 V before turbo — [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware) |
+| Path soup / tool loops on Qwen3.6 / 3.8 | No DRY; tool sampling; q8 V before turbo — [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware) |
 | Turn-1 garbage after turbo V | New session; fall back to **q8/q8** at your pin; A/B only V type |
 | Context bleed between countries | Fresh session (`/new`) per report |
 | Manual “save under reports/” every time | Temporary; bake into saved workflow or skill (roadmap) |
@@ -176,4 +176,4 @@ Run journals: `~/.pi/workflows/.../runs/*.json` — useful if chat hits max toke
 
 **Stack summary:** official Tavily tools + dynamic workflows give a practical multi-agent research “graph” without a custom orchestrator; the LLM remains the local model from this repo.
 
-**Last Updated:** August 2026
+**Last Updated:** August 14, 2026 (Dual RTX Qwen3.8 marked ✅ Tested)

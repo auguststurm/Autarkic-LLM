@@ -44,11 +44,13 @@ Each hardware guide includes a **complete** Pi `models.json` — the full `provi
 - `maxTokens` ≤ `--n-predict`.
 - Restart **both** `llama-server` and Pi after changing either side. Pi’s status bar must match the pin (stale `models.json` is a common failure mode).
 
-Hardware-specific numbers always come from **your** guide. The [M4 MacBook Air Qwen guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) is the reference for agent-facing *layout* (host, fit, thinking, `models.json` shape). Field-validated **Pi + Qwen3.6-27B** agent lessons (any hardware) are below.
+Hardware-specific numbers always come from **your** guide. The [M4 MacBook Air Qwen guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) is the reference for agent-facing *layout* (host, fit, thinking, `models.json` shape). Field-validated **Pi + dense Qwen 27B** agent lessons (any hardware) are below — they cover **Qwen3.6-27B** and **Qwen3.8-27B** (same Pi rules; Dual RTX 3.8 is field-tested).
 
 ## Qwen3.6-27B + Pi Coding Agent (cross-hardware)
 
-These apply whenever Pi drives **Qwen3.6-27B** (dense) via this repo’s server. Exact `--ctx-size`, quant, and KV types stay in the **hardware guide**.
+> **Also applies to Qwen3.8-27B.** Same hybrid thinking, tool-loop risks, and two token limits. **✅ Field-tested on Dual RTX 6000** ([guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md), 2026-08-14). Other 3.8 ports still ⚠️ untested: [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) · [M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md). Overview: [README — Qwen3.8](README.md#qwen38-2026-08-14).
+
+These apply whenever Pi drives **dense Qwen 27B** (**Qwen3.6-27B** or **Qwen3.8-27B**) via this repo’s server. Exact `--ctx-size`, quant, and KV types stay in the **hardware guide**.
 
 ### Two different limits
 
@@ -61,12 +63,12 @@ Raising one does not fix the other. Multi-agent workflows (Tavily, parallel spec
 
 ### Server flags that matter for Pi tools
 
-| Prefer for Pi + Qwen3.6 | Avoid for tool/agent sessions |
+| Prefer for Pi + dense Qwen 27B (3.6 / 3.8) | Avoid for tool/agent sessions |
 | --- | --- |
 | **`--reasoning off`** (+ `--reasoning-budget 0`) so Pi gets `message.content` / tools | Relying only on deprecated `--chat-template-kwargs '{"enable_thinking":false}'` when the server warns to use `--reasoning` |
 | **`--fit off`** + pinned `--ctx-size` | Bare `--fit on` (can crush context) |
-| **No DRY** (`--dry-multiplier`, …) | DRY — causes path/name corruption on Qwen3.6 tool loops ([llama.cpp #20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
-| Tool-oriented sampling: e.g. **`temp 0.6`**, **`top_p 0.95`**, **`top_k 20`**, **`presence_penalty 0`**, **`repeat_penalty 1.0`** | High **presence** (e.g. 1.5 chat non-thinking) during path-heavy tool use — can warp reused path tokens |
+| **No DRY** (`--dry-multiplier`, …) | DRY — causes path/name corruption on Qwen3.x tool loops ([llama.cpp #20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
+| Tool-oriented sampling: e.g. **`temp 0.6`**, **`top_p 0.95`**, **`top_k 20`**, **`presence_penalty 0`**, **`repeat_penalty 1.0`** | High **presence** (e.g. 1.5 chat non-thinking / official Qwen3.8 instruct cards) during path-heavy tool use — can warp reused path tokens |
 | Hybrid Qwen: omit checkpoint flags; consider **`--cache-ram 0`** if multi-turn state looks corrupt | Assuming checkpoints speed hybrid Gated-DeltaNet (often they do not — see [turboquant deep dive](llama-cpp-turboquant.md#prompt-cache--checkpointing)) |
 
 ### KV cache (K vs V) — stability vs context
@@ -78,7 +80,7 @@ Weights are fixed; **KV grows with context**. **K** (keys) routes attention and 
 3. Only then compress **V** with turbo* if VRAM/RAM is tight — smoke-test real `ls`/`read` paths on a **new** session first.  
 4. Never crush **K** before **V**.
 
-TurboQuant **fork** ≠ must use turbo **types**. Roomier machines keep high-precision KV — e.g. [M5 48 GB](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) (~196k q8/q8) and [Dual RTX 6000 192 GB](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md) (**full 262k q8/q8**, field-tested with Pi). Tighter boxes (Air, 24 GB CUDA under load) use turbo V to buy window. Field-validated 24 GB CUDA agent baseline: [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (**96k q8/q8**, large `maxTokens`).
+TurboQuant **fork** ≠ must use turbo **types**. Roomier machines keep high-precision KV — e.g. [M5 48 GB](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) (~196k q8/q8; [3.8 port](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md)) and [Dual RTX 6000 192 GB](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) (**full 262k q8/q8**, **field-tested with Pi on Qwen3.8** and [3.6](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md)). Tighter boxes (Air, 24 GB CUDA under load) use turbo V to buy window. Field-validated 24 GB CUDA agent baseline: [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (**96k q8/q8**, large `maxTokens`).
 
 ### Operational habits
 

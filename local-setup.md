@@ -85,21 +85,29 @@ All configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic 2
 
 | Model | Type | GGUF files & downloads | Original weights |
 | --- | --- | --- | --- |
-| Qwen3.6-27B | Dense, 262K ctx | [unsloth/Qwen3.6-27B-GGUF](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | [Qwen/Qwen3.6-27B](https://huggingface.co/Qwen/Qwen3.6-27B) |
+| **Qwen3.8-27B** | Dense VLM, 262K ctx (✅ Dual RTX tested 2026-08-14) | [unsloth/Qwen3.8-27B-GGUF](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) | [Qwen/Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) |
+| Qwen3.6-27B | Dense, 262K ctx (field-tested paths) | [unsloth/Qwen3.6-27B-GGUF](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | [Qwen/Qwen3.6-27B](https://huggingface.co/Qwen/Qwen3.6-27B) |
 | Qwen3.6-35B-A3B | MoE (3B active) | [unsloth/Qwen3.6-35B-A3B-GGUF](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) | [QwenLM/Qwen3.6](https://github.com/QwenLM/Qwen3.6) |
 | Gemma 4 E2B | Dense edge (PLE) | [unsloth/gemma-4-E2B-it-GGUF](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) | [google/gemma-4-E2B](https://huggingface.co/google/gemma-4-E2B) |
 
-Collections: [Qwen3.6 (Unsloth)](https://huggingface.co/collections/unsloth/qwen36) · [Gemma 4 (Unsloth)](https://huggingface.co/collections/unsloth/gemma-4). MTP variants (e.g. `*-MTP-GGUF`) offer ~1.5–2× faster decode via multi-token prediction. Pick the largest quant that fits your memory budget: each hardware guide names the exact file, and the [M4 Mac Mini guide](M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md) shows how to reason about the budget.
+Collections: [Qwen3.8 (Unsloth)](https://huggingface.co/collections/unsloth/qwen38) · [Qwen3.6 (Unsloth)](https://huggingface.co/collections/unsloth/qwen36) · [Gemma 4 (Unsloth)](https://huggingface.co/collections/unsloth/gemma-4). MTP variants (e.g. `*-MTP-GGUF`) offer ~1.5–2× faster decode via multi-token prediction. Pick the largest quant that fits your memory budget: each hardware guide names the exact file, and the [M4 Mac Mini guide](M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md) shows how to reason about the budget.
+
+**Qwen3.8 guides** (knobs from each box’s tested 3.6 path): [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** (2026-08-14, Pi) · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) ⚠️ untested · [M5 MacBook Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ⚠️ untested. Need a fresh turboquant build (`qwen35` arch). Guides include a GGUF naming decoder + Q4–Q8 size/quality table.
 
 ### Download
 
-> **Disk space:** GGUFs are large. The Qwen3.6-27B `Q6_K_XL` is ~22 GB, the 35B-A3B `Q4_K_XL` ~22 GB (down to ~11.5 GB for the `IQ2_M` used on 16 GB Macs), and Gemma 4 E2B `Q4_K_S` ~3 GB. Make sure you have the room — and note `hf_transfer` downloads can momentarily use extra space.
+> **Disk space:** GGUFs are large. Qwen3.8-27B `UD-Q8_K_XL` is ~31.5 GB, `UD-Q6_K_XL` ~25.9 GB, `UD-Q5_K_XL` ~20.2 GB, `UD-Q4_K_XL` ~17.9 GB. Qwen3.6-27B `Q6_K_XL` is ~22 GB; 35B-A3B `Q4_K_XL` ~22 GB (down to ~11.5 GB for the `IQ2_M` used on 16 GB Macs); Gemma 4 E2B `Q4_K_S` ~3 GB. Make sure you have the room — and note `hf_transfer` downloads can momentarily use extra space.
 
 ```bash
 pip install -U huggingface_hub hf_transfer
 
-# Qwen example (hf is the current CLI; older docs use `huggingface-cli download`)
+# Qwen3.8 example (day-zero; hf is the current CLI)
 # Hardware guides use ~/Documents/AIML/models as a flat local-dir; any path works if --model matches.
+hf download unsloth/Qwen3.8-27B-GGUF \
+  Qwen3.8-27B-UD-Q6_K_XL.gguf \
+  --local-dir ~/Documents/AIML/models
+
+# Qwen3.6 example (field-tested guides)
 hf download unsloth/Qwen3.6-27B-GGUF \
   Qwen3.6-27B-UD-Q6_K_XL.gguf \
   --local-dir ~/Documents/AIML/models
@@ -126,7 +134,7 @@ mkdir -p ./kv-cache
 - Always run `pkill -9 llama-server` before starting a new instance. The `-9` (SIGKILL) is deliberate, not lazy: llama-server's graceful shutdown can hang on SIGTERM/SIGINT (upstream issues [#11742](https://github.com/ggml-org/llama.cpp/issues/11742), [#20921](https://github.com/ggml-org/llama.cpp/issues/20921)), and it does **not** auto-save useful long-term KV on exit — so a hard kill loses nothing you were relying on for persistence.
 - Use `--no-mmap` on systems with sufficient RAM (common on CUDA/Vulkan guides). Memory-tight Metal configs may omit it.
 - **Prefer pinned `--ctx-size` + `--fit off` for agent use (Pi / Hermes).** Default `--fit on` can crush context (sometimes toward ~4096) and break long sessions — documented on the [M4 MacBook Air guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). **All hardware guides in this repo pin context and set `--fit off`.** If you experiment with `--fit on --fit-target <MiB>`, **leave `--n-gpu-layers` and `--ctx-size` unset** — on the current fork it aborts if `--n-gpu-layers` is set and won't shrink a pinned `--ctx-size`. Check the startup log for the context it allocated.
-- **Qwen3.6 + agents (Pi):** prefer **`--reasoning off`** (+ `--reasoning-budget 0`) so clients get normal `message.content` / tools. Current llama-server builds often **deprecate** `enable_thinking` via `--chat-template-kwargs` in favor of `--reasoning on|off`. Do not rely on context-checkpoint flags for hybrid Qwen — see [checkpointing caveat](llama-cpp-turboquant.md#prompt-cache--checkpointing). For Pi tool stability (no DRY, sampling, KV K/V, `contextWindow` vs `maxTokens`), see [agentic harnesses — Qwen3.6-27B + Pi](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
+- **Qwen3.6 / Qwen3.8 + agents (Pi):** prefer **`--reasoning off`** (+ `--reasoning-budget 0`) so clients get normal `message.content` / tools. Current llama-server builds often **deprecate** `enable_thinking` via `--chat-template-kwargs` in favor of `--reasoning on|off`. Do not rely on context-checkpoint flags for hybrid Qwen (3.5/3.6/3.8 share the hybrid backbone) — see [checkpointing caveat](llama-cpp-turboquant.md#prompt-cache--checkpointing). For Pi tool stability (no DRY, sampling, KV K/V, `contextWindow` vs `maxTokens`), see [agentic harnesses — dense Qwen 27B + Pi](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). **Qwen3.8** status: [README — Qwen3.8](README.md#qwen38-2026-08-14).
 - Monitor resources:
   - Linux: `htop`, `nvidia-smi -l 1`
   - macOS: `htop` + Activity Monitor
@@ -167,6 +175,7 @@ Each hardware guide includes a **complete** Pi Coding Agent `models.json`. Copy 
 
 ## Next Steps
 
-- Go to your hardware-specific folder (e.g. `DGX-Spark-128GB/`, `Win-RTX4090-24GB/`) for exact build flags, model recommendations, and optimized `llama-server` commands.
+- Go to your hardware-specific folder (e.g. `DGX-Spark-128GB/`, `Dual-RTX6000-192GB/`, `M5-MacBook-Pro-48GB/`, `Win-RTX4090-24GB/`) for exact build flags, model recommendations, and optimized `llama-server` commands.
+- **Qwen3.8:** [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) / [M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ports ⚠️ — overview in [README](README.md#qwen38-2026-08-14).
 - Pi multi-agent research / Tavily: [`pi-coding-agent-graphs.md`](pi-coding-agent-graphs.md).
 - For what the TurboQuant fork adds and what every `llama-server` flag does (and when *not* to use it), see [`llama-cpp-turboquant.md`](llama-cpp-turboquant.md).

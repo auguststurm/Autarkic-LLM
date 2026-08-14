@@ -1,5 +1,7 @@
 # M5 MacBook Pro (48 GB) - Qwen3.6-27B
 
+> **Qwen3.8 day-zero port:** [M5-MacBook-Pro-Qwen3.8.md](M5-MacBook-Pro-Qwen3.8.md) (same Metal knobs, new weights — ⚠️ untested).
+
 Optimized setup for MacBook Pro M5 Pro/Max with 48 GB unified memory, using **llama-cpp-turboquant**. Command shape and Pi integration follow the [M4 MacBook Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md); this machine has more headroom, so the primary config keeps high-quality KV (`q8_0`/`q8_0`) and a large pinned context.
 
 > ✅ **Tested by the maintainer on this hardware.** Settings below come from real runs; expect variance with thermals and background load. Flag modernization (host, thinking off, `--fit off`, no checkpoint flags) matches the current Air reference — re-check `n_ctx` after rebuilds.

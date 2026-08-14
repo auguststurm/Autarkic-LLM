@@ -71,11 +71,18 @@ The rest is judgment:
   and warn me that's unauthenticated.
 - (always) Pin `--ctx-size` and set `--fit off` for agent use. Do not rely on bare `--fit on` — it can
   crush context and break Pi. Prefer lowering quant/context over silent fit.
-- (always for Qwen3.6 agents) `--reasoning off` and `--reasoning-budget 0` so Pi gets message.content
-  (prefer this over deprecated enable_thinking chat-template-kwargs alone on current llama-server).
-- (always for Qwen3.6) omit context-checkpoint flags unless I ask; they often don't help on hybrid
-  attention (see llama-cpp-turboquant.md). For Pi + Qwen3.6-27B tool stability (no DRY, sampling,
-  contextWindow vs maxTokens, K/V), follow agentic-harnesses.md and the hardware guide.
+- (always for Qwen3.6 / Qwen3.8 agents) `--reasoning off` and `--reasoning-budget 0` so Pi gets
+  message.content (prefer this over deprecated enable_thinking chat-template-kwargs alone on
+  current llama-server).
+- (always for hybrid Qwen 3.5/3.6/3.8) omit context-checkpoint flags unless I ask; they often don't
+  help on hybrid attention (see llama-cpp-turboquant.md). For Pi + dense Qwen 27B tool stability
+  (no DRY, sampling, contextWindow vs maxTokens, K/V), follow agentic-harnesses.md and the hardware
+  guide.
+- (Qwen3.8, released 2026-08-14) Prefer a Qwen3.8 hardware guide when one exists for my class of
+  machine (Dual RTX 6000, DGX Spark, M5 Pro — see README "Qwen3.8"). Dual RTX 6000 Qwen3.8 is
+  field-tested; DGX Spark and M5 Pro ports reuse tested 3.6 knobs but are still untested — flag
+  that. Use a fresh turboquant build (arch qwen35). Confirm exact UD- quant filenames on
+  unsloth/Qwen3.8-27B-GGUF.
 
 PI CODING AGENT — the only harness we are configuring:
 Once the server runs, give me a complete Pi `models.json` I can save as-is to
@@ -121,3 +128,4 @@ MY HARDWARE:
 - Start the server with the command it gave you, then watch the startup log — confirm **`n_ctx` / `n_ctx_seq`** match what you pinned (and that **decode** works, not only load). Keep Pi’s `contextWindow` in sync.
 - Write the `models.json` it produced to **`~/.pi/agent/models.json`**, start Pi, and you're running fully offline against `http://127.0.0.1:8080/v1`.
 - **Ran this on hardware that isn't in the [table](README.md#hardware-configurations-included) yet?** Please open an issue or PR with what worked — that's how the untested configs become tested ones.
+- **Trying Qwen3.8?** Prefer the matching `*Qwen3.8.md` guide when one exists ([overview](README.md#qwen38-2026-08-14)). Dual RTX 6000 is already ✅ Tested; for other ports, smoke-test load → first decode → Pi tools, then report results.

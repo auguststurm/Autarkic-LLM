@@ -2,7 +2,7 @@
 
 > 🤖 **Setting up a machine? Don't read this whole repo — let an AI do it.** Copy the prompt in **[`ai-assisted-setup.md`](ai-assisted-setup.md)** into Claude Code, Copilot, ChatGPT, Grok, or Gemini, paste your hardware at the bottom, and it'll use this repo as reference to generate your exact build, `llama-server` command, model download, and Pi Coding Agent `models.json`. Works whether or not you've done this before.
 
-**Per-machine llama.cpp configs for running Qwen3.6 and Gemma 4 fully offline.**
+**Per-machine llama.cpp configs for running Qwen3.8, Qwen3.6, and Gemma 4 fully offline.**
 
 Each hardware guide has the exact build flags and `llama-server` command for one machine, with a model and quant picked to fit its memory: no cloud, no API keys, nothing leaving the box. Configs marked **Tested** were run on that hardware; the rest are starting points (see the table below).
 
@@ -13,13 +13,25 @@ Each hardware guide has the exact build flags and `llama-server` command for one
 ## Current Focus
 
 - Primary engine: **llama-cpp-turboquant** (the TurboQuant fork of llama.cpp); build it via [`local-setup.md`](local-setup.md)
-- Preferred models: Qwen3.6 series (dense + MoE) with Unsloth UD quants; Gemma 4 E2B for edge devices
+- Preferred models: **Qwen3.8-27B** (dense VLM, Unsloth UD quants) on roomier boxes — **✅ tested** on Dual RTX 6000 day-of-release; **Qwen3.6** dense + MoE where still the tested path; Gemma 4 E2B for edge devices
 - Emphasis on KV-cache optimization (TurboQuant), flash attention, agent-friendly Qwen settings (thinking off, pinned context), and stable sampling (details in the [deep dive](llama-cpp-turboquant.md))
-- **Pi Coding Agent + Qwen3.6-27B:** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware); multi-agent research in [Pi graphs](pi-coding-agent-graphs.md)
+- **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware); multi-agent research in [Pi graphs](pi-coding-agent-graphs.md)
+
+### Qwen3.8 (2026-08-14)
+
+[Qwen3.8-27B](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF) shipped **2026-08-14**. Hardware guides reuse each box’s **tested Qwen3.6** knobs (same pin, KV, Pi shape). **Dual RTX 6000 is already ✅ Tested on Qwen3.8 + Pi** the same day:
+
+| Machine | Backend | Status | Qwen3.8 guide |
+| --- | --- | --- | --- |
+| Dual RTX 6000 Pro Max-Q (192 GB) | CUDA | ✅ **Tested** (2026-08-14, Pi agent) | [Dual-RTX6000-Qwen3.8.md](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) — Q8 @ 262k q8/q8 |
+| DGX Spark Founders Edition (128 GB) | CUDA (GB10) | ⚠️ Untested (ported from 3.6) | [DGX-Spark-Qwen3.8.md](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) — Q6 @ 262k q8/turbo4 |
+| MacBook Pro M5 (48 GB) | Metal | ⚠️ Untested (ported from 3.6) | [M5-MacBook-Pro-Qwen3.8.md](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) — Q5 @ 196k q8/q8 |
+
+Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-test load → first decode → Pi tools, then report results. GGUF naming / quant ladder is explained inside each 3.8 guide. Catalog: [`local-setup.md`](local-setup.md#model-catalog-hugging-face).
 
 ## Hardware Configurations Included
 
-**Tested** = run on the physical hardware by the maintainer. **Untested** = best-effort config from model size + llama.cpp options; figures are estimates pending community reports.
+**Tested** = run on the physical hardware by the maintainer. **Untested** = best-effort config from model size + llama.cpp options (including remaining Qwen3.8 ports); figures are estimates pending community reports.
 
 | Hardware | Memory | Backend | Model | Tested | Guide |
 | --- | --- | --- | --- | --- | --- |
@@ -33,8 +45,11 @@ Each hardware guide has the exact build flags and `llama-server` command for one
 | MacBook Air M4 | 24 GB | Metal | [Qwen3.6-35B-A3B UD-IQ4_NL](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) (MoE, turbo2 V, 61k ctx) | ✅ Tested | [guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) |
 | Windows RTX 4090 (WSL2) | 24 GB | CUDA | [Qwen3.6-27B UD-Q4_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (96k q8/q8 Pi agent) | ✅ Tested | [guide](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) |
 | MacBook Pro M5 | 48 GB | Metal | [Qwen3.6-27B UD-Q5_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (196k ctx) | ✅ Tested | [guide](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) |
+| MacBook Pro M5 | 48 GB | Metal | [Qwen3.8-27B UD-Q5_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (196k q8/q8, ported from 3.6) | ⚠️ Untested | [guide](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.6-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | ✅ Tested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.6.md) |
+| DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.8-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/turbo4, ported from 3.6) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.6-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md) |
+| Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.8-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) |
 
 ## Quick Start
 
@@ -66,11 +81,14 @@ Autarkic-LLM/
 ├── pi-coding-agent-graphs.md       # Pi workflows, Tavily, multi-agent research
 ├── glossary.md                     # Terms + further reading
 ├── DGX-Spark-128GB/
-│   └── DGX-Spark-Qwen3.6.md
+│   ├── DGX-Spark-Qwen3.6.md
+│   └── DGX-Spark-Qwen3.8.md        # day-zero port (untested)
 ├── Dual-RTX6000-192GB/
-│   └── Dual-RTX6000-Qwen3.6.md
+│   ├── Dual-RTX6000-Qwen3.6.md
+│   └── Dual-RTX6000-Qwen3.8.md     # ✅ tested 2026-08-14
 ├── M5-MacBook-Pro-48GB/
-│   └── M5-MacBook-Pro-Qwen3.6.md
+│   ├── M5-MacBook-Pro-Qwen3.6.md
+│   └── M5-MacBook-Pro-Qwen3.8.md   # day-zero port (untested)
 ├── M4-MacBook-Air-24GB/
 │   └── M4-MacBook-Air-Qwen3.6.md
 ├── M4-Mac-Mini-16GB/
@@ -87,6 +105,6 @@ Autarkic-LLM/
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** August 2026  
+**Last Updated:** August 14, 2026 (Qwen3.8-27B: Dual RTX 6000 ✅ Tested same day; DGX Spark + M5 Pro ports untested)  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)

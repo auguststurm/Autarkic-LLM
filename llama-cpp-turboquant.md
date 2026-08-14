@@ -10,9 +10,9 @@ A deeper companion to [`local-setup.md`](local-setup.md): what the **llama-cpp-t
 
 - **Asymmetric KV:** keep **K** precise (`q8_0` / f16); compress **V** only when you need more context. Never turbo **K** first (§2).
 - **TurboQuant fork ≠ turbo types required.** Roomier boxes use `q8_0`/`q8_0` for quality; memory-bound boxes use `turbo4`→`turbo2` on **V** to buy window. Field-validated Pi agent baseline on 24 GB CUDA: **q8/q8 @ large pin** ([Win RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md)); Air uses **turbo2 V** to survive ([M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md)).
-- **Pi + Qwen3.6 tools:** `--reasoning off` (prefer over deprecated `enable_thinking` kwargs alone); **no DRY**; tool sampling often `temp 0.6` / `top_p 0.95` / `top_k 20` / `presence 0` / `repeat 1.0`. See [agentic harnesses](agentic-harnesses.md).
+- **Pi + dense Qwen 27B tools (3.6 / 3.8):** `--reasoning off` (prefer over deprecated `enable_thinking` kwargs alone); **no DRY**; tool sampling often `temp 0.6` / `top_p 0.95` / `top_k 20` / `presence 0` / `repeat 1.0`. See [agentic harnesses](agentic-harnesses.md).
 - **Two limits:** `--ctx-size` / Pi `contextWindow` = input; `--n-predict` / Pi `maxTokens` = one reply. Multi-agent runs often need large **input**; long reports need large **output**.
-- **Checkpointing / cache-ram** can help non-hybrid models; **Qwen3.6 hybrid** guides usually omit checkpoints and may use `--cache-ram 0` for multi-turn correctness (§5).
+- **Checkpointing / cache-ram** can help non-hybrid models; **hybrid Qwen (3.5/3.6/3.8)** guides usually omit checkpoints and may use `--cache-ram 0` for multi-turn correctness (§5).
 - **`--fit off` + pinned `--ctx-size`** for agents. Conservative **batch** sizes avoid peak OOM.
 - **Small dense** (Gemma 4 E2B) and **low-active MoE** (Qwen3.6-35B-A3B) fit lower-memory devices; MoE *full* weights must still fit.
 
@@ -61,9 +61,9 @@ Step 4 (aggro):    --cache-type-k q8_0 --cache-type-v turbo2    # long context; 
 ### What this repo actually uses
 
 - **CUDA — room / agent quality (Win 4090 field-validated Pi baseline; prefer when VRAM allows):** `--cache-type-k q8_0 --cache-type-v q8_0`, then raise `--ctx-size`; add **turbo V** only if overflow forces capacity. See [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md).
-- **CUDA — large headroom (DGX, Dual RTX 6000):** prefer **q8/q8** while it fits; Dual RTX 6000 primary is field-tested **262k q8/q8** with Pi. Turbo V is optional capacity, not the quality default — follow the per-machine guide.
+- **CUDA — large headroom (DGX, Dual RTX 6000):** Dual RTX primary is field-tested **262k q8/q8** with Pi on **Qwen3.8** ([guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md); same knobs as [3.6](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md)). DGX tested path keeps **q8/turbo4** at 262k ([3.8 port](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) still untested). Turbo V is a capacity lever — follow the per-machine guide.
 - **Metal — memory-bound (M4 Air tested; 16 GB Mini Qwen experimental):** `--cache-type-k q8_0 --cache-type-v turbo2` so long context fits after large weights. See the [M4 Air guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
-- **Metal — roomier (M5 Pro ~196k Qwen3.6-27B tested; Mini Gemma) and Jetson:** primary often `--cache-type-k q8_0 --cache-type-v q8_0`; turbo V is optional headroom.
+- **Metal — roomier (M5 Pro ~196k Qwen3.6-27B tested; [3.8 port](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md); Mini Gemma) and Jetson:** primary often `--cache-type-k q8_0 --cache-type-v q8_0`; turbo V is optional headroom.
 
 ### When NOT to use aggressive V compression
 
@@ -131,7 +131,7 @@ These reuse computed state across requests so repeated prompts/turns don't repro
 - **`--ctx-checkpoints N`** (`-ctxcp`): max context checkpoints per slot (upstream default `32`).
 - **`--checkpoint-min-step N`** (`-cms`): minimum spacing, in tokens, between context checkpoints (upstream default `256`). **Flag history:** older fork commits used `--checkpoint-every-n-tokens`/`-cpent`; current builds use `--checkpoint-min-step`/`-cms` and **reject the old name**. Check `--help` on your build.
 
-> ⚠️ **Qwen3.6 guides in this repo omit checkpoint flags.** Qwen3.5/3.6 use **hybrid Gated-DeltaNet (recurrent) attention**, and llama.cpp has documented bugs where **context checkpoints are never restored on hybrid/recurrent models, forcing full prompt re-processing on every turn** (see issues [#20225](https://github.com/ggml-org/llama.cpp/issues/20225), [#19794](https://github.com/ggml-org/llama.cpp/issues/19794), [#22384](https://github.com/ggml-org/llama.cpp/issues/22384)). These flags may add overhead without prefill savings on Qwen3.6. They can still help on non-hybrid models (e.g. some Gemma setups) if you add them yourself.
+> ⚠️ **Hybrid Qwen guides in this repo (3.5/3.6/3.8) omit checkpoint flags.** These families use **hybrid Gated-DeltaNet (recurrent) attention**, and llama.cpp has documented bugs where **context checkpoints are never restored on hybrid/recurrent models, forcing full prompt re-processing on every turn** (see issues [#20225](https://github.com/ggml-org/llama.cpp/issues/20225), [#19794](https://github.com/ggml-org/llama.cpp/issues/19794), [#22384](https://github.com/ggml-org/llama.cpp/issues/22384)). These flags may add overhead without prefill savings on hybrid Qwen. They can still help on non-hybrid models (e.g. some Gemma setups) if you add them yourself.
 
 ### Batching & throughput
 
@@ -143,14 +143,14 @@ These reuse computed state across requests so repeated prompts/turns don't repro
 
 - **`--n-predict N`**: max tokens to generate per request (upstream default `-1` = unlimited). Agent/report profiles often use **8192–16384** so long answers are not cut mid-report; lower only when debugging runaway loops. Must stay ≤ remaining context after the prompt.
 - **`--reasoning-budget N`**: thinking-token budget. `-1` unrestricted, **`0` = end thinking immediately**, `N>0` = budget. Repo pairs **`0`** with reasoning off for agents.
-- **`--reasoning off`** *(preferred in this repo for Qwen3.6 + Pi)*: disable thinking-style output so clients receive normal `message.content`. Confirm spelling on your build (`--help`). **Preferred over** template kwargs alone on current servers.
+- **`--reasoning off`** *(preferred in this repo for Qwen3.6 / Qwen3.8 + Pi)*: disable thinking-style output so clients receive normal `message.content`. Confirm spelling on your build (`--help`). **Preferred over** template kwargs alone on current servers.
 - **`--chat-template-kwargs '{"enable_thinking":false}'`**: older Qwen template knob. Many builds now **deprecate** this in favor of `--reasoning on|off` (warning at high log verbosity). Prefer `--reasoning off` for agents; omit kwargs if the server complains.
 - **`--jinja`**: use the model's Jinja chat template (upstream default: enabled). Set explicitly here; needed for correct chat/tool formatting on modern templates.
 
 ### Sampling (quality/determinism)
 
 - **Generic / older guide baseline:** `--temp 0.65 --top-p 0.90 --min-p 0.0 --repeat-penalty 1.10 --presence-penalty 0.0` (Gemma: `--temp 0.75 --top-p 0.92`).
-- **Qwen3.6 + Pi tool/agent (field-validated direction):** `--temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 --presence-penalty 0.0 --repeat-penalty 1.0` — tool/path friendly. **Do not enable DRY** for Qwen3.6 tool loops (path/name corruption). Official **non-thinking chat** cards may suggest higher presence (e.g. 1.5); that can help chat loops but **hurts path reuse** in shell/write agents.
+- **Qwen3.6 / Qwen3.8 + Pi tool/agent (field-validated direction on 3.6; same default for 3.8 ports):** `--temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 --presence-penalty 0.0 --repeat-penalty 1.0` — tool/path friendly. **Do not enable DRY** for Qwen tool loops (path/name corruption). Official **non-thinking chat** cards (including Qwen3.8 instruct) may suggest higher presence (e.g. 1.5); that can help chat loops but **hurts path reuse** in shell/write agents.
 - **`--temp`**: randomness. Lower (0.6–0.7) = more deterministic/code-friendly; higher = more creative.
 - **`--top-p` / `--top-k` / `--min-p`**: nucleus / top-k / min-p filters.
 - **`--repeat-penalty` / `--repeat-last-n`**: classic repeat penalty (`1.0` = off).
@@ -168,7 +168,7 @@ These reuse computed state across requests so repeated prompts/turns don't repro
 ## See also
 
 - [`local-setup.md`](local-setup.md): clone, build, download, and `models.json` integration.
-- [`agentic-harnesses.md`](agentic-harnesses.md): Pi / OpenClaw / Hermes; **Qwen3.6-27B + Pi** cross-hardware lessons.
+- [`agentic-harnesses.md`](agentic-harnesses.md): Pi / OpenClaw / Hermes; **dense Qwen 27B (3.6 / 3.8) + Pi** cross-hardware lessons.
 - [`pi-coding-agent-graphs.md`](pi-coding-agent-graphs.md): multi-agent workflows, Tavily, `reports/`.
-- Hardware guides: exact, per-machine commands ([README table](README.md#hardware-configurations-included)).
+- Hardware guides: exact, per-machine commands ([README table](README.md#hardware-configurations-included)); **Qwen3.8** status in [README](README.md#qwen38-2026-08-14).
 - [TurboQuant design discussion](https://github.com/ggml-org/llama.cpp/discussions/20969) · [llama.cpp server docs](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) · [build docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md)
