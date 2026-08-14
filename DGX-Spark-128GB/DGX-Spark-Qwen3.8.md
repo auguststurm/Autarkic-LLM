@@ -211,6 +211,29 @@ log: n_ctx_seq (262144)
 
 Smoke-test order: (1) load, (2) short chat completion, (3) new Pi session with real `ls` / `read` tools.
 
+### Optional: MTP decode speedup (Unsloth)
+
+Unsloth Qwen3.8 GGUFs include **MTP**. On CUDA, expect ~**1.4–2.2×** decode with ~1–2 GB extra memory. Same primary command plus:
+
+```bash
+#   --spec-type draft-mtp --spec-draft-n-max 2
+# Confirm: ./llama-server --help | grep -i draft-mtp
+# Try n-max 1–6; smoke-test Pi tools on a new session. See Dual RTX 3.8 for full example.
+```
+
+Docs: [MTP](https://unsloth.ai/docs/models/mtp) · full Dual RTX options: [Dual-RTX6000-Qwen3.8.md](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#optional-mtp-decode-speedup-unsloth).
+
+### Optional: Unsloth sampling / thinking (non-Pi defaults)
+
+| Mode | temp | top_p | presence | Notes |
+| --- | --- | --- | --- | --- |
+| Thinking (Unsloth) | 1.0 | 0.95 | 0.0 | With `--reasoning on`; optional `reasoning_effort` xhigh/medium/low |
+| Instruct (Unsloth) | 0.7 | 0.80 | 1.5 | Chat; **not** for path-heavy Pi tools |
+| Pi tools (this repo) | 0.6 | 0.95 | 0.0 | Primary / agent path |
+
+Source: [Unsloth Qwen3.8](https://unsloth.ai/docs/models/qwen3.8#recommended-settings).
+
+
 ### Optional: milder / stronger KV
 
 Primary uses **turbo4 V** (capacity at 262k). If tools feel soft and memory allows, try **q8/q8** first (same as Dual RTX primary) before changing weight quant:

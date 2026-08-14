@@ -94,6 +94,8 @@ Collections: [Qwen3.8 (Unsloth)](https://huggingface.co/collections/unsloth/qwen
 
 **Qwen3.8 guides** (knobs from each box’s tested 3.6 path): [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** (2026-08-14, Pi) · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) ⚠️ untested · [M5 MacBook Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ⚠️ untested. Need a fresh turboquant build (`qwen35` arch).
 
+**Unsloth extras worth knowing** ([Qwen3.8 guide](https://unsloth.ai/docs/models/qwen3.8) · [MTP](https://unsloth.ai/docs/models/mtp)): UD GGUFs are **Dynamic V3.0** (developer-role + better nested tool calls); optional **`--spec-type draft-mtp --spec-draft-n-max 2`** for ~1.4–2.2× decode on CUDA; official sampling differs for thinking (temp 1.0) vs instruct (temp 0.7 / presence 1.5) — Pi tool sessions keep presence **0** (see Dual RTX guide). Blackwell boxes may also try **NVFP4** via vLLM/SGLang (different stack).
+
 ### Understanding GGUF quants (why so many files)
 
 The Hugging Face “Files” tab is **not** twenty different models. It is **one** base model (e.g. Qwen3.8-27B), packaged many ways so a 16 GB laptop and a 192 GB workstation can both load something useful. Each `.gguf` is a different **compression recipe** of those weights. `llama-server` loads **one** weights file at a time; you pick the tradeoff that fits your memory and quality bar.

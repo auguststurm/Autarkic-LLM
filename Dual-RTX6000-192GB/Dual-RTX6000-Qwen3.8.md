@@ -15,7 +15,7 @@ Optimized setup for dual NVIDIA RTX 6000 Pro Max-Q GPUs (192 GB total VRAM) on U
 | Primary pin | single GPU, q8/q8 KV, 16k out, Pi tools | **Same flags — confirmed on 3.8** |
 | Vision | Text primary | Native VLM + optional `mmproj` (text/agent primary still) |
 
-GGUF catalog: [unsloth/Qwen3.8-27B-GGUF](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF). Run notes: [Unsloth Qwen3.8 guide](https://unsloth.ai/docs/models/qwen3.8).
+GGUF catalog: [unsloth/Qwen3.8-27B-GGUF](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF) (Unsloth **Dynamic V3.0** preview — developer-role / improved tool-calling templates baked in). Run notes: [Unsloth Qwen3.8 guide](https://unsloth.ai/docs/models/qwen3.8) · [MTP speedups](https://unsloth.ai/docs/models/mtp).
 
 ## Why so many GGUFs? (quick naming decoder)
 
@@ -77,7 +77,7 @@ More background (repo-wide): [local-setup — Understanding GGUF quants](../loca
 
 Shared Pi + dense-Qwen lessons (two token limits, no DRY, tool sampling, K/V, hybrid cache): [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
-**Sampling for Pi tools (this repo):** keep the **Dual RTX / 4090 agent profile** (`temp 0.6`, `top_p 0.95`, `top_k 20`, **`presence_penalty 0`**, `repeat_penalty 1.0`) — **field-validated on Qwen3.8** on this box. Official Qwen3.8 cards suggest higher presence (1.5) and different temp/top_p for non-thinking chat — that can help pure chat but **hurts path reuse** in shell/write agents.
+**Sampling for Pi tools (this repo):** keep the **Dual RTX / 4090 agent profile** (`temp 0.6`, `top_p 0.95`, `top_k 20`, **`presence_penalty 0`**, `repeat_penalty 1.0`) — **field-validated on Qwen3.8** on this box. [Unsloth’s official table](https://unsloth.ai/docs/models/qwen3.8#recommended-settings) uses different numbers for pure **thinking** (temp 1.0) and **instruct** (temp 0.7, `presence 1.5`) — use those only outside path-heavy Pi tool loops (see [optional modes](#optional-unsloth-sampling-modes-chat--thinking) below).
 
 ## Recommended model (primary — single GPU)
 
@@ -208,6 +208,94 @@ nvidia-smi   # note MiB after load and after a short decode
 
 Confirm after rebuilds: (1) load, (2) short decode, (3) Pi tools on a fresh session.
 
+### Optional: MTP decode speedup (Unsloth)
+
+Unsloth’s Qwen3.8 GGUFs ship with **Multi-Token Prediction** heads. On high-bandwidth CUDA (this box), MTP can be ~**1.4–2.2×** faster generation with **no accuracy loss** on accepted tokens — typically ~**1–2 GB** extra VRAM. Docs: [MTP guide](https://unsloth.ai/docs/models/mtp) · [Qwen3.8 run guide](https://unsloth.ai/docs/models/qwen3.8).
+
+Primary above is the **field-tested** Pi baseline **without** MTP. For speed, add to the same command (after a fresh turboquant/llama.cpp build that lists the flags in `--help`):
+
+```bash
+# Same PRIMARY command as above, plus:
+  --spec-type draft-mtp \
+  --spec-draft-n-max 2
+```
+
+| Tip | Detail |
+| --- | --- |
+| Start with **`n-max 2`** | Unsloth’s recommended starting point; try **1–6** and keep the fastest on *this* box |
+| Confirm support | `./llama-server --help \| grep -i spec` — need `draft-mtp` / `--spec-type` |
+| Pi tools | MTP should not change quality of accepted tokens; still re-smoke `ls`/`read` once |
+| If flags missing | `git pull` turboquant / rebuild — MTP needs a recent llama.cpp speculative path |
+
+Example (primary + MTP only):
+
+```bash
+pkill -9 llama-server
+
+./llama-server \
+  --model ~/Documents/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
+  --host 127.0.0.1 --port 8080 \
+  --ctx-size 262144 \
+  --fit off \
+  --n-gpu-layers 99 \
+  --main-gpu 0 \
+  --no-mmap \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --cache-ram 0 \
+  --jinja \
+  --flash-attn on \
+  --no-context-shift \
+  --parallel 1 \
+  --ubatch-size 1024 \
+  --batch-size 1024 \
+  --reasoning off \
+  --reasoning-budget 0 \
+  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
+  --presence-penalty 0.0 \
+  --repeat-penalty 1.0 \
+  --frequency-penalty 0.0 \
+  --repeat-last-n 64 \
+  --threads 32 \
+  --n-predict 16384 \
+  --kv-unified \
+  --spec-type draft-mtp \
+  --spec-draft-n-max 2 \
+  --log-verbosity 1
+```
+
+### Optional: Unsloth sampling modes (chat / thinking)
+
+Keep the **primary Pi tool profile** for coding agents. When you are **not** doing path-heavy tool loops, Unsloth’s [recommended settings](https://unsloth.ai/docs/models/qwen3.8#recommended-settings) for hybrid Qwen3.8-27B are:
+
+| Parameter | Thinking mode | Instruct (non-thinking) | **This guide’s Pi tools (primary)** |
+| --- | --- | --- | --- |
+| `temperature` | **1.0** | **0.7** | **0.6** |
+| `top_p` | **0.95** | **0.80** | **0.95** |
+| `top_k` | 20 | 20 | 20 |
+| `min_p` | 0.0 | 0.0 | 0.0 |
+| `presence_penalty` | **0.0** | **1.5** | **0.0** (path-safe) |
+| `repetition_penalty` | 1.0 | 1.0 | 1.0 (`--repeat-penalty`) |
+
+- **Thinking mode:** complex reasoning / research chat; pair with `--reasoning on` (and budget as needed).
+- **Instruct mode:** direct answers; Unsloth’s higher **presence 1.5** can reduce chat loops but **warps reused path tokens** in Pi shell/write agents — do not use for tool-heavy sessions.
+- **Pi tools:** stay on the primary row (field-validated on this box).
+
+### Optional: thinking depth & preserve_thinking
+
+From Unsloth: Qwen3.8 supports **`reasoning_effort`** (`xhigh` default · `medium` · `low` · none) and **Preserve Thinking** (keeps prior-turn thinking traces — more tokens, can help multi-turn accuracy when thinking is on).
+
+Primary keeps **`--reasoning off`** for Pi `message.content` / tools. For a **thinking-on** session (not the Pi agent default):
+
+```bash
+# Example deltas only — not the Pi primary:
+#   --reasoning on
+#   --temp 1.0 --top-p 0.95 --top-k 20 --presence-penalty 0.0
+# Optional template kwargs if your build still honors them (prefer --reasoning when it works):
+#   --chat-template-kwargs '{"reasoning_effort":"xhigh","preserve_thinking":true}'
+```
+
+Confirm with `./llama-server --help` — some builds deprecate `enable_thinking` kwargs in favor of `--reasoning on|off`. **Preserve thinking burns context** at 262k; fine on this box, still restart Pi / new session after long thinking threads.
+
 ### Optional: TurboQuant V (capacity / decode tradeoff)
 
 Primary already has enormous headroom (~31.5 GB weights on a 96 GB card). If you later raise load (multi-slot, vision, or decode experiments) and need to free KV:
@@ -220,7 +308,7 @@ Primary already has enormous headroom (~31.5 GB weights on a 96 GB card). If you
 
 ### Optional: vision (`mmproj`)
 
-Qwen3.8-27B is a native VLM. For image/video sessions (not required for Pi text/agent work):
+Qwen3.8-27B is a native VLM (images / video). For multimodal sessions (not required for Pi text/agent work):
 
 ```bash
 hf download unsloth/Qwen3.8-27B-GGUF \
@@ -228,16 +316,22 @@ hf download unsloth/Qwen3.8-27B-GGUF \
   --local-dir ~/Documents/AIML/models
 ```
 
-Add something like `--mmproj ~/Documents/AIML/models/mmproj-F16.gguf` only if your turboquant `llama-server` build exposes multimodal flags for this arch. Keep text/agent primary without mmproj until you need vision.
+Add something like `--mmproj ~/Documents/AIML/models/mmproj-F16.gguf` only if your turboquant `llama-server` build exposes multimodal flags for this arch (Unsloth builds often use `llama-mtmd-cli` / server mmproj paths). Keep text/agent primary without mmproj until you need vision.
+
+### Optional: NVFP4 (Blackwell / different stack)
+
+Unsloth also ships **[NVFP4](https://huggingface.co/unsloth/Qwen3.8-27B-NVFP4)** (~**1.5×** vs BF16 on Blackwell, strong KLD recovery) for **vLLM / SGLang**, with optional **MTP speculative** there too. Dual RTX 6000 Pro Max-Q is **Blackwell (CC 12.0)** — NVFP4 is viable **if you leave the turboquant GGUF path**. This repo’s primary remains **GGUF + llama-cpp-turboquant + Pi**. See [Unsloth NVFP4 notes](https://unsloth.ai/docs/models/qwen3.8) and [Dynamic NVFP4](https://unsloth.ai/docs/basics/nvfp4).
 
 ## Performance notes
 
 - **Validated 2026-08-14 (release day):** primary single-GPU **Q8_K_XL @ 262k · q8/q8 · 16k out** worked very well with Pi Coding Agent on Qwen3.8 (tools, long agent sessions, full train window) — same knobs as the tested Qwen3.6 Dual RTX run (2026-08-08).
 - Q8 weights are **slightly smaller** than 3.6 Q8 (~31.5 vs ~35 GB) → comfortable KV headroom at 262k q8/q8 on one 96 GB card.
 - Primary uses **one GPU** by default. The other 96 GB card stays free (or idle).
+- **Unsloth Dynamic V3.0** UD quants include developer-role / improved nested tool-call templates — prefer `UD-*` over plain `Q*_K_M` when sizes are close.
+- **Next speed lever on this box:** optional **MTP** (`--spec-type draft-mtp`) before dropping weight quant.
 - TurboQuant **fork** ≠ must use turbo **types**. Keep `q8_0`/`q8_0`; turbo V is a capacity lever, not the quality default.
-- Official Qwen3.8 sampling (thinking vs instruct) differs from this Pi tool profile — see Unsloth/Qwen cards if you leave agent mode for pure chat/thinking sessions.
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Cross-hardware Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Sibling 3.6 twin: [Dual-RTX6000-Qwen3.6.md](Dual-RTX6000-Qwen3.6.md).
+- Official Unsloth sampling (thinking vs instruct) differs from the Pi tool profile — use the [table above](#optional-unsloth-sampling-modes-chat--thinking) when you leave agent mode.
+- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Cross-hardware Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Twin 3.6 guide: [Dual-RTX6000-Qwen3.6.md](Dual-RTX6000-Qwen3.6.md). Unsloth: [Qwen3.8](https://unsloth.ai/docs/models/qwen3.8) · [MTP](https://unsloth.ai/docs/models/mtp).
 
 ## Pi Coding Agent `models.json`
 
@@ -306,4 +400,4 @@ pkill -9 llama-server
 - Same agent flags as primary. Multi-GPU adds PCIe sync overhead; benchmark against single-GPU before committing.
 - There is no mid-size Qwen3.8 MoE twin to the old 35B-A3B alternate yet — keep this as a split of the **same** 27B dense weights if you experiment.
 
-**Last Updated:** August 14, 2026 (primary marked ✅ Tested — Qwen3.8 release-day Dual RTX + Pi run)
+**Last Updated:** August 14, 2026 (✅ Tested primary; Unsloth MTP / sampling / thinking / NVFP4 options from [unsloth.ai/docs/models/qwen3.8](https://unsloth.ai/docs/models/qwen3.8))

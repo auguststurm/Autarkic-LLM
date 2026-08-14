@@ -222,6 +222,29 @@ log: n_ctx_seq (196608)
 
 Smoke-test order: (1) load, (2) **first decode** (Metal can load then OOM on first token), (3) new Pi session with real `ls` / `read` tools.
 
+### Optional: MTP decode speedup (Unsloth)
+
+Unsloth Qwen3.8 GGUFs include **MTP**. On Metal, gains are often smaller than high-bandwidth CUDA (~1.4–2.2× there); still worth a try if your build supports it (~1–2 GB extra). Same primary command plus:
+
+```bash
+#   --spec-type draft-mtp --spec-draft-n-max 2
+# Confirm: ./llama-server --help | grep -i draft-mtp
+# Try n-max 1–6; smoke-test Pi tools. Full example: Dual RTX 3.8 guide.
+```
+
+Docs: [MTP](https://unsloth.ai/docs/models/mtp) · [Dual RTX 3.8](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#optional-mtp-decode-speedup-unsloth).
+
+### Optional: Unsloth sampling / thinking (non-Pi defaults)
+
+| Mode | temp | top_p | presence | Notes |
+| --- | --- | --- | --- | --- |
+| Thinking (Unsloth) | 1.0 | 0.95 | 0.0 | With `--reasoning on`; optional `reasoning_effort` xhigh/medium/low |
+| Instruct (Unsloth) | 0.7 | 0.80 | 1.5 | Chat; **not** for path-heavy Pi tools |
+| Pi tools (this repo) | 0.6 / 0.65 | 0.95 / 0.90 | 0.0 | Primary keeps M5 3.6-era 0.65/0.90; agent profile 0.6/0.95 also fine |
+
+Source: [Unsloth Qwen3.8](https://unsloth.ai/docs/models/qwen3.8#recommended-settings).
+
+
 ### Fallbacks if you Metal-OOM
 
 1. Close other apps (browsers, IDEs, other local servers).
