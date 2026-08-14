@@ -81,7 +81,7 @@ cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 
 ### Model catalog (Hugging Face)
 
-All configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic 2.0 "UD" quants) so they run on [llama.cpp](https://github.com/ggml-org/llama.cpp). Quant suffixes (`Q4`, `Q6`, `IQ2`, `_K_XL`, …) trade file size/memory for quality: see the [Glossary](glossary.md) and [Unsloth's quant guide](https://unsloth.ai/docs/basics/unsloth-dynamic-2.0-ggufs).
+All configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic / "UD" quants) so they run on [llama.cpp](https://github.com/ggml-org/llama.cpp). Quant suffixes (`Q4`, `Q6`, `IQ2`, `_K_XL`, …) trade file size/memory for quality. **How to read those names and pick a level** is in [Understanding GGUF quants](#understanding-gguf-quants-why-so-many-files) below. Short defs: [Glossary](glossary.md) · [Unsloth Dynamic GGUFs](https://unsloth.ai/docs/basics/unsloth-dynamic-2.0-ggufs).
 
 | Model | Type | GGUF files & downloads | Original weights |
 | --- | --- | --- | --- |
@@ -90,9 +90,95 @@ All configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic 2
 | Qwen3.6-35B-A3B | MoE (3B active) | [unsloth/Qwen3.6-35B-A3B-GGUF](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) | [QwenLM/Qwen3.6](https://github.com/QwenLM/Qwen3.6) |
 | Gemma 4 E2B | Dense edge (PLE) | [unsloth/gemma-4-E2B-it-GGUF](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) | [google/gemma-4-E2B](https://huggingface.co/google/gemma-4-E2B) |
 
-Collections: [Qwen3.8 (Unsloth)](https://huggingface.co/collections/unsloth/qwen38) · [Qwen3.6 (Unsloth)](https://huggingface.co/collections/unsloth/qwen36) · [Gemma 4 (Unsloth)](https://huggingface.co/collections/unsloth/gemma-4). MTP variants (e.g. `*-MTP-GGUF`) offer ~1.5–2× faster decode via multi-token prediction. Pick the largest quant that fits your memory budget: each hardware guide names the exact file, and the [M4 Mac Mini guide](M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md) shows how to reason about the budget.
+Collections: [Qwen3.8 (Unsloth)](https://huggingface.co/collections/unsloth/qwen38) · [Qwen3.6 (Unsloth)](https://huggingface.co/collections/unsloth/qwen36) · [Gemma 4 (Unsloth)](https://huggingface.co/collections/unsloth/gemma-4). MTP variants (e.g. `*-MTP-GGUF`) offer ~1.5–2× faster decode via multi-token prediction. **Default rule:** pick the largest / highest-quality quant that still leaves headroom for OS + KV at your pinned context — each [hardware guide](README.md#hardware-configurations-included) names the exact file.
 
-**Qwen3.8 guides** (knobs from each box’s tested 3.6 path): [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** (2026-08-14, Pi) · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) ⚠️ untested · [M5 MacBook Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ⚠️ untested. Need a fresh turboquant build (`qwen35` arch). Guides include a GGUF naming decoder + Q4–Q8 size/quality table.
+**Qwen3.8 guides** (knobs from each box’s tested 3.6 path): [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** (2026-08-14, Pi) · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) ⚠️ untested · [M5 MacBook Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ⚠️ untested. Need a fresh turboquant build (`qwen35` arch).
+
+### Understanding GGUF quants (why so many files)
+
+The Hugging Face “Files” tab is **not** twenty different models. It is **one** base model (e.g. Qwen3.8-27B), packaged many ways so a 16 GB laptop and a 192 GB workstation can both load something useful. Each `.gguf` is a different **compression recipe** of those weights. `llama-server` loads **one** weights file at a time; you pick the tradeoff that fits your memory and quality bar.
+
+**Analogy:** same album, different bitrates. Higher bits → closer to the master, bigger file. Lower bits → smaller / faster to stream through memory, more quality loss.
+
+This section is the repo-wide reference (same ideas as the Qwen3.8 hardware guides). Hardware guides still win for the **exact** filename and pin on your box.
+
+#### Anatomy of a name
+
+```text
+Qwen3.8-27B-UD-Q8_K_XL.gguf
+│         │  │  │  │  └─ size tier within that recipe (XL = roomier / higher quality mix)
+│         │  │  │  └──── K-quant family (block scales; better quality-per-bit than old Q4_0-style)
+│         │  │  └─────── bit width (~8-bit weights on average)
+│         │  └────────── Unsloth Dynamic mixed-precision method
+│         └───────────── parameter class (dense 27B)
+└─────────────────────── model family + version
+```
+
+| Piece | What it means | How to read it |
+| --- | --- | --- |
+| **`Qwen3.8-27B`** (or `Qwen3.6-…`, `gemma-4-…`) | Which model | Same “brain”; only the suffix after this changes quality/size |
+| **`UD-`** | **U**nsloth **D**ynamic | Per-layer mixed bits: sensitive tensors (attention, hybrid/DeltaNet-ish parts) stay higher precision; less sensitive ones compress harder. Usually **better quality at a given size** than a plain uniform quant |
+| **`Q8` / `Q6` / `Q5` / `Q4` / `Q3` / `Q2`** | Rough **bits per weight** | Higher number → larger file, higher fidelity, often slightly slower decode. **Q8 ≈ near full precision; Q4 ≈ common “fits most GPUs” sweet spot** |
+| **`IQ2` / `IQ3` / `IQ4_…`** | **I**mportance-aware low-bit schemes | Even more aggressive size cuts; great when memory is tight; can be a bit slower or pickier than plain `Q*_K` at the same size |
+| **`_K`** | **K-quant** layout | Modern llama.cpp default family (super-blocks + scales). Prefer these over ancient `Q4_0` / `Q5_0` when both exist |
+| **`_S` / `_M` / `_L` / `_XL`** | **S**mall / **M**edium / **L**arge / e**X**tra-**L**arge mix | Same bit *label*, different internal mix of which tensors stay fat. **`_M` = balanced default; `_XL` / Unsloth `UD-…_XL` = quality-leaning** (often a little bigger) |
+| **No `UD-`** (e.g. `…-Q8_0.gguf`) | “Classic” uniform (or non-Dynamic) quant | Still valid; often slightly worse quality-per-GB than the matching `UD-` file |
+| **`mmproj-*.gguf`** | **Vision projector** | Not the LLM. Optional sidecar for image/video. Text/agent work does **not** need it |
+| **`imatrix_*.gguf`** | Calibration matrix used *while building* quants | You generally **do not** download this to run the model |
+
+#### Why HF lists so many near-duplicates
+
+| You see… | Why it exists |
+| --- | --- |
+| `UD-Q4_K_XL` **and** `Q4_K_M` **and** `Q4_0` | Same ~4-bit *idea*, different recipes (Dynamic XL vs plain K_M vs old-style) |
+| Q8, Q6, Q5, Q4, Q3, Q2 / IQ* | Ladder of memory budgets (edge → laptop → desktop → workstation) |
+| BF16 / F16 (if present) | Barely compressed reference; huge; rarely needed when Q5–Q8 already feels strong |
+| MTP-labeled repos | Multi-token prediction packaging for speed — separate from the main UD ladder |
+
+Extra files on the page are **menu options**, not dependencies (except optional `mmproj` for vision).
+
+#### Q8 vs Q6 vs Q5 vs Q4 (quality vs speed)
+
+Relative quality below follows Unsloth Dynamic **Qwen hybrid** dense trends (3.5/3.6 family; lower KLD ≈ closer to full precision) plus general llama.cpp K-quant behavior — there are no public day-zero **Qwen3.8** KLD tables yet. **Speed** on CUDA/Metal is often **memory-bandwidth bound**: lower bits move fewer weight bytes → modestly higher tok/s; prefill is more compute-bound so gaps shrink.
+
+**Example sizes — Qwen3.8-27B Unsloth `UD-*_K_XL`** ([HF repo](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF)):
+
+| Quant (Unsloth UD) | File size | Quality (vs full / Q8) | Decode speed (relative) | When to use |
+| --- | --- | --- | --- | --- |
+| **UD-Q8_K_XL** | **~31.5 GB** | Near-lossless; tiny residual vs BF16/F16. Best agent/coding fidelity. | Baseline (slowest of the four) | Max quality when VRAM/unified memory is plentiful ([Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) ✅ tested primary) |
+| **UD-Q6_K_XL** | **~25.9 GB** | Excellent / “practically perfect.” Small step from Q8 on prior Qwen hybrids | ~5–15% faster than Q8 (typical) | Near-Q8 quality with a few GB free ([DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) primary class) |
+| **UD-Q5_K_XL** | **~20.2 GB** | Very high; slight edge-case loss vs Q6/Q8 on multi-step reasoning / hard coding | ~10–20% faster than Q8 | Strong laptop / 48 GB balance ([M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) primary class) |
+| **UD-Q4_K_XL** | **~17.9 GB** | Strong for size; Dynamic Q4 often best Pareto on prior Qwen GGUFs. More visible loss vs Q8 on long agent loops | Fastest of the four (~15–25%+ vs Q8 when bandwidth-bound) | Fit tighter cards, multi-instance, thermals, or speed A/Bs ([Win RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md)-class) |
+
+**How to read the steps**
+
+- **Quality:** Q8 → Q6 is usually *tiny*; Q6 → Q5 still small; **Q5 → Q4** is the first step many people *feel* on hard coding / agent tool loops. Unsloth Dynamic + imatrix narrows the Q4 gap vs plain `Q4_K_M`.
+- **Speed:** Often smaller than folklore on modern GPUs; exact tok/s need `llama-bench` on *your* box.
+- **KV is separate:** weight quant is the `.gguf` file. Context memory is `--cache-type-k/v` (and TurboQuant V) in the hardware guide — see [llama-cpp-turboquant.md](llama-cpp-turboquant.md#2-turboquant-kv-cache). Don’t confuse “Q8 weights” with “q8_0 KV”.
+
+#### How to choose (and fine-tune) a quant for *your* machine
+
+This is **deployment tuning** (which compressed weights to load), not training a new model (LoRA / full fine-tune). Order of operations:
+
+1. **Start from your hardware guide** — it already picked a quant that fits that box’s tested or ported pin.  
+2. **Budget memory as three buckets:** weights (fixed by quant) + **KV** (grows with `--ctx-size` × K/V precision) + OS / apps / compute scratch.  
+3. **Prefer quality while it fits.** On roomy boxes, stay high (Q8/Q6). On tight boxes, drop weight quant *or* compress KV V *or* lower context — don’t silently rely on `--fit on` (it can crush agent context).  
+4. **Tune one axis at a time** if something hurts:
+
+| Goal | Prefer | Avoid first |
+| --- | --- | --- |
+| Max agent / coding fidelity | Higher weight quant (Q8 → Q6 → Q5); keep **K** at `q8_0` | Crushing K, or DRY on Qwen tools |
+| Longer context / multi-agent prompts | Raise `--ctx-size` + Pi `contextWindow` together; then turbo **V** only if needed | Dropping to Q2/IQ2 while still using huge unused VRAM |
+| Faster decode / cooler laptop | One step down weight quant (e.g. Q5 → Q4) or smaller batch | Jumping many steps at once |
+| Fit a small GPU | Lower weight quant **and** realistic ctx; see [M4 Mini Qwen experiment](M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md) for tight-budget reasoning | Assuming MoE “3B active” means only 3B of weights must fit |
+
+5. **Smoke-test after every change:** load → **first decode** (Metal can load then OOM) → short Pi tool loop (`ls` / `read`) on a **new** session.  
+6. **Match Pi:** if you change only the quant file, keep `contextWindow` / `maxTokens` aligned with server `--ctx-size` / `--n-predict`. Update `id`/`name` in `models.json` if you track them.
+
+**Practical pick ladder (dense ~27B, Unsloth UD):**  
+Q8 (max quality) → Q6 (near-Q8, leaner) → Q5 (strong mid) → Q4 (common fit) → IQ3/IQ2 (last resort / edge). Prefer `UD-…_K_XL` over plain `Q*_K_M` / `Q4_0` when both exist at a similar size.
+
+Further reading: [Unsloth Dynamic GGUFs](https://unsloth.ai/docs/basics/unsloth-dynamic-2.0-ggufs) · [Qwen3.8 run guide](https://unsloth.ai/docs/models/qwen3.8) · hardware examples [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) · [M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md).
 
 ### Download
 

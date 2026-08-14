@@ -77,7 +77,7 @@ You only need **one** weights file for `llama-server`. Extra files on the page a
 4. **`UD-Q8_K_XL`** — only if you deliberately lower context or use turbo V; tight with OS + 196k.  
 5. Skip plain non-`UD` and very low IQ* unless you are size-constrained or comparing recipes.
 
-More background: [Glossary](../glossary.md) · [Unsloth Dynamic GGUFs](https://unsloth.ai/docs/basics/unsloth-dynamic-2.0-ggufs). Bit-ladder sizes/speed for *this* model: [Weight quant table](#weight-quant-q8-vs-q6-vs-q5-vs-q4-this-model) below.
+More background (repo-wide): [local-setup — Understanding GGUF quants](../local-setup.md#understanding-gguf-quants-why-so-many-files) · [Glossary](../glossary.md) · [Unsloth Dynamic GGUFs](https://unsloth.ai/docs/basics/unsloth-dynamic-2.0-ggufs). Bit-ladder sizes/speed for *this* model: [Weight quant table](#weight-quant-q8-vs-q6-vs-q5-vs-q4-this-model) below.
 
 ## Pi Coding Agent: read this first
 

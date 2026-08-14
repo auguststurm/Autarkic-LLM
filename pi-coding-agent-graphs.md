@@ -30,14 +30,84 @@ Long **pi-workflows** need a large **input** pin (field overflows at **32k/64k**
 
 ## Core stack
 
-| Layer | Package | Role |
-| --- | --- | --- |
-| Search | [`@tavily/pi-extension`](https://www.npmjs.com/package/@tavily/pi-extension) (official) | Tavily Search + Extract as `web_search` / `web_fetch` (depth, topic, time range, domains, answer, images, …) |
-| Orchestration / graphs | [`@quintinshaw/pi-dynamic-workflows`](https://www.npmjs.com/package/@quintinshaw/pi-dynamic-workflows) | Dynamic JS workflows: `agent()`, `parallel()`, `pipeline()`, `phase()`, fan-out, model routing, resume/journal, `/workflows` TUI, saved workflows |
-| Subagents | `pi-subagents` | Isolated child Pi processes for specialist roles |
-| Memory | `pi-hermes-memory` | Persistent memory + session search across runs |
+These are **Pi packages** (extensions/skills), not plain `npm install -g` apps. You install them with the **`pi install`** CLI after Pi itself is on your `PATH`. Packages land under `~/.pi/agent/npm/` (user/global) or `.pi/npm/` (project-local with `-l`), and Pi wires them into settings automatically.
 
-Install per each package’s current docs. After installs, run **`/reload`** in Pi. Project **trust** is required for local `.pi/` resources.
+### Packages
+
+| Layer | Package | Install source | Role |
+| --- | --- | --- | --- |
+| Search | **[@tavily/pi-extension](https://www.npmjs.com/package/@tavily/pi-extension)** (official) | `npm:@tavily/pi-extension` · [Pi catalog](https://pi.dev/packages) | Tavily **Search** + **Extract** as tools `web_search` / `web_fetch` (depth, topic, time range, domains, answer, images, …). Needs `TAVILY_API_KEY` in the **process** env (see [below](#tavily-api-key)). |
+| Orchestration / graphs | **[@quintinshaw/pi-dynamic-workflows](https://www.npmjs.com/package/@quintinshaw/pi-dynamic-workflows)** | `npm:@quintinshaw/pi-dynamic-workflows` · [docs](https://quintinshaw.github.io/pi-dynamic-workflows/) · [Pi package page](https://pi.dev/packages/@quintinshaw/pi-dynamic-workflows) | Dynamic JS workflows: `agent()`, `parallel()`, `pipeline()`, `phase()`, fan-out, model routing, resume/journal, `/workflows` TUI, saved workflows. |
+| Subagents | **[pi-subagents](https://www.npmjs.com/package/pi-subagents)** | `npm:pi-subagents` | Isolated child Pi processes for specialist roles (used heavily by dynamic workflows). |
+| Memory | **[pi-hermes-memory](https://www.npmjs.com/package/pi-hermes-memory)** | `npm:pi-hermes-memory` | Persistent memory + session search across runs (optional for pure one-shot research, useful for long-lived projects). |
+
+Browse more packages: [pi.dev/packages](https://pi.dev/packages). Package system docs: [Pi packages](https://pi.dev/docs/latest/packages).
+
+### Install Pi CLI (if needed)
+
+If `pi` is not installed yet:
+
+```bash
+# Official installer (Linux/macOS)
+curl -fsSL https://pi.dev/install.sh | sh
+
+# Or npm global
+npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+```
+
+Quickstart: [pi.dev/docs/latest/quickstart](https://pi.dev/docs/latest/quickstart). Confirm:
+
+```bash
+pi --version
+pi --help    # should list: install, remove, update, list, config, …
+```
+
+Point Pi at your local server first (hardware guide `models.json` → `~/.pi/agent/models.json`) — see [agentic harnesses](agentic-harnesses.md).
+
+### Install the core stack with `pi install`
+
+**User-global** (recommended default — available in every project):
+
+```bash
+pi install npm:@tavily/pi-extension
+pi install npm:@quintinshaw/pi-dynamic-workflows
+pi install npm:pi-subagents
+pi install npm:pi-hermes-memory   # optional
+```
+
+**Project-local** (writes to `.pi/settings.json`, shareable with a team; auto-installs on startup if missing):
+
+```bash
+cd /path/to/your-project
+pi install -l npm:@tavily/pi-extension
+pi install -l npm:@quintinshaw/pi-dynamic-workflows
+pi install -l npm:pi-subagents
+# pi install -l npm:pi-hermes-memory
+```
+
+| Command | What it does |
+| --- | --- |
+| `pi install npm:<pkg>` | Install from npm into **user** settings (`~/.pi/agent/`) |
+| `pi install -l npm:<pkg>` | Install into **project** settings (`.pi/`) |
+| `pi list` | Show installed package sources |
+| `pi remove npm:<pkg>` | Uninstall / drop from settings (`pi uninstall` is an alias) |
+| `pi update` | Update Pi and/or installed extensions |
+| `pi config` | TUI to enable/disable package resources (Tab switches user vs project scope) |
+| `pi -e npm:<pkg>` | Load a package **for this run only** (no permanent install) |
+
+Other sources (same CLI): `pi install git:github.com/user/repo`, `pi install https://github.com/user/repo`, `pi install ./local/path`.
+
+### After install
+
+1. **`pi list`** — confirm all four (or three) sources appear.  
+2. Start Pi (`pi` or `TAVILY_API_KEY=… pi` if using Tavily).  
+3. In the Pi session, run **`/reload`** so extensions register tools and `/workflows`.  
+4. If you use project-local `.pi/` files, **trust** the project when prompted (`--approve` / `-a` on the CLI, or accept in the TUI). Untrusted project resources are ignored.  
+5. Sanity checks:
+   - Tavily: tools **`web_search`** / **`web_fetch`** available when the API key is in the process env.  
+   - Workflows: `/workflows` responds (list / run / …).  
+
+> **Security:** extensions run with full agent tool access (shell, files, network). Prefer official/maintained packages; review source before installing unknown ones.
 
 ## Model configuration (dense Qwen 27B + Pi)
 
@@ -176,4 +246,4 @@ Run journals: `~/.pi/workflows/.../runs/*.json` — useful if chat hits max toke
 
 **Stack summary:** official Tavily tools + dynamic workflows give a practical multi-agent research “graph” without a custom orchestrator; the LLM remains the local model from this repo.
 
-**Last Updated:** August 14, 2026 (Dual RTX Qwen3.8 marked ✅ Tested)
+**Last Updated:** August 14, 2026 (Core stack: package links + `pi install` walkthrough)

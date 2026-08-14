@@ -64,7 +64,7 @@ New to local inference? Start with the [Glossary](glossary.md).
 ## Documentation
 
 - **[`ai-assisted-setup.md`](ai-assisted-setup.md)**: a copy-paste prompt that has any cloud LLM generate your setup from this repo (start here)
-- **[`local-setup.md`](local-setup.md)**: prerequisites, clone & build, model catalog + download, `models.json` integration
+- **[`local-setup.md`](local-setup.md)**: prerequisites, clone & build, model catalog, [GGUF quant naming + Q4–Q8 ladder](local-setup.md#understanding-gguf-quants-why-so-many-files), download, `models.json` integration
 - **[`llama-cpp-turboquant.md`](llama-cpp-turboquant.md)**: deep dive into fork internals, TurboQuant tiers, and a flag-by-flag `llama-server` reference (with a key-learnings TL;DR)
 - **[`agentic-harnesses.md`](agentic-harnesses.md)**: Pi / OpenClaw / Hermes, ranked for local use, and how to connect them
 - **[`pi-coding-agent-graphs.md`](pi-coding-agent-graphs.md)**: Pi workflows/graphs, Tavily research harness, multi-agent gotchas
