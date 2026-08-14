@@ -78,7 +78,7 @@ Weights are fixed; **KV grows with context**. **K** (keys) routes attention and 
 3. Only then compress **V** with turbo* if VRAM/RAM is tight — smoke-test real `ls`/`read` paths on a **new** session first.  
 4. Never crush **K** before **V**.
 
-TurboQuant **fork** ≠ must use turbo **types**. Roomier machines (e.g. [M5 48 GB](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) ~196k q8/q8) keep high-precision KV; tighter boxes (Air, 24 GB CUDA under load) use turbo V to buy window. Field-validated 24 GB CUDA agent baseline: [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (**96k q8/q8**, large `maxTokens`).
+TurboQuant **fork** ≠ must use turbo **types**. Roomier machines keep high-precision KV — e.g. [M5 48 GB](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) (~196k q8/q8) and [Dual RTX 6000 192 GB](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md) (**full 262k q8/q8**, field-tested with Pi). Tighter boxes (Air, 24 GB CUDA under load) use turbo V to buy window. Field-validated 24 GB CUDA agent baseline: [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (**96k q8/q8**, large `maxTokens`).
 
 ### Operational habits
 

@@ -61,7 +61,7 @@ Step 4 (aggro):    --cache-type-k q8_0 --cache-type-v turbo2    # long context; 
 ### What this repo actually uses
 
 - **CUDA — room / agent quality (Win 4090 field-validated Pi baseline; prefer when VRAM allows):** `--cache-type-k q8_0 --cache-type-v q8_0`, then raise `--ctx-size`; add **turbo V** only if overflow forces capacity. See [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md).
-- **CUDA — large headroom (DGX, Dual RTX 6000):** often `q8_0` / `turbo4` or q8/q8 depending on pin; follow the per-machine guide.
+- **CUDA — large headroom (DGX, Dual RTX 6000):** prefer **q8/q8** while it fits; Dual RTX 6000 primary is field-tested **262k q8/q8** with Pi. Turbo V is optional capacity, not the quality default — follow the per-machine guide.
 - **Metal — memory-bound (M4 Air tested; 16 GB Mini Qwen experimental):** `--cache-type-k q8_0 --cache-type-v turbo2` so long context fits after large weights. See the [M4 Air guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
 - **Metal — roomier (M5 Pro ~196k Qwen3.6-27B tested; Mini Gemma) and Jetson:** primary often `--cache-type-k q8_0 --cache-type-v q8_0`; turbo V is optional headroom.
 

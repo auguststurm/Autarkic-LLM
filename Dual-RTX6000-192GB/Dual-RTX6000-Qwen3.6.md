@@ -2,7 +2,7 @@
 
 Optimized setup for dual NVIDIA RTX 6000 Pro Max-Q GPUs (192 GB total VRAM) on Ubuntu, using **llama-cpp-turboquant**. Pi / tool conventions follow the field-validated [Windows RTX 4090 Qwen guide](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) and [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware); compute and memory knobs stay CUDA multi-GPU / high-VRAM.
 
-> ⚠️ **Not yet tested on this hardware.** Best-effort starting config from model size + llama.cpp options + cross-hardware Pi lessons. If you run it, please report results via an issue.
+> ✅ **Tested** on this hardware (**Saturday, August 8, 2026**). Primary config below is **field-validated working** with **Pi Coding Agent** — full **262k** pin, **Q8_K_XL** weights, **q8/q8** KV on a single 96 GB card, stable tools + strong agent quality. Expect variance with thermals and background load; re-check `n_ctx_seq` after rebuilds. Cross-hardware Pi notes: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 ## Pi Coding Agent: read this first
 
@@ -15,7 +15,7 @@ Shared Pi + Qwen3.6-27B lessons (two token limits, no DRY, tool sampling, K/V, h
 ## Recommended model (primary — single GPU)
 
 - **Model:** `Qwen3.6-27B-UD-Q8_K_XL.gguf` (~35.3 GB — best quality with massive KV headroom on 192 GB)
-- **Path:** `~/Documents/AIML/models/Qwen3.6-27B-UD-Q8_K_XL.gguf`
+- **Tested path:** `~/Documents/AIML/models/Qwen3.6-27B-UD-Q8_K_XL.gguf`
 
 ```bash
 hf download unsloth/Qwen3.6-27B-GGUF \
@@ -52,7 +52,9 @@ Confirm turbo types (needed only if you try the optional turbo-V path):
 
 > Omit `-DCMAKE_CUDA_ARCHITECTURES="120"` to autodetect; set explicitly when cross-compiling (Blackwell = CC 12.0).
 
-## Optimized llama-server command (Q8_K_XL @ 262k, single GPU)
+## Optimized llama-server command (PRIMARY — Q8_K_XL @ 262k, single GPU)
+
+**Tested baseline (2026-08-08)** with Pi Coding Agent. Use this command first.
 
 ```bash
 pkill -9 llama-server
@@ -88,14 +90,14 @@ pkill -9 llama-server
 
 ### Why these values
 
-| Flag / value | Why |
+| Flag / value | Why (field-tested on this box) |
 | --- | --- |
-| `--ctx-size 262144` | Full train window; one 96 GB card has room for Q8 + KV |
-| `--cache-type-k/v q8_0` | Prefer high-precision KV while VRAM allows (agent routing/tools); turbo V only if you need more capacity later |
+| `--ctx-size 262144` | Full train window; one 96 GB card has room for Q8 + KV — **confirmed** with Pi |
+| `--cache-type-k/v q8_0` | High-precision KV while VRAM allows (agent routing/tools); turbo V only if you need more capacity later |
 | `--cache-ram 0` | Hybrid Qwen / DeltaNet multi-turn cache restore issues ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)); correct multi-turn over cache speed |
-| `--n-gpu-layers 99` + `--main-gpu 0` | Full offload on the primary GPU on a dual-card box |
+| `--n-gpu-layers 99` + `--main-gpu 0` | Full offload on the primary GPU on a dual-card box — primary stays single-GPU for simplicity |
 | `--reasoning off` (+ budget 0) | Thinking off for Pi tools / `message.content` — **not** `enable_thinking` kwargs |
-| Tool sampling | `temp 0.6` / `top_p 0.95` / `top_k 20` / `presence 0` / `repeat 1.0` — field-validated Pi direction; **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
+| Tool sampling | `temp 0.6` / `top_p 0.95` / `top_k 20` / `presence 0` / `repeat 1.0` — strong Pi tool/coding results on this hardware; **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
 | `--n-predict 16384` | Report-length agent output (match Pi `maxTokens`) |
 | `--fit off` + `127.0.0.1` | Pinned agent-visible context; loopback default |
 | No checkpoint flags | Qwen3.6 hybrid caveat — see [checkpointing](../llama-cpp-turboquant.md#prompt-cache--checkpointing) |
@@ -119,9 +121,10 @@ Primary already has enormous headroom. If you later raise load (heavier quant, m
 
 ## Performance notes
 
-- Primary config uses **one GPU** by default — simple and fast for a ~35 GB model. Large VRAM remains for KV at 262k with **q8/q8**.
-- TurboQuant **fork** ≠ must use turbo **types**. Roomier boxes keep `q8_0`/`q8_0`; turbo V is a capacity lever, not the quality default.
-- For heavier models or extreme multi-card use, see the multi-GPU section below.
+- **Validated 2026-08-08:** primary single-GPU **Q8_K_XL @ 262k · q8/q8 · 16k out** worked very well with Pi Coding Agent (tools, long agent sessions, full train window).
+- Primary uses **one GPU** by default — simple and fast for a ~35 GB model. The other 96 GB card stays free (or idle); large VRAM on GPU 0 covers weights + full-window KV at **q8/q8** without TurboQuant V.
+- TurboQuant **fork** ≠ must use turbo **types**. This box is the roomiest CUDA profile in the repo: keep `q8_0`/`q8_0`; turbo V is a capacity lever for later experiments, not the quality default.
+- For heavier models or deliberate multi-card spread, see the multi-GPU section below (still untested on this hardware).
 - Ideal for heavy agentic workloads and long-context development.
 - Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Cross-hardware Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
@@ -154,7 +157,7 @@ Save this **entire** file to `~/.pi/agent/models.json` (copy-paste as-is — do 
 
 ## Alternate: multi-GPU layer split
 
-> ⚠️ **Untested on this hardware.** Use when the model does not fit on one card or you want to spread load across both 96 GB GPUs.
+> ⚠️ **Not part of the August 8 primary test.** Primary single-GPU Q8_K_XL is the validated path. Use multi-GPU when the model does not fit on one card or you deliberately want to spread load across both 96 GB GPUs.
 
 ```bash
 hf download unsloth/Qwen3.6-35B-A3B-GGUF \
@@ -220,4 +223,4 @@ pkill -9 llama-server
 }
 ```
 
-**Last Updated:** August 2026
+**Last Updated:** August 14, 2026 (primary marked tested from 2026-08-08 Pi Coding Agent run)
