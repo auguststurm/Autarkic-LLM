@@ -251,6 +251,6 @@ Same model family. Different **KV budget**.
 - `nvidia-smi` inside WSL.  
 - `--no-mmap` needs free host RAM (~18 GB+) for load.  
 - One long-lived server; don’t share the GPU heavily.  
-- Workflows: [pi-coding-agent-graphs.md](../pi-coding-agent-graphs.md) · flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md)
+- Workflows: [pi-coding-agent-graphs.md](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md) · flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md)
 
 **Last Updated:** August 2026

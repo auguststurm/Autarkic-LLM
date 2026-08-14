@@ -1,7 +1,28 @@
 # search-topic-research
 
 Any-topic adaptive Tavily research → pack → multi-agent report.
-Sibling of `market-research-games` (domain-specific; unchanged).
+
+This folder is an **example Pi skill** for [Pi Coding Agent graphs](../../pi-coding-agent-graphs.md). Install it into Pi’s global skills directory, then invoke `/skill:search-topic-research <topic>`. Full walkthrough (packages, Tavily key, model tiers, first run): that parent doc.
+
+## Install from this repo
+
+Pi loads skills from `~/.pi/agent/skills/` ([Pi skills](https://pi.dev/docs/latest/skills)). This skill writes packs and reports under that same path, so install it **globally**:
+
+```bash
+# from the Autarkic-LLM clone
+mkdir -p ~/.pi/agent/skills
+cp -a _Pi-Coding-Agent-Graphs/example-skills/search-topic-research \
+      ~/.pi/agent/skills/search-topic-research
+```
+
+To track repo updates instead of copying:
+
+```bash
+ln -sfn "$(pwd)/_Pi-Coding-Agent-Graphs/example-skills/search-topic-research" \
+        ~/.pi/agent/skills/search-topic-research
+```
+
+Then `/reload` in Pi (or start a new session). Confirm `/skill:search-topic-research` is listed.
 
 ## Where does research output go?
 
@@ -97,6 +118,7 @@ If the model **loops on dates**, invents homes, or repeats garbage: fix server/s
 1. Copy folder; rename frontmatter `name`.
 2. Customize must-answer list + `references/report-template.md` (and workflow Report phase).
 3. Keep host-Tavily + pack/workflow split; point tiers at your models.
+4. Install under `~/.pi/agent/skills/<new-name>/` and update the hardcoded `$ROOT` paths in `SKILL.md` (and any references that assume `search-topic-research`).
 
 ## Fetch shape
 

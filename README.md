@@ -15,7 +15,7 @@ Each hardware guide has the exact build flags and `llama-server` command for one
 - Primary engine: **llama-cpp-turboquant** (the TurboQuant fork of llama.cpp); build it via [`local-setup.md`](local-setup.md)
 - Preferred models: **Qwen3.8-27B** (dense VLM, Unsloth UD quants) on roomier boxes — **✅ tested** on Dual RTX 6000 day-of-release; **Qwen3.6** dense + MoE where still the tested path; Gemma 4 E2B for edge devices
 - Emphasis on KV-cache optimization (TurboQuant), flash attention, agent-friendly Qwen settings (thinking off, pinned context), and stable sampling (details in the [deep dive](llama-cpp-turboquant.md))
-- **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware); multi-agent research in [Pi graphs](pi-coding-agent-graphs.md)
+- **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware); multi-agent research in [Pi graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
 
 ### Qwen3.8 (2026-08-14)
 
@@ -55,7 +55,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 
 1. **Build the engine and get a model**: follow [`local-setup.md`](local-setup.md) for prerequisites, the clone & build, and the model catalog + download commands.
 2. **Run your hardware's command**: open your machine's guide from the table above and run its exact `llama-server` command.
-3. **(Optional) Drive it with an agent**: copy the complete `models.json` from your hardware guide to **`~/.pi/agent/models.json`** (see [agentic harnesses](agentic-harnesses.md)). For multi-agent workflows, Tavily research, and dynamic graphs, see [Pi Coding Agent graphs](pi-coding-agent-graphs.md).
+3. **(Optional) Drive it with an agent**: copy the complete `models.json` from your hardware guide to **`~/.pi/agent/models.json`** (see [agentic harnesses](agentic-harnesses.md)). For multi-agent workflows, Tavily research, dynamic graphs, and the example `search-topic-research` skill, see [Pi Coding Agent graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
 
 New to local inference? Start with the [Glossary](glossary.md).
 
@@ -67,7 +67,7 @@ New to local inference? Start with the [Glossary](glossary.md).
 - **[`local-setup.md`](local-setup.md)**: prerequisites, clone & build, model catalog, [GGUF quant naming + Q4–Q8 ladder](local-setup.md#understanding-gguf-quants-why-so-many-files), download, `models.json` integration
 - **[`llama-cpp-turboquant.md`](llama-cpp-turboquant.md)**: deep dive into fork internals, TurboQuant tiers, and a flag-by-flag `llama-server` reference (with a key-learnings TL;DR)
 - **[`agentic-harnesses.md`](agentic-harnesses.md)**: Pi / OpenClaw / Hermes, ranked for local use, and how to connect them
-- **[`pi-coding-agent-graphs.md`](pi-coding-agent-graphs.md)**: Pi workflows/graphs, Tavily research harness, multi-agent gotchas
+- **[`_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md`](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)**: Pi workflows/graphs, Tavily, and the example [`search-topic-research`](_Pi-Coding-Agent-Graphs/example-skills/search-topic-research/) skill
 - **[`glossary.md`](glossary.md)**: plain-language terms + curated further reading
 - **Hardware guides**: exact per-machine build flags and `llama-server` command (linked in the table above)
 
@@ -78,7 +78,10 @@ Autarkic-LLM/
 ├── local-setup.md                  # Prerequisites, build, model catalog & download
 ├── llama-cpp-turboquant.md         # Fork deep dive + full flag reference
 ├── agentic-harnesses.md            # Pi / OpenClaw / Hermes
-├── pi-coding-agent-graphs.md       # Pi workflows, Tavily, multi-agent research
+├── _Pi-Coding-Agent-Graphs/
+│   ├── pi-coding-agent-graphs.md   # Pi workflows, Tavily, multi-agent research
+│   └── example-skills/
+│       └── search-topic-research/  # Generic skill: topic → pack → workflow report
 ├── glossary.md                     # Terms + further reading
 ├── DGX-Spark-128GB/
 │   ├── DGX-Spark-Qwen3.6.md
@@ -105,6 +108,6 @@ Autarkic-LLM/
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** August 14, 2026 (Qwen3.8-27B: Dual RTX 6000 ✅ Tested same day; DGX Spark + M5 Pro ports untested)  
+**Last Updated:** August 14, 2026 (Qwen3.8-27B: Dual RTX 6000 ✅ Tested same day; DGX Spark + M5 Pro ports untested; Pi graphs + `search-topic-research` skill)  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)

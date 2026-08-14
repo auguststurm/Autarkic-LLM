@@ -265,5 +265,5 @@ Each hardware guide includes a **complete** Pi Coding Agent `models.json`. Copy 
 
 - Go to your hardware-specific folder (e.g. `DGX-Spark-128GB/`, `Dual-RTX6000-192GB/`, `M5-MacBook-Pro-48GB/`, `Win-RTX4090-24GB/`) for exact build flags, model recommendations, and optimized `llama-server` commands.
 - **Qwen3.8:** [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) / [M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ports ⚠️ — overview in [README](README.md#qwen38-2026-08-14).
-- Pi multi-agent research / Tavily: [`pi-coding-agent-graphs.md`](pi-coding-agent-graphs.md).
+- Pi multi-agent research / Tavily: [`_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md`](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
 - For what the TurboQuant fork adds and what every `llama-server` flag does (and when *not* to use it), see [`llama-cpp-turboquant.md`](llama-cpp-turboquant.md).

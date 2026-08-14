@@ -87,10 +87,10 @@ TurboQuant **fork** ≠ must use turbo **types**. Roomier machines keep high-pre
 - **New Pi session** (`/new`) after path soup, phrase loops, or wrong-tool thrash — compaction does not un-poison history.  
 - After changing server pins, **restart Pi** so the status bar matches.  
 - Prefer agents **writing long reports to disk** (`reports/`) and summarizing in chat when output length is the bottleneck.  
-- Multi-agent graphs, Tavily, and `reports/` layout: **[Pi Coding Agent graphs](pi-coding-agent-graphs.md)**.
+- Multi-agent graphs, Tavily, and the example research skill: **[Pi Coding Agent graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)**.
 
 ## Multi-agent workflows, Tavily & research graphs
 
-Once Pi points at your local server, you can layer **dynamic workflows** (parallel specialists, synthesis) and optional **Tavily** web search for structured reports under project **`reports/`**. Packages, launch (`TAVILY_API_KEY`), layout, and workflow gotchas are in **[Pi Coding Agent graphs](pi-coding-agent-graphs.md)**.
+Once Pi points at your local server, you can layer **dynamic workflows** (parallel specialists, synthesis) and optional **Tavily** web search. The recommended research path is the generic skill [`search-topic-research`](_Pi-Coding-Agent-Graphs/example-skills/search-topic-research/) (host Tavily → pack → four-phase graph → dated report). Packages, launch (`TAVILY_API_KEY`), skill install, and workflow gotchas are in **[Pi Coding Agent graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)**.
 
 > Tavily is cloud search: the model stays local; search traffic does not. Skip it for pure offline use.
