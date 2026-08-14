@@ -1,5 +1,7 @@
 # Dual RTX 6000 Pro Max-Q (192 GB) - Qwen3.8-27B
 
+> **Muse Glimmer 30B (⚠️ untested 2026-08-14):** [Dual-RTX6000-Muse-Glimmer.md](Dual-RTX6000-Muse-Glimmer.md) — same box, different model. Do **not** reuse this guide’s `--reasoning off` / Qwen sampling on Muse.
+
 Optimized setup for dual NVIDIA RTX 6000 Pro Max-Q GPUs (192 GB total VRAM) on Ubuntu, using **llama-cpp-turboquant**. Primary knobs match the field-validated [Qwen3.6 Dual RTX 6000 guide](Dual-RTX6000-Qwen3.6.md) agent profile and were **re-validated on Qwen3.8** the day of release. Cross-hardware Pi lessons: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware) (same two-limit / no-DRY / tool-sampling rules apply).
 
 > ✅ **Tested** on this hardware (**Thursday, August 14, 2026** — Qwen3.8 release day). Primary config below is **field-validated working** with **Pi Coding Agent** — full **262k** pin, **Q8_K_XL** weights, **q8/q8** KV on a single 96 GB card, stable tools + strong agent quality. Same recipe as the tested Qwen3.6 Dual RTX baseline; only the model file changed. Expect variance with thermals and background load; re-check `n_ctx_seq` after rebuilds.

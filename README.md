@@ -2,7 +2,7 @@
 
 > 🤖 **Setting up a machine? Don't read this whole repo — let an AI do it.** Copy the prompt in **[`ai-assisted-setup.md`](ai-assisted-setup.md)** into Claude Code, Copilot, ChatGPT, Grok, or Gemini, paste your hardware at the bottom, and it'll use this repo as reference to generate your exact build, `llama-server` command, model download, and Pi Coding Agent `models.json`. Works whether or not you've done this before.
 
-**Per-machine llama.cpp configs for running Qwen3.8, Qwen3.6, and Gemma 4 fully offline.**
+**Per-machine llama.cpp configs for running Muse Glimmer, Qwen3.8, Qwen3.6, and Gemma 4 fully offline.**
 
 Each hardware guide has the exact build flags and `llama-server` command for one machine, with a model and quant picked to fit its memory: no cloud, no API keys, nothing leaving the box. Configs marked **Tested** were run on that hardware; the rest are starting points (see the table below).
 
@@ -13,9 +13,9 @@ Each hardware guide has the exact build flags and `llama-server` command for one
 ## Current Focus
 
 - Primary engine: **llama-cpp-turboquant** (the TurboQuant fork of llama.cpp); build it via [`local-setup.md`](local-setup.md)
-- Preferred models: **Qwen3.8-27B** (dense VLM, Unsloth UD quants) on roomier boxes — **✅ tested** on Dual RTX 6000 day-of-release; **Qwen3.6** dense + MoE where still the tested path; Gemma 4 E2B for edge devices
-- Emphasis on KV-cache optimization (TurboQuant), flash attention, agent-friendly Qwen settings (thinking off, pinned context), and stable sampling (details in the [deep dive](llama-cpp-turboquant.md))
-- **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware); multi-agent research in [Pi graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
+- Preferred models: **Qwen3.8-27B** (dense VLM, Unsloth UD quants) on roomier boxes — **✅ tested** on Dual RTX 6000 day-of-release; **Muse Glimmer 30B** (Meta, Apache 2.0, Unsloth UD) as a Dual RTX starting point (⚠️ untested); **Qwen3.6** dense + MoE where still the tested path; Gemma 4 E2B for edge devices
+- Emphasis on KV-cache optimization (TurboQuant), flash attention, agent-friendly Qwen settings (thinking off, pinned context), Muse Glimmer settings (thinking **cannot** be switched off — `reasoning_strength` + clean `reasoning_content`), and stable sampling (details in the [deep dive](llama-cpp-turboquant.md))
+- **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). **Muse Glimmer + Pi** is a different row: [Muse Glimmer 30B + Pi](agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent). Multi-agent research in [Pi graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
 
 ### Qwen3.8 (2026-08-14)
 
@@ -28,6 +28,14 @@ Each hardware guide has the exact build flags and `llama-server` command for one
 | MacBook Pro M5 (48 GB) | Metal | ⚠️ Untested (ported from 3.6) | [M5-MacBook-Pro-Qwen3.8.md](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) — Q5 @ 196k q8/q8 |
 
 Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-test load → first decode → Pi tools, then report results. GGUF naming / quant ladder is explained inside each 3.8 guide. Catalog: [`local-setup.md`](local-setup.md#model-catalog-hugging-face).
+
+### Muse Glimmer 30B (2026-08)
+
+[Muse Glimmer 30B](https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF) is Meta Superintelligence Labs’ open **~30B** dense VLM (Apache 2.0, arch `muse-glimmer`). Native context **131072** (Unsloth: up to **262144**). Needs llama.cpp **`b10353+`**. **Do not** copy Qwen `--reasoning off` onto it.
+
+| Machine | Backend | Status | Muse Glimmer guide |
+| --- | --- | --- | --- |
+| Dual RTX 6000 Pro Max-Q (192 GB) | CUDA | ⚠️ Untested (researched 2026-08-14) | [Dual-RTX6000-Muse-Glimmer.md](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) — Q8 @ 131k q8/q8 |
 
 ## Hardware Configurations Included
 
@@ -50,6 +58,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.8-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/turbo4, ported from 3.6) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.6-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.8-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) |
+| Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Muse Glimmer 30B UD-Q8_K_XL](https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/tree/main) (131k q8/q8, DFlash optional) | ⚠️ Untested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) |
 
 ## Quick Start
 
@@ -88,7 +97,8 @@ Autarkic-LLM/
 │   └── DGX-Spark-Qwen3.8.md        # day-zero port (untested)
 ├── Dual-RTX6000-192GB/
 │   ├── Dual-RTX6000-Qwen3.6.md
-│   └── Dual-RTX6000-Qwen3.8.md     # ✅ tested 2026-08-14
+│   ├── Dual-RTX6000-Qwen3.8.md     # ✅ tested 2026-08-14
+│   └── Dual-RTX6000-Muse-Glimmer.md # ⚠️ untested (2026-08-14)
 ├── M5-MacBook-Pro-48GB/
 │   ├── M5-MacBook-Pro-Qwen3.6.md
 │   └── M5-MacBook-Pro-Qwen3.8.md   # day-zero port (untested)
@@ -108,6 +118,6 @@ Autarkic-LLM/
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** August 14, 2026 (Qwen3.8-27B: Dual RTX 6000 ✅ Tested same day; DGX Spark + M5 Pro ports untested; Pi graphs + `search-topic-research` skill)  
+**Last Updated:** August 14, 2026 (Muse Glimmer Dual RTX guide added, ⚠️ untested; Qwen3.8 Dual RTX ✅ Tested same day; DGX Spark + M5 Pro 3.8 ports untested)  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)

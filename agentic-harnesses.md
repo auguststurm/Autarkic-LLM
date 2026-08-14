@@ -44,7 +44,7 @@ Each hardware guide includes a **complete** Pi `models.json` — the full `provi
 - `maxTokens` ≤ `--n-predict`.
 - Restart **both** `llama-server` and Pi after changing either side. Pi’s status bar must match the pin (stale `models.json` is a common failure mode).
 
-Hardware-specific numbers always come from **your** guide. The [M4 MacBook Air Qwen guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) is the reference for agent-facing *layout* (host, fit, thinking, `models.json` shape). Field-validated **Pi + dense Qwen 27B** agent lessons (any hardware) are below — they cover **Qwen3.6-27B** and **Qwen3.8-27B** (same Pi rules; Dual RTX 3.8 is field-tested).
+Hardware-specific numbers always come from **your** guide. The [M4 MacBook Air Qwen guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) is the reference for agent-facing *layout* (host, fit, thinking, `models.json` shape). Field-validated **Pi + dense Qwen 27B** agent lessons (any hardware) are below — they cover **Qwen3.6-27B** and **Qwen3.8-27B** (same Pi rules; Dual RTX 3.8 is field-tested). **Muse Glimmer is a different model** — do not apply the Qwen `--reasoning off` row; see [Muse Glimmer 30B + Pi](#muse-glimmer-30b--pi-coding-agent).
 
 ## Qwen3.6-27B + Pi Coding Agent (cross-hardware)
 
@@ -88,6 +88,25 @@ TurboQuant **fork** ≠ must use turbo **types**. Roomier machines keep high-pre
 - After changing server pins, **restart Pi** so the status bar matches.  
 - Prefer agents **writing long reports to disk** (`reports/`) and summarizing in chat when output length is the bottleneck.  
 - Multi-agent graphs, Tavily, and the example research skill: **[Pi Coding Agent graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)**.
+
+## Muse Glimmer 30B + Pi Coding Agent
+
+> ⚠️ **Not field-tested in this repo yet.** Hardware pin: [Dual RTX 6000 Muse Glimmer](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md). Two-limit / no-DRY / `--fit off` rules still apply. **Qwen thinking-off does not.**
+
+Muse Glimmer is Meta’s ~30B dense VLM (arch `muse-glimmer`, llama.cpp **`b10353+`**). It is trained as a reasoning + tool model. Official docs: [Meta llama.cpp](https://dev.meta.ai/docs/muse-glimmer/llama-cpp/) · [prompting](https://dev.meta.ai/docs/muse-glimmer/prompting) · [Unsloth](https://unsloth.ai/docs/models/muse-glimmer).
+
+| Prefer for Pi + Muse Glimmer | Avoid |
+| --- | --- |
+| **`--jinja`** (embedded Muse template; required for ATEM tools + reasoning split) | Skipping `--jinja`, or passing `--chat-template-file` |
+| **`--chat-template-kwargs '{"reasoning_strength":"high"}'`** (`low` / `medium` / `high` / `xhigh`) | **`--reasoning off`** — **no-op** on this template. Same for `"reasoning_effort": "none"` |
+| Default server split: thinking in `reasoning_content`, answer/tools in `content` | `--reasoning-format none` (dumps thinking into `content` and confuses Pi) |
+| **`--n-predict` large enough** (Dual RTX primary **32768**) — thinking counts against the output cap | 4k–8k `maxTokens` on `high`/`xhigh` (empty `content`, `finish_reason: length`) |
+| Official sampling: **`temp 1.0`**, **`top_p 0.95`**, **`top_k 64`**, **`presence 0`**, **`repeat 1.0`** | Blindly copying the Qwen Pi row (`temp 0.6` / `top_k 20`) or Qwen instruct **presence 1.5** |
+| **`--parallel 1`** so one session gets the full `--ctx-size` | Raising `-np` without scaling `-c` (silent empty answers when a slot fills) |
+| Leave the eom token out of custom stop lists (it is end-of-message, not end-of-turn) | Stopping on that token (collapses tool calling) |
+| **No DRY** | DRY on path-heavy tool loops ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
+
+Need a **fresh** turboquant / llama.cpp (`LLM_ARCH_MUSE_GLIMMER`). Optional speed: **DFlash** (`--spec-type draft-dflash` + `dflash-kquant.gguf`), not Qwen MTP.
 
 ## Multi-agent workflows, Tavily & research graphs
 

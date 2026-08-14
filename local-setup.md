@@ -85,16 +85,19 @@ All configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic /
 
 | Model | Type | GGUF files & downloads | Original weights |
 | --- | --- | --- | --- |
+| **Muse Glimmer 30B** | Dense VLM, 131K ctx (⚠️ Dual RTX untested) | [unsloth/Muse-Glimmer-30B-GGUF](https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/tree/main) | [meta-models/Muse-Glimmer-30B](https://huggingface.co/meta-models/Muse-Glimmer-30B) |
 | **Qwen3.8-27B** | Dense VLM, 262K ctx (✅ Dual RTX tested 2026-08-14) | [unsloth/Qwen3.8-27B-GGUF](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) | [Qwen/Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) |
 | Qwen3.6-27B | Dense, 262K ctx (field-tested paths) | [unsloth/Qwen3.6-27B-GGUF](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | [Qwen/Qwen3.6-27B](https://huggingface.co/Qwen/Qwen3.6-27B) |
 | Qwen3.6-35B-A3B | MoE (3B active) | [unsloth/Qwen3.6-35B-A3B-GGUF](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) | [QwenLM/Qwen3.6](https://github.com/QwenLM/Qwen3.6) |
 | Gemma 4 E2B | Dense edge (PLE) | [unsloth/gemma-4-E2B-it-GGUF](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) | [google/gemma-4-E2B](https://huggingface.co/google/gemma-4-E2B) |
 
-Collections: [Qwen3.8 (Unsloth)](https://huggingface.co/collections/unsloth/qwen38) · [Qwen3.6 (Unsloth)](https://huggingface.co/collections/unsloth/qwen36) · [Gemma 4 (Unsloth)](https://huggingface.co/collections/unsloth/gemma-4). MTP variants (e.g. `*-MTP-GGUF`) offer ~1.5–2× faster decode via multi-token prediction. **Default rule:** pick the largest / highest-quality quant that still leaves headroom for OS + KV at your pinned context — each [hardware guide](README.md#hardware-configurations-included) names the exact file.
+Collections: [Muse Glimmer (Unsloth)](https://huggingface.co/collections/unsloth/muse-glimmer) · [Qwen3.8 (Unsloth)](https://huggingface.co/collections/unsloth/qwen38) · [Qwen3.6 (Unsloth)](https://huggingface.co/collections/unsloth/qwen36) · [Gemma 4 (Unsloth)](https://huggingface.co/collections/unsloth/gemma-4). MTP variants (e.g. `*-MTP-GGUF`) offer ~1.5–2× faster decode via multi-token prediction. Muse Glimmer’s analog is **DFlash** (`dflash-kquant.gguf`, `--spec-type draft-dflash`). **Default rule:** pick the largest / highest-quality quant that still leaves headroom for OS + KV at your pinned context — each [hardware guide](README.md#hardware-configurations-included) names the exact file.
 
 **Qwen3.8 guides** (knobs from each box’s tested 3.6 path): [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** (2026-08-14, Pi) · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) ⚠️ untested · [M5 MacBook Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ⚠️ untested. Need a fresh turboquant build (`qwen35` arch).
 
-**Unsloth extras worth knowing** ([Qwen3.8 guide](https://unsloth.ai/docs/models/qwen3.8) · [MTP](https://unsloth.ai/docs/models/mtp)): UD GGUFs are **Dynamic V3.0** (developer-role + better nested tool calls); optional **`--spec-type draft-mtp --spec-draft-n-max 2`** for ~1.4–2.2× decode on CUDA; official sampling differs for thinking (temp 1.0) vs instruct (temp 0.7 / presence 1.5) — Pi tool sessions keep presence **0** (see Dual RTX guide). Blackwell boxes may also try **NVFP4** via vLLM/SGLang (different stack).
+**Muse Glimmer guide:** [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) ⚠️ untested (2026-08-14). Need llama.cpp / turboquant **`b10353+`** (`muse-glimmer` arch). Official sampling is **temp 1.0 / top_p 0.95 / top_k 64**. Thinking **cannot** be switched off (`--reasoning off` is a no-op); use `reasoning_strength` (`low`/`medium`/`high`/`xhigh`). Optional **DFlash**: `--spec-type draft-dflash` + `dflash-kquant.gguf`. Docs: [Unsloth](https://unsloth.ai/docs/models/muse-glimmer) · [Meta llama.cpp](https://dev.meta.ai/docs/muse-glimmer/llama-cpp/).
+
+**Unsloth extras worth knowing** ([Qwen3.8 guide](https://unsloth.ai/docs/models/qwen3.8) · [MTP](https://unsloth.ai/docs/models/mtp) · [Muse Glimmer](https://unsloth.ai/docs/models/muse-glimmer)): UD GGUFs are **Dynamic V3.0** (developer-role + better nested tool calls); Qwen optional **`--spec-type draft-mtp --spec-draft-n-max 2`** for ~1.4–2.2× decode on CUDA; official Qwen sampling differs for thinking (temp 1.0) vs instruct (temp 0.7 / presence 1.5) — Pi tool sessions on **Qwen** keep presence **0** (see Dual RTX Qwen guide). Blackwell boxes may also try **NVFP4** via vLLM/SGLang (different stack).
 
 ### Understanding GGUF quants (why so many files)
 
@@ -184,13 +187,18 @@ Further reading: [Unsloth Dynamic GGUFs](https://unsloth.ai/docs/basics/unsloth-
 
 ### Download
 
-> **Disk space:** GGUFs are large. Qwen3.8-27B `UD-Q8_K_XL` is ~31.5 GB, `UD-Q6_K_XL` ~25.9 GB, `UD-Q5_K_XL` ~20.2 GB, `UD-Q4_K_XL` ~17.9 GB. Qwen3.6-27B `Q6_K_XL` is ~22 GB; 35B-A3B `Q4_K_XL` ~22 GB (down to ~11.5 GB for the `IQ2_M` used on 16 GB Macs); Gemma 4 E2B `Q4_K_S` ~3 GB. Make sure you have the room — and note `hf_transfer` downloads can momentarily use extra space.
+> **Disk space:** GGUFs are large. Muse Glimmer 30B `UD-Q8_K_XL` is ~32.3 GB (`UD-Q6_K_XL` ~26.3 GB, `UD-Q4_K_XL` ~15.9 GB; optional `dflash-kquant.gguf` ~1.6 GB). Qwen3.8-27B `UD-Q8_K_XL` is ~31.5 GB, `UD-Q6_K_XL` ~25.9 GB, `UD-Q5_K_XL` ~20.2 GB, `UD-Q4_K_XL` ~17.9 GB. Qwen3.6-27B `Q6_K_XL` is ~22 GB; 35B-A3B `Q4_K_XL` ~22 GB (down to ~11.5 GB for the `IQ2_M` used on 16 GB Macs); Gemma 4 E2B `Q4_K_S` ~3 GB. Make sure you have the room — and note `hf_transfer` downloads can momentarily use extra space.
 
 ```bash
 pip install -U huggingface_hub hf_transfer
 
-# Qwen3.8 example (day-zero; hf is the current CLI)
+# Muse Glimmer example (hf is the current CLI)
 # Hardware guides use ~/Documents/AIML/models as a flat local-dir; any path works if --model matches.
+hf download unsloth/Muse-Glimmer-30B-GGUF \
+  Muse-Glimmer-30B-UD-Q8_K_XL.gguf \
+  --local-dir ~/Documents/AIML/models
+
+# Qwen3.8 example (day-zero)
 hf download unsloth/Qwen3.8-27B-GGUF \
   Qwen3.8-27B-UD-Q6_K_XL.gguf \
   --local-dir ~/Documents/AIML/models
@@ -223,6 +231,7 @@ mkdir -p ./kv-cache
 - Use `--no-mmap` on systems with sufficient RAM (common on CUDA/Vulkan guides). Memory-tight Metal configs may omit it.
 - **Prefer pinned `--ctx-size` + `--fit off` for agent use (Pi / Hermes).** Default `--fit on` can crush context (sometimes toward ~4096) and break long sessions — documented on the [M4 MacBook Air guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). **All hardware guides in this repo pin context and set `--fit off`.** If you experiment with `--fit on --fit-target <MiB>`, **leave `--n-gpu-layers` and `--ctx-size` unset** — on the current fork it aborts if `--n-gpu-layers` is set and won't shrink a pinned `--ctx-size`. Check the startup log for the context it allocated.
 - **Qwen3.6 / Qwen3.8 + agents (Pi):** prefer **`--reasoning off`** (+ `--reasoning-budget 0`) so clients get normal `message.content` / tools. Current llama-server builds often **deprecate** `enable_thinking` via `--chat-template-kwargs` in favor of `--reasoning on|off`. Do not rely on context-checkpoint flags for hybrid Qwen (3.5/3.6/3.8 share the hybrid backbone) — see [checkpointing caveat](llama-cpp-turboquant.md#prompt-cache--checkpointing). For Pi tool stability (no DRY, sampling, KV K/V, `contextWindow` vs `maxTokens`), see [agentic harnesses — dense Qwen 27B + Pi](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). **Qwen3.8** status: [README — Qwen3.8](README.md#qwen38-2026-08-14).
+- **Muse Glimmer + agents (Pi):** **`--reasoning off` does nothing.** Use `--jinja` and `--chat-template-kwargs '{"reasoning_strength":"high"}'` (or `low`/`medium`/`xhigh`). Thinking goes to `reasoning_content` by default. Official sampling is **temp 1.0 / top_p 0.95 / top_k 64**. Need **`b10353+`**. See [Dual RTX Muse Glimmer](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) and [agentic harnesses — Muse](agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent).
 - Monitor resources:
   - Linux: `htop`, `nvidia-smi -l 1`
   - macOS: `htop` + Activity Monitor
@@ -265,5 +274,6 @@ Each hardware guide includes a **complete** Pi Coding Agent `models.json`. Copy 
 
 - Go to your hardware-specific folder (e.g. `DGX-Spark-128GB/`, `Dual-RTX6000-192GB/`, `M5-MacBook-Pro-48GB/`, `Win-RTX4090-24GB/`) for exact build flags, model recommendations, and optimized `llama-server` commands.
 - **Qwen3.8:** [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) / [M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ports ⚠️ — overview in [README](README.md#qwen38-2026-08-14).
+- **Muse Glimmer:** [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) ⚠️ untested — overview in [README](README.md#muse-glimmer-30b-2026-08).
 - Pi multi-agent research / Tavily: [`_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md`](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
 - For what the TurboQuant fork adds and what every `llama-server` flag does (and when *not* to use it), see [`llama-cpp-turboquant.md`](llama-cpp-turboquant.md).

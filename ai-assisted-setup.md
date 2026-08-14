@@ -74,6 +74,11 @@ The rest is judgment:
 - (always for Qwen3.6 / Qwen3.8 agents) `--reasoning off` and `--reasoning-budget 0` so Pi gets
   message.content (prefer this over deprecated enable_thinking chat-template-kwargs alone on
   current llama-server).
+- (Muse Glimmer 30B only) Do **not** pass `--reasoning off` — it does nothing. Use `--jinja` and
+  `--chat-template-kwargs '{"reasoning_strength":"high"}'` (or low/medium/xhigh). Official
+  sampling is temp 1.0 / top_p 0.95 / top_k 64. Need llama.cpp/turboquant b10353+ (arch
+  muse-glimmer). Optional DFlash: --spec-type draft-dflash + dflash-kquant.gguf. Dual RTX
+  starting point: Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md (⚠️ untested).
 - (always for hybrid Qwen 3.5/3.6/3.8) omit context-checkpoint flags unless I ask; they often don't
   help on hybrid attention (see llama-cpp-turboquant.md). For Pi + dense Qwen 27B tool stability
   (no DRY, sampling, contextWindow vs maxTokens, K/V), follow agentic-harnesses.md and the hardware
@@ -129,3 +134,4 @@ MY HARDWARE:
 - Write the `models.json` it produced to **`~/.pi/agent/models.json`**, start Pi, and you're running fully offline against `http://127.0.0.1:8080/v1`.
 - **Ran this on hardware that isn't in the [table](README.md#hardware-configurations-included) yet?** Please open an issue or PR with what worked — that's how the untested configs become tested ones.
 - **Trying Qwen3.8?** Prefer the matching `*Qwen3.8.md` guide when one exists ([overview](README.md#qwen38-2026-08-14)). Dual RTX 6000 is already ✅ Tested; for other ports, smoke-test load → first decode → Pi tools, then report results.
+- **Trying Muse Glimmer?** Use [Dual-RTX6000-Muse-Glimmer.md](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) on that box. Do not copy Qwen `--reasoning off`. Smoke-test load → first decode → Pi tools, then report results.
