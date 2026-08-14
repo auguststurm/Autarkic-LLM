@@ -1,14 +1,16 @@
 # Dual RTX 6000 Pro Max-Q (192 GB) - Qwen3.6-27B
 
-Optimized setup for dual NVIDIA RTX 6000 Pro Max-Q GPUs (192 GB total VRAM) on Ubuntu, using **llama-cpp-turboquant**. Command shape follows the [M4 MacBook Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) conventions (host, thinking off, pinned context, no Qwen checkpoint flags), with CUDA multi-GPU options.
+Optimized setup for dual NVIDIA RTX 6000 Pro Max-Q GPUs (192 GB total VRAM) on Ubuntu, using **llama-cpp-turboquant**. Pi / tool conventions follow the field-validated [Windows RTX 4090 Qwen guide](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) and [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware); compute and memory knobs stay CUDA multi-GPU / high-VRAM.
 
-> ⚠️ **Not yet tested on this hardware.** Best-effort starting config from model size + llama.cpp options. If you run it, please report results via an issue.
+> ⚠️ **Not yet tested on this hardware.** Best-effort starting config from model size + llama.cpp options + cross-hardware Pi lessons. If you run it, please report results via an issue.
 
 ## Pi Coding Agent: read this first
 
 **Always pin `--ctx-size` and set `--fit off`.** Match Pi’s `contextWindow` to real `n_ctx_seq`.
 
-**Thinking / empty replies** (Qwen3.6): prefer **`--reasoning off`** (+ `--reasoning-budget 0`) for Pi. Shared Pi + Qwen3.6-27B lessons: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
+**Thinking / empty replies** (Qwen3.6): prefer **`--reasoning off`** (+ `--reasoning-budget 0`) for Pi `message.content`. Do **not** pass deprecated `--chat-template-kwargs '{"enable_thinking":false}'` — current llama-server builds warn and prefer `--reasoning on|off`.
+
+Shared Pi + Qwen3.6-27B lessons (two token limits, no DRY, tool sampling, K/V, hybrid cache): [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 ## Recommended model (primary — single GPU)
 
@@ -41,7 +43,7 @@ cd bin
 mkdir -p ./kv-cache
 ```
 
-Confirm turbo types:
+Confirm turbo types (needed only if you try the optional turbo-V path):
 
 ```bash
 ./llama-server --help | grep -A2 cache-type-v
@@ -61,10 +63,11 @@ pkill -9 llama-server
   --ctx-size 262144 \
   --fit off \
   --n-gpu-layers 99 \
+  --main-gpu 0 \
   --no-mmap \
-  --cache-type-k q8_0 --cache-type-v turbo4 \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --cache-ram 0 \
   --jinja \
-  --chat-template-kwargs '{"enable_thinking":false}' \
   --flash-attn on \
   --no-context-shift \
   --parallel 1 \
@@ -72,13 +75,13 @@ pkill -9 llama-server
   --batch-size 1024 \
   --reasoning off \
   --reasoning-budget 0 \
-  --repeat-penalty 1.10 \
+  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
   --presence-penalty 0.0 \
+  --repeat-penalty 1.0 \
   --frequency-penalty 0.0 \
-  --min-p 0.0 \
-  --repeat-last-n 1024 \
-  --threads 32 --temp 0.65 --top-p 0.90 \
-  --n-predict 8192 \
+  --repeat-last-n 64 \
+  --threads 32 \
+  --n-predict 16384 \
   --kv-unified \
   --log-verbosity 1
 ```
@@ -88,21 +91,45 @@ pkill -9 llama-server
 | Flag / value | Why |
 | --- | --- |
 | `--ctx-size 262144` | Full train window; one 96 GB card has room for Q8 + KV |
-| `--cache-type-v turbo4` | CUDA quality-leaning TurboQuant V |
-| `--n-gpu-layers 99` | Full offload on the primary GPU |
-| `--fit off` + thinking off + `127.0.0.1` | Same agent/autarky defaults as the Air reference |
+| `--cache-type-k/v q8_0` | Prefer high-precision KV while VRAM allows (agent routing/tools); turbo V only if you need more capacity later |
+| `--cache-ram 0` | Hybrid Qwen / DeltaNet multi-turn cache restore issues ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)); correct multi-turn over cache speed |
+| `--n-gpu-layers 99` + `--main-gpu 0` | Full offload on the primary GPU on a dual-card box |
+| `--reasoning off` (+ budget 0) | Thinking off for Pi tools / `message.content` — **not** `enable_thinking` kwargs |
+| Tool sampling | `temp 0.6` / `top_p 0.95` / `top_k 20` / `presence 0` / `repeat 1.0` — field-validated Pi direction; **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
+| `--n-predict 16384` | Report-length agent output (match Pi `maxTokens`) |
+| `--fit off` + `127.0.0.1` | Pinned agent-visible context; loopback default |
 | No checkpoint flags | Qwen3.6 hybrid caveat — see [checkpointing](../llama-cpp-turboquant.md#prompt-cache--checkpointing) |
+
+**Confirm**
+
+```text
+log: n_ctx_seq (262144)
+nvidia-smi   # note MiB after load and after a short decode
+```
+
+### Optional: TurboQuant V (capacity / decode tradeoff)
+
+Primary already has enormous headroom. If you later raise load (heavier quant, multi-slot, or decode cost experiments) and need to free KV:
+
+```bash
+# Same command as above, only:
+#   --cache-type-k q8_0 --cache-type-v turbo4
+# Keep K at q8_0. Smoke-test real ls/read on a new Pi session first.
+```
 
 ## Performance notes
 
-- Primary config uses **one GPU** by default — simple and fast for a ~35 GB model. Large VRAM remains for KV at 262k.
+- Primary config uses **one GPU** by default — simple and fast for a ~35 GB model. Large VRAM remains for KV at 262k with **q8/q8**.
+- TurboQuant **fork** ≠ must use turbo **types**. Roomier boxes keep `q8_0`/`q8_0`; turbo V is a capacity lever, not the quality default.
 - For heavier models or extreme multi-card use, see the multi-GPU section below.
 - Ideal for heavy agentic workloads and long-context development.
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
+- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Cross-hardware Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 ## Pi Coding Agent `models.json`
 
-Save this **entire** file to `~/.pi/agent/models.json` (copy-paste as-is — do not assemble a wrapper). Create parent dirs if needed: `mkdir -p ~/.pi/agent`.
+Save this **entire** file to `~/.pi/agent/models.json` (copy-paste as-is — do not assemble a wrapper). Create parent dirs if needed: `mkdir -p ~/.pi/agent`. **Restart Pi** after writing so the status bar matches the pin.
+
+`maxTokens` ≤ `--n-predict` (16384). `contextWindow` = `--ctx-size` (262144).
 
 ```json
 {
@@ -114,9 +141,9 @@ Save this **entire** file to `~/.pi/agent/models.json` (copy-paste as-is — do 
       "models": [
         {
           "id": "qwen3.6-27b",
-          "name": "Qwen3.6-27B Q8_K_XL (262k) - Dual RTX 6000",
+          "name": "Qwen3.6-27B Q8_K_XL (262k q8/q8) - Dual RTX 6000",
           "contextWindow": 262144,
-          "maxTokens": 8192
+          "maxTokens": 16384
         }
       ]
     }
@@ -148,9 +175,9 @@ pkill -9 llama-server
   --tensor-split 96,96 \
   --main-gpu 0 \
   --no-mmap \
-  --cache-type-k q8_0 --cache-type-v turbo4 \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --cache-ram 0 \
   --jinja \
-  --chat-template-kwargs '{"enable_thinking":false}' \
   --flash-attn on \
   --no-context-shift \
   --parallel 1 \
@@ -158,19 +185,20 @@ pkill -9 llama-server
   --batch-size 1024 \
   --reasoning off \
   --reasoning-budget 0 \
-  --repeat-penalty 1.10 \
+  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
   --presence-penalty 0.0 \
+  --repeat-penalty 1.0 \
   --frequency-penalty 0.0 \
-  --min-p 0.0 \
-  --repeat-last-n 1024 \
-  --threads 32 --temp 0.65 --top-p 0.90 \
-  --n-predict 8192 \
+  --repeat-last-n 64 \
+  --threads 32 \
+  --n-predict 16384 \
   --kv-unified \
   --log-verbosity 1
 ```
 
 - **Model:** `Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf` (~38.5 GB MoE)
 - Multi-GPU adds PCIe sync overhead; benchmark against the single-GPU primary before committing.
+- Same agent flags as primary (no `chat-template-kwargs`, tool sampling, `--cache-ram 0`).
 
 ```json
 {
@@ -182,9 +210,9 @@ pkill -9 llama-server
       "models": [
         {
           "id": "qwen3.6-35B-A3B",
-          "name": "Qwen3.6-35B-A3B Q8_K_XL (262k) - Dual RTX 6000",
+          "name": "Qwen3.6-35B-A3B Q8_K_XL (262k q8/q8) - Dual RTX 6000",
           "contextWindow": 262144,
-          "maxTokens": 8192
+          "maxTokens": 16384
         }
       ]
     }
@@ -192,4 +220,4 @@ pkill -9 llama-server
 }
 ```
 
-**Last Updated:** July 2026
+**Last Updated:** August 2026
