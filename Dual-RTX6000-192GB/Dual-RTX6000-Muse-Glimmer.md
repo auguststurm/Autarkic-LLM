@@ -163,7 +163,7 @@ pkill -9 llama-server
   --fit off \
   --n-gpu-layers 99 \
   --main-gpu 0 \
-  --no-mmap \
+  --load-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
   --chat-template-kwargs '{"reasoning_strength":"high"}' \
@@ -295,7 +295,7 @@ pkill -9 llama-server
   --fit off \
   --n-gpu-layers 99 \
   --main-gpu 0 \
-  --no-mmap \
+  --load-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
   --chat-template-kwargs '{"reasoning_strength":"high"}' \
@@ -470,7 +470,7 @@ pkill -9 llama-server
   --split-mode layer \
   --tensor-split 96,96 \
   --main-gpu 0 \
-  --no-mmap \
+  --load-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
   --chat-template-kwargs '{"reasoning_strength":"high"}' \

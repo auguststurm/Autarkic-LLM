@@ -67,7 +67,7 @@ pkill -9 llama-server
   --ctx-size 262144 \
   --fit off \
   --n-gpu-layers 99 \
-  --no-mmap \
+  --load-mode none \
   --cache-type-k q8_0 --cache-type-v turbo4 \
   --jinja \
   --chat-template-kwargs '{"enable_thinking":false}' \

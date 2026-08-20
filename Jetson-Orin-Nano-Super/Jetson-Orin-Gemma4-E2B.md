@@ -58,7 +58,7 @@ pkill -9 llama-server
   --ctx-size 32768 \
   --fit off \
   --n-gpu-layers 99 \
-  --no-mmap \
+  --load-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
   --flash-attn on \

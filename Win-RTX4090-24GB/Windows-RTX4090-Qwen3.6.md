@@ -78,7 +78,7 @@ cd ~/GitHub/llama-cpp-turboquant/build/bin
   --fit off \
   --n-gpu-layers 99 \
   --main-gpu 0 \
-  --no-mmap \
+  --load-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --cache-ram 0 \
   --jinja \
@@ -249,7 +249,7 @@ Same model family. Different **KV budget**.
 ## WSL2
 
 - `nvidia-smi` inside WSL.  
-- `--no-mmap` needs free host RAM (~18 GB+) for load.  
+- `--load-mode none` (replaces deprecated `--no-mmap`) needs free host RAM (~18 GB+) for load.  
 - One long-lived server; don’t share the GPU heavily.  
 - Workflows: [pi-coding-agent-graphs.md](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md) · flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md)
 

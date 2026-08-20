@@ -137,7 +137,7 @@ pkill -9 llama-server
   --ctx-size 262144 \
   --fit off \
   --n-gpu-layers 99 \
-  --no-mmap \
+  --load-mode none \
   --cache-type-k q8_0 --cache-type-v turbo4 \
   --cache-ram 0 \
   --jinja \
@@ -167,6 +167,7 @@ pkill -9 llama-server
 | `--cache-type-k q8_0 --cache-type-v turbo4` | CUDA quality-leaning turbo V (not Metal’s more aggressive turbo2); keeps K precise for routing/tools |
 | `--cache-ram 0` | Hybrid Qwen / DeltaNet multi-turn cache restore issues ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)); correct multi-turn over cache speed |
 | `--n-gpu-layers 99` | Full GPU offload on GB10 / CUDA-class devices |
+| `--load-mode none` | Same as old `--no-mmap`: buffered read, no file mapping. Standalone (do not also pass `--no-mmap` / `--mmap` / `--mlock`). Needs enough **system RAM** for the GGUF during load. Log: `load_mode = none` |
 | `--reasoning off` (+ budget 0) | Thinking off for Pi tools / `message.content` — **not** deprecated `enable_thinking` kwargs |
 | Sampling | `temp 0.65` / `top_p 0.90` / `repeat 1.10` — matches this box’s tested 3.6 command; for path-heavy Pi see agent profile note above (**no DRY**) |
 | `--n-predict 8192` | Matches tested DGX 3.6 + Pi `maxTokens`; raise toward **16384** (and Pi) if reports truncate |
@@ -205,6 +206,7 @@ hf download unsloth/Qwen3.8-27B-GGUF \
 
 ```text
 log: n_ctx_seq (262144)
+log: load_mode = none
 # model loads as qwen35 / Qwen3.8-27B (exact string varies by build)
 # or GET /v1/models
 ```
@@ -229,7 +231,8 @@ Docs: [MTP](https://unsloth.ai/docs/models/mtp) · full Dual RTX options: [Dual-
 | --- | --- | --- | --- | --- |
 | Thinking (Unsloth) | 1.0 | 0.95 | 0.0 | With `--reasoning on`; optional `reasoning_effort` xhigh/medium/low |
 | Instruct (Unsloth) | 0.7 | 0.80 | 1.5 | Chat; **not** for path-heavy Pi tools |
-| Pi tools (this repo) | 0.6 | 0.95 | 0.0 | Primary / agent path |
+| This guide’s **primary** | **0.65** | **0.90** | 0.0 | Matches the Spark Qwen3.6 command (`repeat` 1.10). Not Unsloth’s table |
+| Cross-hardware Pi agent profile | 0.6 | 0.95 | 0.0 | Use if path-heavy tools misbehave; **new** Pi session |
 
 Source: [Unsloth Qwen3.8](https://unsloth.ai/docs/models/qwen3.8#recommended-settings).
 

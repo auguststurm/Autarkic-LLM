@@ -137,7 +137,7 @@ pkill -9 llama-server
   --fit off \
   --n-gpu-layers 99 \
   --main-gpu 0 \
-  --no-mmap \
+  --load-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --cache-ram 0 \
   --jinja \
@@ -167,6 +167,7 @@ pkill -9 llama-server
 | `--cache-type-k/v q8_0` | High-precision KV while VRAM allows (agent routing/tools); turbo V only if you need more capacity later |
 | `--cache-ram 0` | Hybrid Qwen / DeltaNet multi-turn cache restore issues ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)); correct multi-turn over cache speed |
 | `--n-gpu-layers 99` + `--main-gpu 0` | Full offload on the primary GPU on a dual-card box — primary stays single-GPU for simplicity |
+| `--load-mode none` | Same as old `--no-mmap` (not `--load-mode mmap`). Standalone; do not combine with `--mmap`/`--no-mmap`/`--mlock`. **Confirmed on this box:** deprecation warning gone; log `load_mode = none` |
 | `--reasoning off` (+ budget 0) | Thinking off for Pi tools / `message.content` — **not** `enable_thinking` kwargs |
 | Tool sampling | `temp 0.6` / `top_p 0.95` / `top_k 20` / `presence 0` / `repeat 1.0` — strong Pi tool/coding results on this hardware with 3.8; **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
 | `--n-predict 16384` | Report-length agent output (match Pi `maxTokens`) |
@@ -204,6 +205,7 @@ hf download unsloth/Qwen3.8-27B-GGUF \
 
 ```text
 log: n_ctx_seq (262144)
+log: load_mode = none
 # model loads as qwen35 / Qwen3.8-27B (exact string varies by build)
 nvidia-smi   # note MiB after load and after a short decode
 ```
@@ -241,7 +243,7 @@ pkill -9 llama-server
   --fit off \
   --n-gpu-layers 99 \
   --main-gpu 0 \
-  --no-mmap \
+  --load-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --cache-ram 0 \
   --jinja \
@@ -327,6 +329,7 @@ Unsloth also ships **[NVFP4](https://huggingface.co/unsloth/Qwen3.8-27B-NVFP4)**
 ## Performance notes
 
 - **Validated 2026-08-14 (release day):** primary single-GPU **Q8_K_XL @ 262k · q8/q8 · 16k out** worked very well with Pi Coding Agent on Qwen3.8 (tools, long agent sessions, full train window) — same knobs as the tested Qwen3.6 Dual RTX run (2026-08-08).
+- **`--load-mode none` confirmed on this hardware:** current turboquant no longer prints `DEPRECATED: --mmap and --no-mmap` with this flag. Expect `load_mode = none` in the load log.
 - Q8 weights are **slightly smaller** than 3.6 Q8 (~31.5 vs ~35 GB) → comfortable KV headroom at 262k q8/q8 on one 96 GB card.
 - Primary uses **one GPU** by default. The other 96 GB card stays free (or idle).
 - **Unsloth Dynamic V3.0** UD quants include developer-role / improved nested tool-call templates — prefer `UD-*` over plain `Q*_K_M` when sizes are close.
@@ -377,7 +380,7 @@ pkill -9 llama-server
   --split-mode layer \
   --tensor-split 96,96 \
   --main-gpu 0 \
-  --no-mmap \
+  --load-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --cache-ram 0 \
   --jinja \
@@ -402,4 +405,4 @@ pkill -9 llama-server
 - Same agent flags as primary. Multi-GPU adds PCIe sync overhead; benchmark against single-GPU before committing.
 - There is no mid-size Qwen3.8 MoE twin to the old 35B-A3B alternate yet — keep this as a split of the **same** 27B dense weights if you experiment.
 
-**Last Updated:** August 14, 2026 (✅ Tested primary; Unsloth MTP / sampling / thinking / NVFP4 options from [unsloth.ai/docs/models/qwen3.8](https://unsloth.ai/docs/models/qwen3.8))
+**Last Updated:** August 14, 2026 (✅ Tested primary; `--load-mode none` confirmed — mmap deprecation warning gone)
