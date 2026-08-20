@@ -77,6 +77,8 @@ More background (repo-wide): [local-setup — Understanding GGUF quants](../loca
 
 **Thinking / empty replies** (Qwen3.8 hybrid thinking): prefer **`--reasoning off`** (+ `--reasoning-budget 0`) for Pi `message.content` / tools. Do **not** pass deprecated `--chat-template-kwargs '{"enable_thinking":false}'` — current llama-server builds warn and prefer `--reasoning on|off`.
 
+At `--log-verbosity 3` you may see `chat template supports preserving reasoning, consider enabling it via --reasoning-preserve`. **Leave it off for Pi.** That flag re-injects **prior thinking traces** into the server-built prompt (same idea as Unsloth `preserve_thinking`). Pi is the harness: it needs `content` / tool calls, not server-side think history. With `--reasoning off`, thinking is disabled in the template (`enable_thinking = false` in `server-context.cpp`); preserve would only burn context. Enable `--reasoning-preserve` only on **thinking-on** chat sessions.
+
 Shared Pi + dense-Qwen lessons (two token limits, no DRY, tool sampling, K/V, hybrid cache): [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 **Sampling for Pi tools (this repo):** keep the **Dual RTX / 4090 agent profile** (`temp 0.6`, `top_p 0.95`, `top_k 20`, **`presence_penalty 0`**, `repeat_penalty 1.0`) — **field-validated on Qwen3.8** on this box. [Unsloth’s official table](https://unsloth.ai/docs/models/qwen3.8#recommended-settings) uses different numbers for pure **thinking** (temp 1.0) and **instruct** (temp 0.7, `presence 1.5`) — use those only outside path-heavy Pi tool loops (see [optional modes](#optional-unsloth-sampling-modes-chat--thinking) below).
@@ -288,17 +290,17 @@ Keep the **primary Pi tool profile** for coding agents. When you are **not** doi
 
 From Unsloth: Qwen3.8 supports **`reasoning_effort`** (`xhigh` default · `medium` · `low` · none) and **Preserve Thinking** (keeps prior-turn thinking traces — more tokens, can help multi-turn accuracy when thinking is on).
 
-Primary keeps **`--reasoning off`** for Pi `message.content` / tools. For a **thinking-on** session (not the Pi agent default):
+Primary keeps **`--reasoning off`** for Pi `message.content` / tools. **Do not add `--reasoning-preserve` to the Pi command** — that only helps when thinking traces exist and you want them replayed into later turns (verbosity-3 hint is informational). For a **thinking-on** session (not the Pi agent default):
 
 ```bash
 # Example deltas only — not the Pi primary:
 #   --reasoning on
+#   --reasoning-preserve
 #   --temp 1.0 --top-p 0.95 --top-k 20 --presence-penalty 0.0
-# Optional template kwargs if your build still honors them (prefer --reasoning when it works):
-#   --chat-template-kwargs '{"reasoning_effort":"xhigh","preserve_thinking":true}'
+# Optional: --chat-template-kwargs '{"reasoning_effort":"xhigh"}'
 ```
 
-Confirm with `./llama-server --help` — some builds deprecate `enable_thinking` kwargs in favor of `--reasoning on|off`. **Preserve thinking burns context** at 262k; fine on this box, still restart Pi / new session after long thinking threads.
+`--reasoning-preserve` sets template `preserve_reasoning=true` (llama-server help). Confirm with `./llama-server --help`. Preserve **burns context**; restart Pi / new session after long thinking threads.
 
 ### Optional: TurboQuant V (capacity / decode tradeoff)
 

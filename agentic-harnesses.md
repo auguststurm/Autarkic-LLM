@@ -65,7 +65,7 @@ Raising one does not fix the other. Multi-agent workflows (Tavily, parallel spec
 
 | Prefer for Pi + dense Qwen 27B (3.6 / 3.8) | Avoid for tool/agent sessions |
 | --- | --- |
-| **`--reasoning off`** (+ `--reasoning-budget 0`) so Pi gets `message.content` / tools | Relying only on deprecated `--chat-template-kwargs '{"enable_thinking":false}'` when the server warns to use `--reasoning` |
+| **`--reasoning off`** (+ `--reasoning-budget 0`) so Pi gets `message.content` / tools | Relying only on deprecated `--chat-template-kwargs '{"enable_thinking":false}'` when the server warns to use `--reasoning`. Ignore verbosity-3 `consider … --reasoning-preserve` for Pi — that flag re-injects **server** think traces into history; Pi is the harness and thinking is already off |
 | **`--fit off`** + pinned `--ctx-size` | Bare `--fit on` (can crush context) |
 | **No DRY** (`--dry-multiplier`, …) | DRY — causes path/name corruption on Qwen3.x tool loops ([llama.cpp #20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
 | Tool-oriented sampling: e.g. **`temp 0.6`**, **`top_p 0.95`**, **`top_k 20`**, **`presence_penalty 0`**, **`repeat_penalty 1.0`** | High **presence** (e.g. 1.5 chat non-thinking / official Qwen3.8 instruct cards) during path-heavy tool use — can warp reused path tokens |
