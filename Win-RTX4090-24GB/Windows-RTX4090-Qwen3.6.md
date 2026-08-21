@@ -1,70 +1,55 @@
 # Windows RTX 4090 (24 GB) - Qwen3.6-27B
 
-**WSL2 · CUDA sm_89 · llama-cpp-turboquant · Pi / pi-workflows**
+> ✅ **Tested** on this hardware with Pi Coding Agent / multi-agent research (stable tools + report-length output).
 
-Paths: `~/AIML`, `~/GitHub`.
+**WSL2** (not native Windows) · CUDA sm_**89** · llama-cpp-turboquant. Paths on this box: **`~/AIML`** (models) · **`~/GitHub`** (engine) — WSL2 convention, not `~/Documents/AIML`.
 
-> ✅ **Tested** on this hardware; **field-validated working** with Pi Coding Agent / multi-agent research (stable tools + report-length output). Baseline from **first principles** (weights vs KV growth, asymmetric K/V, hybrid Qwen + Pi). Cross-hardware Pi notes: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
+K vs V, two token limits, no DRY: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md).
 
----
-
-## First principles (why this baseline)
-
-### 1. Memory has two fixed budgets
-
-| Piece | Scales with | On this box |
-| --- | --- | --- |
-| **Weights** | Quant only | Q4_K_XL ≈ **17.6 GB** (fixed) |
-| **KV cache** | **ctx × K/V precision × layers** | Grows with every token of window you **pin** |
-| **Compute scratch** | batch / ubatch | Peaks on prefill |
-| **Hard cap** | — | **24 GB VRAM** (+ Windows/WSL slice) |
-
-Field: total VRAM often sits **~19–21 GB** at modest pins → **room exists**, but not M5-class (48 GB unified).
-
-### 2. K and V are not equal
-
-| Cache | Job | Quant rule |
-| --- | --- | --- |
-| **K (keys)** | Routing — *which* past tokens matter | **Keep high:** `q8_0` (or f16). Do **not** turbo K first. |
-| **V (values)** | Payload — *what* you read | Compressible: `q8_0` → `turbo4` → `turbo3` → `turbo2` only as capacity needs |
-
-Wrong K → wrong attention → fake paths, wrong country, planning loops.  
-Aggressive V → more context on 24 GB; can hurt quality if pushed too hard too early.
-
-### 3. Token limits are two different knobs
-
-| Knob | Limits | Field failures |
-| --- | --- | --- |
-| **`--ctx-size` / Pi `contextWindow`** | **Input** (history + tools + Tavily + skills) | `request (70743) exceeds … (65536)` |
-| **`--n-predict` / Pi `maxTokens`** | **One reply’s length** | `maximum output token limit` |
-
-Raising one does not fix the other.
-
-### 4. Hybrid Qwen + Pi constraints
-
-- **Thinking off:** `--reasoning off` (+ budget 0). Prefer this over deprecated `enable_thinking` kwargs.
-- **No DRY** — path/name corruption on Qwen3.6 tools ([llama.cpp #20837](https://github.com/ggml-org/llama.cpp/issues/20837)).
-- **Tool sampling:** `temp 0.6`, `top_p 0.95`, `top_k 20`, **`presence_penalty 0`**, `repeat_penalty 1.0`.
-- **`--cache-ram 0`** — hybrid DeltaNet multi-turn cache restore issues ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)).
-- **New session** after any garbage thread (compaction ≠ clean KV/history).
-- TurboQuant **fork** ≠ must use turbo **types**. M5 primary is **q8/q8** at huge ctx on 48 GB. On 24 GB, turbo **V** is the capacity lever when q8 V no longer fits.
-
-### 5. Baseline sizing (this hardware + this workload)
-
-| Requirement | Number |
+| Pin | Value |
 | --- | --- |
-| Prompt overflows seen | **>32k**, **>64k**, **~70k** single request |
-| Minimum useful pin | **≥ 98304 (96k)** with margin |
-| Report output | Often **>4k–8k** tokens → **16384** out |
-| Stability | **K=q8_0, V=q8_0** until OOM forces V turbo |
-| Capacity if OOM or still short | Same K, **V=turbo4**, raise ctx |
+| **Status** | ✅ Tested (Pi tools + report-length output) |
+| **Weights** | `Qwen3.6-27B-UD-Q4_K_XL.gguf` (~17.6 GB) |
+| **Catalog** | [unsloth/Qwen3.6-27B-GGUF](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF) |
+| **Context** | `--ctx-size 98304` (`--fit off`) |
+| **KV** | `q8_0` / `q8_0` (turbo V only if raising ctx OOMs) |
+| **Output** | `--n-predict 16384` |
+| **Pi sampling** | temp **0.6** · top_p **0.95** · top_k **20** · presence **0** · repeat **1.0** |
+| **Thinking** | `--reasoning off` |
+| **Paths** | `~/AIML/models` · `~/GitHub/llama-cpp-turboquant` (WSL2) |
 
-**Primary = 96k · q8/q8 · 16k out.**  
-Covers real ~70k prompts, prioritizes stable K/V, uses free VRAM for window without jumping to turbo-first.
+**This 24 GB box:** weights ~17.6 GB fixed; KV grows with the pin; compute scratch peaks on prefill. Field VRAM often ~19–21 GB at modest pins — room exists, not M5-class 48 GB. Prompt overflows seen **>32k, >64k, ~70k** one request → primary **96k** with margin. Reports need **16k** out. Raise `--ctx-size` and Pi `contextWindow` together; raising one limit does not fix the other.
 
----
+Need the engine built first? [local-setup.md](../local-setup.md) (WSL2 + Ubuntu). Hardware not in the table? [ai-assisted-setup.md](../ai-assisted-setup.md).
 
-## PRIMARY command (baseline — use this)
+## Download
+
+```bash
+hf download unsloth/Qwen3.6-27B-GGUF \
+  Qwen3.6-27B-UD-Q4_K_XL.gguf \
+  --local-dir ~/AIML/models
+```
+
+## Build (Ada / sm_89)
+
+```bash
+cd ~/GitHub/llama-cpp-turboquant
+git checkout feature/turboquant-kv-cache && git pull
+rm -rf build && mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_CUDA=ON \
+  -DCMAKE_CUDA_ARCHITECTURES="89" \
+  -DGGML_CUDA_F16=ON \
+  -DGGML_CUDA_FA_ALL_QUANTS=ON
+cmake --build . --config Release -j$(nproc)
+cd bin && mkdir -p ./kv-cache
+```
+
+Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant). Optional turbo: `./llama-server --help | grep -A2 cache-type-v`.
+
+## PRIMARY command
+
+Run from `~/GitHub/llama-cpp-turboquant/build/bin`.
 
 ```bash
 pkill -9 llama-server
@@ -100,26 +85,32 @@ cd ~/GitHub/llama-cpp-turboquant/build/bin
   --log-verbosity 1
 ```
 
-| Flag group | Setting | Principle |
-| --- | --- | --- |
-| Model | Q4_K_XL, `ngl 99`, `main-gpu 0` | Full offload; weights leave ~6 GB-class room for KV |
-| Context | **98304**, `--fit off` | ≥70k prompts + margin; pin stays agent-visible |
-| KV | **q8_0 / q8_0** | Stable routing (K) + payload (V); no turbo until needed |
-| Hybrid | `--cache-ram 0`, no checkpoints | Correct multi-turn over cache speed |
-| Attention | `--flash-attn on` | Required for quantized KV |
-| Agent | reasoning off, no DRY, presence 0 | Pi tools / paths |
-| Sampling | 0.6 / 0.95 / top_k 20 | Qwen tool/coding profile |
-| Output | **n-predict 16384** | Full reports |
-| Batch | 256 | Prefill vs peak; drop to 128 on OOM |
+### Why these values (this box)
 
-**Confirm**
+| Flag | Why |
+| --- | --- |
+| `--ctx-size 98304` | ≥70k prompts + margin; pin stays agent-visible |
+| `q8_0` / `q8_0` | Stable K (routing) + V; turbo V only when this pin OOMs |
+| Batch 256 | Prefill vs peak; drop to 128 on OOM |
+| `--cache-ram 0` | Hybrid DeltaNet multi-turn ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)) |
+| Sampling | Qwen tool/coding profile; **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
+| `--n-predict 16384` | Full reports (match Pi `maxTokens`) |
+| `--load-mode none` | Needs free **host RAM** (~18 GB+) for load on WSL2 |
+
+`--ctx-size` is a request: confirm `n_ctx_seq (98304)`. `n_ctx_seq < n_ctx_train (262144)` is expected on 24 GB.
+
+### Confirm
 
 ```text
 log: n_ctx_seq (98304)
-nvidia-smi   # note MiB after load and after a short decode
+nvidia-smi   # inside WSL; MiB after load and after a short decode
 ```
 
-**Pi** — write entire file, restart Pi, **new session**:
+Normal logs: `cache-idle-slots requires --cache-ram, disabling` (follows `--cache-ram 0`). Do not pass `enable_thinking` kwargs.
+
+## Pi `models.json`
+
+Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Restart Pi. Status bar must show **~96k**.
 
 ```json
 {
@@ -141,116 +132,27 @@ nvidia-smi   # note MiB after load and after a short decode
 }
 ```
 
-```bash
-mkdir -p ~/.pi/agent
-# → ~/.pi/agent/models.json
-```
+## This box — only if primary fails (one axis at a time)
 
-Status bar must show **~96k**. Server and Pi numbers must match.
+**A) OOM on load / first decode:** (1) batch 128, (2) `--ctx-size 65536` + Pi 65536, (3) free desktop GPU apps / check WSL VRAM.
 
----
+**B) `request (N) exceeds … (98304)`:** keep q8/q8 first if VRAM allows — `--ctx-size 131072` + Pi 131072. If that OOMs: same ctx, `--cache-type-v turbo4`, batch 128, **new** session + real `ls`/`read`. Further: 196608 turbo4 batch 128, then 262144 only if stable.
 
-## Only if primary fails (ordered — change one axis)
+**C) Turn-1 garbage (fake paths, STAMP loops):** not fixed by more context. New Pi session; confirm PRIMARY is still q8/q8; no DRY / no client sampling override. A/B only V → turbo4; if garbage returns, stay q8 V.
 
-### A) OOM on load / first decode
+**D) Max output token limit:** primary is already 16384. Confirm Pi restarted. Prefer writing `reports/*.md` and a short chat summary.
 
-1. `--ubatch-size 128 --batch-size 128`  
-2. Still OOM → `--ctx-size 65536` (Pi `contextWindow` **65536**) — quality held, window smaller  
-3. Still OOM → free desktop GPU apps / check WSL VRAM
-
-### B) `request (N) exceeds … (98304)` (real overflow)
-
-Keep **q8/q8** first if VRAM allows:
-
-```bash
-# PRIMARY + only:
-#   --ctx-size 131072
-# Pi contextWindow: 131072
-```
-
-If that **OOMs**, then use TurboQuant **V** (K stays q8):
-
-```bash
-#   --ctx-size 131072
-#   --cache-type-k q8_0 --cache-type-v turbo4
-#   --ubatch-size 128 --batch-size 128
-# Pi: 131072
-# Smoke-test: new session, real ls/read, before multi-agent runs
-```
-
-Further: **196608** with turbo4 (batch 128), then **262144** only if stable — same K/V rules.
-
-### C) Turn-1 garbage (fake paths, STAMP loops, topic drift)
-
-**Not fixed by more context.**
-
-1. **New Pi session** (mandatory).  
-2. Confirm PRIMARY is **q8/q8** (not leftover turbo4 process).  
-3. Confirm no DRY / no client sampling override.  
-4. A/B: only flip V to turbo4 — if garbage returns, stay q8 V.
-
-### D) Max output token limit
-
-Primary already **16384**. Confirm Pi restarted with matching `maxTokens`. Prefer agent **writes `reports/*.md`** and short chat summary for huge reports.
-
----
-
-## Model download
-
-```bash
-hf download unsloth/Qwen3.6-27B-GGUF \
-  Qwen3.6-27B-UD-Q4_K_XL.gguf \
-  --local-dir ~/AIML/models
-```
-
-## Build (Ada)
-
-```bash
-cd ~/GitHub/llama-cpp-turboquant
-git checkout feature/turboquant-kv-cache && git pull
-rm -rf build && mkdir build && cd build
-
-cmake .. -DCMAKE_BUILD_TYPE=Release \
-  -DGGML_CUDA=ON \
-  -DCMAKE_CUDA_ARCHITECTURES="89" \
-  -DGGML_CUDA_F16=ON \
-  -DGGML_CUDA_FA_ALL_QUANTS=ON
-
-cmake --build . --config Release -j$(nproc)
-cd bin && mkdir -p ./kv-cache
-./llama-server --help | grep -A2 cache-type-v   # turbo* listed if you need capacity profile
-```
-
----
-
-## Startup warnings (normal)
-
-| Log | Meaning |
-| --- | --- |
-| `n_ctx_seq (98304) < n_ctx_train (262144)` | Pin &lt; train max — expected on 24 GB |
-| `cache-idle-slots requires --cache-ram, disabling` | Follows `--cache-ram 0` |
-| `enable_thinking` via chat-template-kwargs deprecated | Do not pass kwargs; use `--reasoning off` |
-
----
-
-## M5 48 GB vs this box
-
-| | M5 MBP 48 GB | RTX 4090 24 GB |
+| | M5 MBP 48 GB | This RTX 4090 24 GB |
 | --- | --- | --- |
 | Weights | Q5 ~20 GB | Q4 ~17.6 GB |
 | Tested large pin | **196k q8/q8** | **96k q8/q8** primary |
-| Why different | ~2× memory pool | Discrete 24 GB hard cap |
 | Turbo V | Optional | **Only when raising past what q8 V fits** |
 
 Same model family. Different **KV budget**.
 
----
-
 ## WSL2
 
-- `nvidia-smi` inside WSL.  
-- `--load-mode none` (replaces deprecated `--no-mmap`) needs free host RAM (~18 GB+) for load.  
-- One long-lived server; don’t share the GPU heavily.  
-- Workflows: [pi-coding-agent-graphs.md](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md) · flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md)
+- `nvidia-smi` **inside** WSL. One long-lived server; don’t share the GPU heavily.
+- Workflows: [pi-coding-agent-graphs.md](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
 
-**Last Updated:** August 2026
+**Last Updated:** 2026-08-20 (recipe shape; WSL2 paths unchanged)

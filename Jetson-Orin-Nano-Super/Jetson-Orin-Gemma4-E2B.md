@@ -1,17 +1,21 @@
 # Nvidia Jetson Orin Nano Super - Gemma 4 E2B
 
-Optimized setup for the Nvidia Jetson Orin Nano Super (8 GB LPDDR5, Ampere GPU, compute capability 8.7), using **llama-cpp-turboquant**. Command shape follows the [M4 MacBook Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) conventions (host, pinned context, `--fit off`) adapted for edge CUDA + Gemma.
+> ⚠️ **Not yet tested** on this hardware. Best-effort starting config — report results via an issue.
 
-> ⚠️ **Not yet tested on this hardware.** Best-effort starting config. If you run it, please report results via an issue.
+8 GB LPDDR5 · Ampere sm_**87** · llama-cpp-turboquant. **Jetson paths:** models under `~/models/…` (not `~/Documents/AIML`). 32k ctx is ambitious on 8 GB; drop if you OOM. Pi: [agentic harnesses](../agentic-harnesses.md).
 
-## Pi Coding Agent: read this first
+| Pin | Value |
+| --- | --- |
+| **Status** | ⚠️ Untested |
+| **Weights** | `gemma-4-E2B-it-Q4_K_S.gguf` (~3 GB) |
+| **Catalog** | [unsloth/gemma-4-E2B-it-GGUF](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF) |
+| **Context** | `--ctx-size 32768` (`--fit off`) |
+| **KV** | `q8_0` / `q8_0` |
+| **Paths** | model `~/models/gemma-4-E2B` · engine `~/Documents/GitHub/llama-cpp-turboquant` |
 
-**Always pin `--ctx-size` and set `--fit off`.** Match Pi’s `contextWindow` to real `n_ctx_seq`. On 8 GB, do not expect Air-class context — 32k is already ambitious; drop if you OOM.
+Need the engine? [local-setup.md](../local-setup.md) (JetPack / CUDA).
 
-## Recommended model
-
-- **Model:** `gemma-4-E2B-it-Q4_K_S.gguf` (~3 GB)
-- **Path:** `~/models/gemma-4-E2B/gemma-4-E2B-it-Q4_K_S.gguf` (common Jetson layout; any path works)
+## Download
 
 ```bash
 hf download unsloth/gemma-4-E2B-it-GGUF \
@@ -19,35 +23,26 @@ hf download unsloth/gemma-4-E2B-it-GGUF \
   --local-dir ~/models/gemma-4-E2B
 ```
 
-## Build instructions (TurboQuant fork)
+## Build
 
 ```bash
 cd ~/Documents/GitHub/llama-cpp-turboquant
-
-# TheTom TurboQuant fork — not ggml-org/llama.cpp
-# https://github.com/TheTom/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
-
-rm -rf build
-mkdir build && cd build
-
+rm -rf build && mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release \
   -DGGML_CUDA=ON \
   -DCMAKE_CUDA_ARCHITECTURES="87" \
   -DGGML_CUDA_F16=ON \
   -DLLAMA_CURL=ON \
   -DGGML_CUDA_FA_ALL_QUANTS=ON
-
 cmake --build . --config Release -j$(nproc)
-
-cd bin
-mkdir -p ./kv-cache
+cd bin && mkdir -p ./kv-cache
 ```
 
-> `-DGGML_CUDA_FA_ALL_QUANTS=ON` lengthens compile time but enables flash-attention kernels for quantized KV combinations.
+Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant). `FA_ALL_QUANTS` lengthens compile but covers quantized KV + flash-attn.
 
-## Optimized llama-server command (Q4_K_S @ 32k)
+## PRIMARY command
 
 ```bash
 pkill -9 llama-server
@@ -106,7 +101,7 @@ pkill -9 llama-server
 
 ## Pi Coding Agent `models.json`
 
-Save this **entire** file to `~/.pi/agent/models.json` (copy-paste as-is — do not assemble a wrapper). Create parent dirs if needed: `mkdir -p ~/.pi/agent`.
+Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Restart Pi.
 
 ```json
 {

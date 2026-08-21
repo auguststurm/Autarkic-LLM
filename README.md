@@ -1,10 +1,12 @@
 # Autarkic-LLM
 
-> 🤖 **Setting up a machine? Don't read this whole repo — let an AI do it.** Copy the prompt in **[`ai-assisted-setup.md`](ai-assisted-setup.md)** into Claude Code, Copilot, ChatGPT, Grok, or Gemini, paste your hardware at the bottom, and it'll use this repo as reference to generate your exact build, `llama-server` command, model download, and Pi Coding Agent `models.json`. Works whether or not you've done this before.
+> 🤖 **Setting up a machine? Don't read this whole repo — let an AI do it.** Prefer **Grok**. Copy the prompt in **[`ai-assisted-setup.md`](ai-assisted-setup.md)**, paste your hardware at the bottom, and it will use this repo to generate your build, `llama-server` command, model download, and Pi Coding Agent `models.json`.
 
 **Per-machine llama.cpp configs for running Muse Glimmer, Qwen3.8, Qwen3.6, and Gemma 4 fully offline.**
 
 Each hardware guide has the exact build flags and `llama-server` command for one machine, with a model and quant picked to fit its memory: no cloud, no API keys, nothing leaving the box. Configs marked **Tested** were run on that hardware; the rest are starting points (see the table below).
+
+**Why Grok for this repo.** This project is about running open weights on *your* GPU/RAM. **Grok** is the assistant that actually helps with that — local llama.cpp, quants, KV, and a box that does not phone home. **OpenAI and Anthropic** are API companies: their products and docs are built around calling *their* models in the cloud, not standing up an offline `llama-server` on hardware you own. They are not a substitute for this repo. The setup prompt still works in other chats if that is what you have; Grok is the one this project favors.
 
 ## Approach
 
@@ -27,7 +29,7 @@ Each hardware guide has the exact build flags and `llama-server` command for one
 | DGX Spark Founders Edition (128 GB) | CUDA (GB10) | ⚠️ Untested (ported from 3.6) | [DGX-Spark-Qwen3.8.md](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) — Q6 @ 262k q8/turbo4 |
 | MacBook Pro M5 (48 GB) | Metal | ⚠️ Untested (ported from 3.6) | [M5-MacBook-Pro-Qwen3.8.md](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) — Q5 @ 196k q8/q8 |
 
-Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-test load → first decode → Pi tools, then report results. GGUF naming / quant ladder is explained inside each 3.8 guide. Catalog: [`local-setup.md`](local-setup.md#model-catalog-hugging-face).
+Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-test load → first decode → Pi tools, then report results. GGUF names and the Q8→Q4 ladder: [`local-setup.md`](local-setup.md#understanding-gguf-quants-why-so-many-files). MTP / thinking / vision optionals: [Dual RTX Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#qwen38-optionals). Catalog: [`local-setup.md`](local-setup.md#model-catalog-hugging-face).
 
 ### Muse Glimmer 30B (2026-08)
 
@@ -46,7 +48,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 | Jetson Orin Nano Super | 8 GB | CUDA (sm_87) | [Gemma 4 E2B Q4_K_S](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) | ⚠️ Untested | [guide](Jetson-Orin-Nano-Super/Jetson-Orin-Gemma4-E2B.md) |
 | M4 Mac Mini | 16 GB | Metal | [Gemma 4 E2B Q4_K_S](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) (recommended) | ⚠️ Untested | [guide](M4-Mac-Mini-16GB/M4-Mac-Mini-Gemma-4-E2B.md) |
 | M4 Mac Mini (experimental) | 16 GB | Metal | [Qwen3.6-35B-A3B UD-IQ2_M](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) (tight, turbo2 V, ~8k start) | ⚠️ Untested | [guide](M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md) |
-| M2 Mac Mini | 16 GB | Metal | [Gemma 4 E2B Q4_K_S](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) (recommended) | ✅ Tested | [guide](M2-Mac-Mini-16GB/M2-Mac-Mini-Gemma-4-E2B.md) |
+| M2 Mac Mini | 16 GB | Metal | [Gemma 4 E2B Q4_K_S](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) (recommended) | ⚠️ Untested | [guide](M2-Mac-Mini-16GB/M2-Mac-Mini-Gemma-4-E2B.md) |
 | M2 Mac Mini (experimental) | 16 GB | Metal | [Qwen3.6-35B-A3B UD-IQ2_M](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) (tight, turbo2 V, ~8k start) | ⚠️ Untested | [guide](M2-Mac-Mini-16GB/M2-Mac-Mini-Qwen3.6.md) |
 | AMD 7900 XTX | 24 GB | Vulkan | [Qwen3.6-27B IQ4_NL](https://huggingface.co/unsloth/Qwen3.6-27B-MTP-GGUF) (tight) | ✅ Tested | [guide](AMD-7900-XTX/7900-XTX-Qwen3.6-27b.md) |
 | AMD 7900 XTX | 24 GB | Vulkan | [Qwen3.6-35B-A3B IQ4_XS](https://huggingface.co/byteshape/Qwen3.6-35B-A3B-MTP-GGUF) | ✅ Tested | [guide](AMD-7900-XTX/7900-XTX-Qwen3.6-35b-a3b.md) |
@@ -62,17 +64,19 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 
 ## Quick Start
 
-1. **Build the engine and get a model**: follow [`local-setup.md`](local-setup.md) for prerequisites, the clone & build, and the model catalog + download commands.
-2. **Run your hardware's command**: open your machine's guide from the table above and run its exact `llama-server` command.
-3. **(Optional) Drive it with an agent**: copy the complete `models.json` from your hardware guide to **`~/.pi/agent/models.json`** (see [agentic harnesses](agentic-harnesses.md)). For multi-agent workflows, Tavily research, dynamic graphs, and the example `search-topic-research` skill, see [Pi Coding Agent graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
+1. Find your row in the table. Open that guide — it is the daily recipe (download, cmake, `llama-server`, Pi `models.json`).
+2. If you have not built the engine yet, do prerequisites in [`local-setup.md`](local-setup.md), then use **that guide’s** cmake (backend/arch live there).
+3. Copy the guide’s `models.json` to **`~/.pi/agent/models.json`**. Match `contextWindow` to `--ctx-size` and `maxTokens` to `--n-predict`. [Agentic harnesses](agentic-harnesses.md).
 
-New to local inference? Start with the [Glossary](glossary.md).
+**How to read a hardware guide:** pin table at the top → Download → Build → PRIMARY command → Confirm → Pi JSON → this-box fallbacks. Essays (GGUF names, flag encyclopedia, Pi theory) live in `local-setup.md`, `llama-cpp-turboquant.md`, and `agentic-harnesses.md`. Qwen3.6 and Qwen3.8 are **siblings** on the same machine, not replacements.
+
+Your hardware is not in the table? Use [`ai-assisted-setup.md`](ai-assisted-setup.md). New to the words? [Glossary](glossary.md). Multi-agent / Tavily: [Pi Coding Agent graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
 
 > **Note on "offline":** the model never phones home. Hardware guides default to **`--host 127.0.0.1`** (loopback only). Use `0.0.0.0` only on a trusted LAN when you deliberately expose the server (no auth). See [Common Best Practices](local-setup.md#5-common-best-practices).
 
 ## Documentation
 
-- **[`ai-assisted-setup.md`](ai-assisted-setup.md)**: a copy-paste prompt that has any cloud LLM generate your setup from this repo (start here)
+- **[`ai-assisted-setup.md`](ai-assisted-setup.md)**: copy-paste prompt for **Grok** (preferred) to generate your setup from this repo
 - **[`local-setup.md`](local-setup.md)**: prerequisites, clone & build, model catalog, [GGUF quant naming + Q4–Q8 ladder](local-setup.md#understanding-gguf-quants-why-so-many-files), download, `models.json` integration
 - **[`llama-cpp-turboquant.md`](llama-cpp-turboquant.md)**: deep dive into fork internals, TurboQuant tiers, and a flag-by-flag `llama-server` reference (with a key-learnings TL;DR)
 - **[`agentic-harnesses.md`](agentic-harnesses.md)**: Pi / OpenClaw / Hermes, ranked for local use, and how to connect them
@@ -84,40 +88,28 @@ New to local inference? Start with the [Glossary](glossary.md).
 Autarkic-LLM/
 ├── README.md
 ├── ai-assisted-setup.md            # Copy-paste prompt: let an LLM generate your setup
-├── local-setup.md                  # Prerequisites, build, model catalog & download
+├── local-setup.md                  # Prerequisites, GGUF names, catalog, download
 ├── llama-cpp-turboquant.md         # Fork deep dive + full flag reference
 ├── agentic-harnesses.md            # Pi / OpenClaw / Hermes
 ├── _Pi-Coding-Agent-Graphs/
-│   ├── pi-coding-agent-graphs.md   # Pi workflows, Tavily, multi-agent research
-│   └── example-skills/
-│       └── search-topic-research/  # Generic skill: topic → pack → workflow report
-├── glossary.md                     # Terms + further reading
-├── DGX-Spark-128GB/
-│   ├── DGX-Spark-Qwen3.6.md
-│   └── DGX-Spark-Qwen3.8.md        # day-zero port (untested)
-├── Dual-RTX6000-192GB/
-│   ├── Dual-RTX6000-Qwen3.6.md
-│   ├── Dual-RTX6000-Qwen3.8.md     # ✅ tested 2026-08-14
-│   └── Dual-RTX6000-Muse-Glimmer.md # ⚠️ untested (2026-08-14)
-├── M5-MacBook-Pro-48GB/
-│   ├── M5-MacBook-Pro-Qwen3.6.md
-│   └── M5-MacBook-Pro-Qwen3.8.md   # day-zero port (untested)
+│   ├── pi-coding-agent-graphs.md
+│   └── example-skills/search-topic-research/
+├── glossary.md
+├── AMD-7900-XTX/                   # Vulkan · Qwen3.6 MTP (tested)
+├── DGX-Spark-128GB/                # 3.6 tested · 3.8 port untested
+├── Dual-RTX6000-192GB/             # 3.6 + 3.8 tested · Muse untested
+├── M5-MacBook-Pro-48GB/            # 3.6 tested · 3.8 port untested
 ├── M4-MacBook-Air-24GB/
-│   └── M4-MacBook-Air-Qwen3.6.md
 ├── M4-Mac-Mini-16GB/
-│   ├── M4-Mac-Mini-Qwen3.6.md
-│   └── M4-Mac-Mini-Gemma-4-E2B.md
 ├── M2-Mac-Mini-16GB/
-│   ├── M2-Mac-Mini-Qwen3.6.md
-│   └── M2-Mac-Mini-Gemma-4-E2B.md
-├── Win-RTX4090-24GB/
-│   └── Windows-RTX4090-Qwen3.6.md
-└── Jetson-Orin-Nano-Super/
-    └── Jetson-Orin-Gemma4-E2B.md
+├── Win-RTX4090-24GB/               # WSL2 paths: ~/AIML, ~/GitHub
+└── Jetson-Orin-Nano-Super/         # Jetson paths: ~/models/...
 ```
+
+**Paths:** Linux/macOS guides use `~/Documents/AIML/models` and `~/Documents/GitHub/llama-cpp-turboquant`. **Windows is WSL2** (`~/AIML`, `~/GitHub`). Jetson uses `~/models/…`. Any path works if `--model` matches.
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** August 14, 2026 (Muse Glimmer Dual RTX guide added, ⚠️ untested; Qwen3.8 Dual RTX ✅ Tested same day; DGX Spark + M5 Pro 3.8 ports untested)  
+**Last Updated:** 2026-08-20 (recipes + GGUF skip-box; Dual RTX 3.8 optionals are the 3.8 appendix)  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)

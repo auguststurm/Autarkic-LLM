@@ -1,27 +1,21 @@
 # M2 Mac Mini (16 GB) - Gemma 4 E2B
 
-Recommended lightweight multimodal setup for Mac Mini M2 with 16 GB unified memory, using **llama-cpp-turboquant**. Command shape and Pi integration follow the [M4 MacBook Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md); this model is small enough that TurboQuant V is optional, not required to fit.
+> ⚠️ **Not yet tested** on this hardware. ~3 GB weights on 16 GB — low risk. Base M2 bandwidth ~100 GB/s (vs ~120 on M4 Mini). Hard 35B experiment: [M2-Mac-Mini-Qwen3.6.md](M2-Mac-Mini-Qwen3.6.md).
 
-> ⚠️ **Not yet tested on this hardware.** Best-effort starting config. At ~3 GB the model leaves comfortable headroom on 16 GB, so risk is low. The base M2’s lower memory bandwidth (~100 GB/s vs the M4 Mini’s ~120 GB/s) makes this small dense model the most comfortable daily driver here. If you run it, please report results via an issue. For a hard 35B MoE experiment, see [M2-Mac-Mini-Qwen3.6.md](M2-Mac-Mini-Qwen3.6.md).
+16 GB unified · **Metal**. TurboQuant V is optional (model is tiny). Pi: [agentic harnesses](../agentic-harnesses.md). If Metal-OOM, drop `--ctx-size`, never bare `--fit on`.
 
-## Memory reality (read this)
+| Pin | Value |
+| --- | --- |
+| **Status** | ⚠️ Untested |
+| **Weights** | `gemma-4-E2B-it-Q4_K_S.gguf` (~3 GB) |
+| **Catalog** | [unsloth/gemma-4-E2B-it-GGUF](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF) |
+| **Context** | `--ctx-size 32768` (`--fit off`) |
+| **KV** | `q8_0` / `q8_0` |
+| **Paths** | `~/Documents/AIML/models` · `~/Documents/GitHub/llama-cpp-turboquant` |
 
-- **Weights:** Gemma 4 E2B `Q4_K_S` is ~3 GB — easily fits with macOS overhead on 16 GB.
-- **Context:** this guide pins **32768** with `--fit off`. You can often raise context further; if you Metal-OOM, drop `--ctx-size` rather than enabling bare `--fit on` (fit can crush agent context — lesson from the Air guide).
-- **KV:** primary uses **`q8_0` / `q8_0`** for quality. Optional turbo V only if you push a much larger window.
-- **Bandwidth:** decode on a memory-bound path scales with ~100 GB/s on base M2 — still fine for this tiny dense model; slower than M4 Mini at equal settings.
-- Close heavy apps before launch. Prefer **one** long-lived `llama-server` process.
+Need the engine? [local-setup.md](../local-setup.md).
 
-## Pi Coding Agent: read this first
-
-Pi needs a large `contextWindow`. Match it to the server’s real `n_ctx_seq`.
-
-**Always pin `--ctx-size` and set `--fit off`.** Default `--fit on` can shrink context and break long-agent sessions.
-
-## Recommended model
-
-- **Model:** `gemma-4-E2B-it-Q4_K_S.gguf` (~3 GB)
-- **Path:** `~/Documents/AIML/models/gemma-4-E2B-it-Q4_K_S.gguf`
+## Download
 
 ```bash
 hf download unsloth/gemma-4-E2B-it-GGUF \
@@ -29,24 +23,16 @@ hf download unsloth/gemma-4-E2B-it-GGUF \
   --local-dir ~/Documents/AIML/models
 ```
 
-## Build instructions (TurboQuant fork)
+## Build
 
 ```bash
 cd ~/Documents/GitHub/llama-cpp-turboquant
-
-# TheTom TurboQuant fork — not ggml-org/llama.cpp
-# https://github.com/TheTom/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
-
-rm -rf build
-mkdir build && cd build
-
+rm -rf build && mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
-
-cd bin
-mkdir -p ./kv-cache
+cd bin && mkdir -p ./kv-cache
 ```
 
 Confirm the binary accepts turbo types (optional path):
@@ -58,7 +44,7 @@ Confirm the binary accepts turbo types (optional path):
 
 > **Fork version:** tip that includes Metal turbo4 `rnorm` fix (**`b01afefed` / PR #200 content or later**). No manual Metal shader edit on current TheTom tip. Rebuild after `git pull`.
 
-## Optimized llama-server command (Q4_K_S @ 32k)
+## PRIMARY command
 
 Run from `~/Documents/GitHub/llama-cpp-turboquant/build/bin`.
 
@@ -153,7 +139,7 @@ Without `--mmproj` the server runs text-only.
 
 ## Pi Coding Agent `models.json`
 
-Save this **entire** file to `~/.pi/agent/models.json` (copy-paste as-is — do not assemble a wrapper). Create parent dirs if needed: `mkdir -p ~/.pi/agent`.
+Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Restart Pi.
 
 `maxTokens` ≤ `--n-predict` (4096). `contextWindow` = `--ctx-size`.
 

@@ -1,30 +1,24 @@
 # M5 MacBook Pro (48 GB) - Qwen3.6-27B
 
-> **Qwen3.8 day-zero port:** [M5-MacBook-Pro-Qwen3.8.md](M5-MacBook-Pro-Qwen3.8.md) (same Metal knobs, new weights — ⚠️ untested).
+> ✅ **Tested** on this hardware. Qwen3.8 port (same Metal knobs, ⚠️ untested): [M5-MacBook-Pro-Qwen3.8.md](M5-MacBook-Pro-Qwen3.8.md). **Metal, not CUDA.** Tighter Metal: [M4 Air](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
 
-Optimized setup for MacBook Pro M5 Pro/Max with 48 GB unified memory, using **llama-cpp-turboquant**. Command shape and Pi integration follow the [M4 MacBook Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md); this machine has more headroom, so the primary config keeps high-quality KV (`q8_0`/`q8_0`) and a large pinned context.
+48 GB unified · llama-cpp-turboquant. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
-> ✅ **Tested by the maintainer on this hardware.** Settings below come from real runs; expect variance with thermals and background load. Flag modernization (host, thinking off, `--fit off`, no checkpoint flags) matches the current Air reference — re-check `n_ctx` after rebuilds.
+| Pin | Value |
+| --- | --- |
+| **Status** | ✅ Tested |
+| **Weights** | `Qwen3.6-27B-UD-Q5_K_XL.gguf` (~20 GB) |
+| **Catalog** | [unsloth/Qwen3.6-27B-GGUF](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF) |
+| **Context** | `--ctx-size 196608` (`--fit off`) — not full 262k |
+| **KV** | `q8_0` / `q8_0` (Air needs turbo2 on 24 GB; here q8/q8 fits) |
+| **Output** | `--n-predict 8192` |
+| **Sampling** | temp **0.65** · top_p **0.90** · repeat **1.10** |
+| **Thinking** | `--reasoning off` |
+| **Paths** | `~/Documents/AIML/models` · `~/Documents/GitHub/llama-cpp-turboquant` |
 
-## Memory reality (read this)
+Close heavy apps; one long-lived server. Need the engine? [local-setup.md](../local-setup.md).
 
-- **Weights:** `UD-Q5_K_XL` is ~20 GB. On 48 GB that leaves comfortable room for OS + KV + compute.
-- **Model train context:** Qwen3.6-27B `n_ctx_train = 262144` (262k). This guide pins **196608** (~196k) as the tested agent-scale window — not full train length, but far above the Air’s verified ~61k.
-- **Why not turbo on the primary command?** The Air *needs* `turbo2` V so long context fits. Here, plain **`q8_0` / `q8_0`** was the tested quality baseline at 196k. Turbo is optional headroom (see alternate), not required for survival.
-- Close heavy apps before launch. Prefer **one** long-lived `llama-server` process.
-
-## Pi Coding Agent: read this first
-
-Pi needs a large `contextWindow`. Match it to the server’s real `n_ctx_seq`.
-
-**Always pin `--ctx-size` and set `--fit off`.** Default `--fit on` can crush context (on tighter boxes it falls toward ~4096) and break Pi.
-
-**Thinking / empty replies:** prefer **`--reasoning off`** (+ `--reasoning-budget 0`) so Pi gets `message.content`. Cross-hardware Pi + Qwen3.6-27B notes (two token limits, no DRY, K/V): [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
-
-## Recommended model
-
-- **Model:** `Qwen3.6-27B-UD-Q5_K_XL.gguf` (~20 GB)
-- **Tested path:** `~/Documents/AIML/models/Qwen3.6-27B-UD-Q5_K_XL.gguf`
+## Download
 
 ```bash
 hf download unsloth/Qwen3.6-27B-GGUF \
@@ -32,36 +26,21 @@ hf download unsloth/Qwen3.6-27B-GGUF \
   --local-dir ~/Documents/AIML/models
 ```
 
-## Build instructions (TurboQuant fork)
+## Build
 
 ```bash
 cd ~/Documents/GitHub/llama-cpp-turboquant
-
-# TheTom TurboQuant fork — not ggml-org/llama.cpp
-# https://github.com/TheTom/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
-
-rm -rf build
-mkdir build && cd build
-
+rm -rf build && mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
-
-cd bin
-mkdir -p ./kv-cache
+cd bin && mkdir -p ./kv-cache
 ```
 
-Confirm the binary accepts turbo types (needed if you try the optional turbo path):
+Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant). Metal turbo4 `rnorm` fix: tip `b01afefed` / [PR #200](https://github.com/TheTom/llama-cpp-turboquant/pull/200)+. Optional turbo: `./llama-server --help | grep -A2 cache-type-v`.
 
-```bash
-./llama-server --help | grep -A2 cache-type-v
-# must list turbo2, turbo3, turbo4
-```
-
-> **Fork version:** tip that includes Metal turbo4 `rnorm` fix (**`b01afefed` / PR #200 content or later**). No manual Metal shader edit on current TheTom tip. Rebuild after `git pull`.
-
-## Optimized llama-server command (Q5_K_XL @ 196k)
+## PRIMARY command
 
 Run from `~/Documents/GitHub/llama-cpp-turboquant/build/bin`.
 
@@ -138,13 +117,9 @@ Verify output quality after enabling turbo on Metal (see [TurboQuant notes](../l
 - After rebuilds, re-check actual `n_ctx` and keep Pi’s `contextWindow` in sync.
 - Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Pattern reference: [M4 Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
 
-## Pi Coding Agent `models.json`
+## Pi `models.json`
 
-Save this **entire** file to `~/.pi/agent/models.json` (copy-paste as-is — do not assemble a wrapper). Create parent dirs if needed: `mkdir -p ~/.pi/agent`.
-
-`maxTokens` ≤ `--n-predict` (8192). `contextWindow` = `--ctx-size`.
-
-**Q5_K_XL @ 196k (recommended):**
+Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Restart Pi. `contextWindow` = 196608, `maxTokens` = 8192.
 
 ```json
 {

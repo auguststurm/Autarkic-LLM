@@ -1,8 +1,17 @@
 # M2 Mac Mini (16 GB) - Qwen3.6-35B-A3B (experimental)
 
-Experimental setup for Mac Mini M2 with 16 GB unified memory, using **llama-cpp-turboquant**. Structure follows the [M4 MacBook Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md), but **16 GB cannot run the Air’s IQ4_NL (~18 GB) quant**. This guide only makes sense if you want to push a heavily compressed MoE; for daily use prefer **[Gemma 4 E2B](M2-Mac-Mini-Gemma-4-E2B.md)** (~3 GB, lots of headroom).
+> ⚠️ **Untested. Tight fit.** Daily driver: **[Gemma 4 E2B](M2-Mac-Mini-Gemma-4-E2B.md)** (~3 GB). Air IQ4_NL (~18 GB) **cannot load**. M4 Mini twin: [M4-Mac-Mini-Qwen3.6.md](../M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md). Base M2 ~100 GB/s (vs ~120 on M4 Mini).
 
-> ⚠️ **Untested on hardware. 16 GB is a tight fit for this model.** Qwen3.6-35B-A3B is a 35B-parameter MoE; even though only ~3B params are active per token, the *full* weights must be resident. 4-bit quants (21–22 GB) **cannot load**. Only IQ2/IQ1-class quants fit, with a raised GPU wired limit and a modest pinned context. On the base M2’s ~100 GB/s bandwidth (vs ~120 GB/s on the M4 Mini), expect slower decode than the [M4 Mini Qwen experiment](../M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md). Treat this as an experiment for people who want to push the limit and report back.
+MoE 35B total / ~3B active — **full weights must still fit**. Only IQ2/IQ1-class quants load. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
+
+| Pin | Value |
+| --- | --- |
+| **Status** | ⚠️ Untested experiment |
+| **Weights** | `Qwen3.6-35B-A3B-UD-IQ2_M.gguf` (~11.5 GB) |
+| **Catalog** | [unsloth/Qwen3.6-35B-A3B-GGUF](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF) |
+| **Context** | `--ctx-size 8192` (`--fit off`) — starting estimate; raise only after first decode |
+| **KV** | `q8_0` K / **turbo2** V |
+| **Wired GPU** | `sudo sysctl iogpu.wired_limit_mb=13000` (not persistent) |
 
 ## Why TurboQuant matters here
 
@@ -45,20 +54,9 @@ sudo sysctl iogpu.wired_limit_mb=13000
 - **Pinned context below is a starting estimate (untested), not a verified decode matrix.** Confirm **first decode**, not only load (Air lesson: process can report `n_ctx` and still Metal-OOM on first token).
 - Close heavy apps. Prefer **one** long-lived `llama-server` — avoid rapid stop/start thrash on unified memory.
 
-## Pi Coding Agent: read this first
+Expect a **small** context on 16 GB even with turbo2. Gemma is the better Pi daily driver. `--reasoning off` for Pi; pin `contextWindow` to real `n_ctx_seq`.
 
-Pi needs a realistic `contextWindow` matching the server’s real `n_ctx_seq`.
-
-**Always pin `--ctx-size` and set `--fit off`.**
-
-**Thinking / empty replies** (Qwen3.6):
-
-- `--reasoning off`
-- `--chat-template-kwargs '{"enable_thinking":false}'`
-
-Expect a **small** context on 16 GB even with turbo2. Gemma is the better Pi daily driver on this machine.
-
-## Recommended model
+## Download
 
 - **Model:** `Qwen3.6-35B-A3B-UD-IQ2_M.gguf` (~11.5 GB MoE; expect a noticeable quality drop vs Q4+/IQ4)
 - **Path:** `~/Documents/AIML/models/Qwen3.6-35B-A3B-UD-IQ2_M.gguf`
@@ -70,7 +68,7 @@ hf download unsloth/Qwen3.6-35B-A3B-GGUF \
   --local-dir ~/Documents/AIML/models
 ```
 
-## Build instructions (TurboQuant fork)
+## Build
 
 ```bash
 cd ~/Documents/GitHub/llama-cpp-turboquant
@@ -99,7 +97,7 @@ Confirm the binary accepts turbo types:
 
 > **Fork version:** tip that includes Metal turbo4 `rnorm` fix (**`b01afefed` / PR #200 content or later**). No manual Metal shader edit on current TheTom tip. Rebuild after `git pull`.
 
-## Optimized llama-server command (IQ2_M + TurboQuant @ 8k start)
+## PRIMARY command
 
 Run from `~/Documents/GitHub/llama-cpp-turboquant/build/bin`. Raise wired limit first (see above).
 
@@ -191,7 +189,7 @@ Confirm **`n_ctx` / `n_ctx_seq`** in the log or `GET /v1/models`, then **run a s
 
 ## Pi Coding Agent `models.json`
 
-Save this **entire** file to `~/.pi/agent/models.json` (copy-paste as-is — do not assemble a wrapper). Create parent dirs if needed: `mkdir -p ~/.pi/agent`.
+Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Restart Pi.
 
 `maxTokens` ≤ `--n-predict` (4096). `contextWindow` = the **`--ctx-size` you actually ran** (default start: 8192).
 

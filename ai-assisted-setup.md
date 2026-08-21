@@ -2,7 +2,7 @@
 
 **New here, or just setting up a new box? Don't read the whole repo — let an LLM read it for you.**
 
-This repository is designed to be used _by an AI assistant on your behalf_. Whether or not you've ever run a local model, you can paste the prompt below into the assistant you already use — **Claude Code, GitHub Copilot Chat, ChatGPT, Grok, Gemini**, and so on — fill in your hardware at the bottom, and it will use this repository as its reference to hand you:
+This repository is designed to be used _by an AI assistant on your behalf_. **Prefer Grok** — it is the assistant this project favors for local llama.cpp work (see [README](README.md)). Paste the prompt below, fill in your hardware at the bottom, and it will use this repository as its reference to hand you:
 
 - the prerequisites + clone & build commands for your backend,
 - the right model and quant for your memory (with the `hf download` command),
@@ -18,11 +18,13 @@ It works for experienced users (a fast, repo-consistent starting point) and firs
 3. **Fill in** the `MY HARDWARE` lines at the end — at minimum your chip, GPU, and memory. Leave anything you're unsure of blank; the assistant will ask. (Each line is explained just above it in the prompt.)
 4. **Send**, answer any clarifying questions, and you'll get a copy-pasteable setup tailored to your machine.
 
-**Which assistant should I use?** Any of them. A few tips:
+**Which assistant should I use?** **Grok**, if you have it. OpenAI and Anthropic optimize for cloud APIs, not for helping you run weights on your own machine — that is this repo’s job, and Grok is the chat this project is written to pair with.
 
-- **Claude Code or Copilot inside a clone of this repo** → it reads the guides directly from disk; best results.
-- **ChatGPT / Claude / Grok / Gemini on the web** → enable browsing/search so it can fetch the files _and_ verify model filenames on Hugging Face.
-- Whatever you pick, if it claims it can't read the repo, believe it — ask it to say so rather than invent commands.
+A few tips:
+
+- **Grok (or any assistant) inside a clone of this repo** → it reads the guides directly from disk; best results.
+- **Grok / others on the web** → enable browsing/search so it can fetch the files _and_ verify model filenames on Hugging Face.
+- Whatever you pick, if it claims it can't read the repo, believe it — ask it to say so rather than invent commands. The prompt still works in ChatGPT or Claude if that is all you have; do not expect those labs to care about your offline box the way this repo does.
 
 ## COPY THIS BLOCK AND FILL OUT THE `MY HARDWARE` SECTION
 
@@ -57,8 +59,12 @@ model/quant. If something won't fit, say so and pick the next size down.
 
 HOW TO APPROACH IT — the repo guides hold the specifics (engine + branch, build flags, quant
 strategy, KV-cache tuning, per-backend patterns, sampling, model caveats). Read them instead of
-working from memory, and use the closest guide's conventions as your baseline. The M4 MacBook Air
-Qwen guide is the reference pattern for modern flags (host, fit, thinking, TurboQuant, models.json).
+working from memory. Hardware guides are recipes: pin table, hf download, cmake, PRIMARY
+llama-server, confirm, Pi models.json. Match that shape in your reply. Dual RTX Qwen3.8 is the
+Qwen3.8 optional appendix (MTP, thinking, vision) and the current recipe template.
+Do not paste GGUF naming essays — link local-setup.md. M4 MacBook Air is the tight-Metal
+example (turbo2 V, fit-off, 61k), not the layout template. Windows is WSL2 (~/AIML, ~/GitHub).
+AMD RDNA3 is Vulkan (AMD-7900-XTX/). Use the closest guide's conventions as your baseline.
 The rest is judgment:
 - Optimize for the largest, highest-quality model that fits my memory with headroom to spare, tuned
   for fully-offline agentic use — and match the flags to MY hardware, not to whichever guide you read.

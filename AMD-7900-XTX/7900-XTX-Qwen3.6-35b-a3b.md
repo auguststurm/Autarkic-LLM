@@ -1,27 +1,23 @@
 # AMD 7900 XTX (24 GB) - Qwen3.6-35B-A3B MTP
 
-Optimized setup for AMD Radeon RX 7900 XTX with 24 GB VRAM running the **Qwen3.6-35B-A3B MTP** MoE model via Vulkan, using ByteShape’s ShapeLearn quantization and **llama-cpp-turboquant**.
+> ✅ **Tested by a user** on this hardware. Re-check `n_ctx` and MTP after rebuilds. **Vulkan, not CUDA.**
 
-> ✅ **Tested by a user on this hardware.** Settings below come from real runs; expect variance with thermals and background load. Flag modernization (host, thinking off, `--fit off`) matches current repo conventions — re-check `n_ctx` and MTP behavior after rebuilds.
+24 GB · RDNA3 · llama-cpp-turboquant. **Not** Unsloth UD — ByteShape **ShapeLearn** MTP (~18.6 GB). MTP is on the primary command. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
-## About this model
+| Pin | Value |
+| --- | --- |
+| **Status** | ✅ Tested (community) |
+| **Weights** | `Qwen3.6-35B-A3B-IQ4_XS-4.19bpw.gguf` (~18.6 GB) |
+| **Catalog** | [byteshape/Qwen3.6-35B-A3B-MTP-GGUF](https://huggingface.co/byteshape/Qwen3.6-35B-A3B-MTP-GGUF) |
+| **Context** | `--ctx-size 262144` (`--fit off`) |
+| **KV** | `q8_0` / `q8_0` |
+| **Spec** | `--spec-type draft-mtp --spec-draft-n-max 2` |
+| **Thinking** | `--reasoning off` |
+| **Paths** | `~/Documents/AIML/models` · `~/Documents/GitHub/llama-cpp-turboquant` |
 
-This is **not** the standard Unsloth UD quant — it’s ByteShape’s **ShapeLearn-quantized MTP (Multi-Token Prediction)** variant with vision support:
+Need `draft-mtp` in `--help` (b9235+). Need the engine? [local-setup.md](../local-setup.md).
 
-- **MTP**: predicts multiple tokens per forward pass, accelerating decode by accepting speculative tokens. Requires `--spec-type draft-mtp --spec-draft-n-max 2`.
-- **ShapeLearn quants**: ByteShape learns the optimal datatype per tensor, maintaining high quality at low bitlengths. Hybrid KQ + IQ approach optimized for GPU throughput.
-
-## Pi Coding Agent: read this first
-
-**Always pin `--ctx-size` and set `--fit off`.** Match Pi’s `contextWindow` to real `n_ctx_seq`.
-
-**Thinking / empty replies** (Qwen3.6): `--reasoning off` and `--chat-template-kwargs '{"enable_thinking":false}'`.
-
-## Recommended model
-
-- **Model:** `Qwen3.6-35B-A3B-IQ4_XS-4.19bpw.gguf` (ShapeLearn; ~18.6 GB — best quality/size tradeoff for 24 GB)
-- **Hugging Face:** `byteshape/Qwen3.6-35B-A3B-MTP-GGUF`
-- **Path:** `~/Documents/AIML/models/Qwen3.6-35B-A3B-IQ4_XS-4.19bpw.gguf`
+## Download
 
 ```bash
 hf download byteshape/Qwen3.6-35B-A3B-MTP-GGUF \
@@ -29,30 +25,21 @@ hf download byteshape/Qwen3.6-35B-A3B-MTP-GGUF \
   --local-dir ~/Documents/AIML/models
 ```
 
-> **Build requirement:** MTP needs a recent build (`draft-mtp` under `--spec-type`, added in llama.cpp b9235+). If `./llama-server --help` does not list `draft-mtp`, update the TurboQuant fork / rebuild.
-
-## Build instructions (TurboQuant fork, Vulkan)
+## Build (Vulkan)
 
 ```bash
 cd ~/Documents/GitHub/llama-cpp-turboquant
-
-# TheTom TurboQuant fork — not ggml-org/llama.cpp
-# https://github.com/TheTom/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
-
-rm -rf build
-mkdir build && cd build
-
-# AMD RDNA3: use Vulkan, not CUDA
+rm -rf build && mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
 cmake --build . --config Release -j$(nproc)
-
-cd bin
-mkdir -p ./kv-cache
+cd bin && mkdir -p ./kv-cache
 ```
 
-## Optimized llama-server command (MTP IQ4_XS @ 262k)
+Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant). Do not use `-DGGML_CUDA=ON` on this GPU.
+
+## PRIMARY command
 
 ```bash
 pkill -9 llama-server
@@ -107,7 +94,7 @@ pkill -9 llama-server
 
 ## Pi Coding Agent `models.json`
 
-Save this **entire** file to `~/.pi/agent/models.json` (copy-paste as-is — do not assemble a wrapper). Create parent dirs if needed: `mkdir -p ~/.pi/agent`.
+Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Restart Pi.
 
 ```json
 {

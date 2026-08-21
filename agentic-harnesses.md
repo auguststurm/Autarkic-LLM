@@ -44,7 +44,7 @@ Each hardware guide includes a **complete** Pi `models.json` — the full `provi
 - `maxTokens` ≤ `--n-predict`.
 - Restart **both** `llama-server` and Pi after changing either side. Pi’s status bar must match the pin (stale `models.json` is a common failure mode).
 
-Hardware-specific numbers always come from **your** guide. The [M4 MacBook Air Qwen guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) is the reference for agent-facing *layout* (host, fit, thinking, `models.json` shape). Field-validated **Pi + dense Qwen 27B** agent lessons (any hardware) are below — they cover **Qwen3.6-27B** and **Qwen3.8-27B** (same Pi rules; Dual RTX 3.8 is field-tested). **Muse Glimmer is a different model** — do not apply the Qwen `--reasoning off` row; see [Muse Glimmer 30B + Pi](#muse-glimmer-30b--pi-coding-agent).
+Hardware-specific numbers always come from **your** guide (pin table + `models.json`). Guide *shape* (download → cmake → PRIMARY → JSON): [Dual RTX Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). Tight Metal / `--fit` crush / turbo2 V: [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). Field-validated **Pi + dense Qwen 27B** lessons below cover **Qwen3.6-27B** and **Qwen3.8-27B** (Dual RTX 3.8 is field-tested). **Muse Glimmer is a different model** — do not apply the Qwen `--reasoning off` row; see [Muse Glimmer 30B + Pi](#muse-glimmer-30b--pi-coding-agent).
 
 ## Qwen3.6-27B + Pi Coding Agent (cross-hardware)
 
@@ -60,6 +60,8 @@ These apply whenever Pi drives **dense Qwen 27B** (**Qwen3.6-27B** or **Qwen3.8-
 | **Output per turn** | `--n-predict` | `maxTokens` | `Model stopped because it reached the maximum output token limit` |
 
 Raising one does not fix the other. Multi-agent workflows (Tavily, parallel specialists, long skills) often need **larger input** than a short chat (field overflows past **32k/64k**, single requests **~70k+** on heavy runs). Long market reports often need **larger output** than 4k–8k.
+
+**On Qwen3.8, thinking tokens also count against `--n-predict` / `maxTokens`.** `--reasoning off` is not the same as a tiny output cap. If you turn thinking **on** with these Unsloth GGUFs: unset `reasoning_effort` typically renders as **XHIGH**; start at **`low`**; `medium` may have no dedicated template branch; leave `--reasoning-preserve` **off** for Pi. Details: [Dual RTX Qwen3.8 optionals](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#qwen38-optionals).
 
 ### Server flags that matter for Pi tools
 

@@ -172,5 +172,5 @@ These reuse computed state across requests so repeated prompts/turns don't repro
 - [`local-setup.md`](local-setup.md): clone, build, download, and `models.json` integration.
 - [`agentic-harnesses.md`](agentic-harnesses.md): Pi / OpenClaw / Hermes; **dense Qwen 27B (3.6 / 3.8) + Pi** cross-hardware lessons.
 - [`_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md`](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md): multi-agent workflows, Tavily, example research skill.
-- Hardware guides: exact, per-machine commands ([README table](README.md#hardware-configurations-included)); **Qwen3.8** status in [README](README.md#qwen38-2026-08-14).
+- Hardware guides: per-machine **PRIMARY** commands ([README table](README.md#hardware-configurations-included)). This file is the flag encyclopedia; GGUF names live in [`local-setup.md`](local-setup.md#understanding-gguf-quants-why-so-many-files). **Qwen3.8** optionals: [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#qwen38-optionals).
 - [TurboQuant design discussion](https://github.com/ggml-org/llama.cpp/discussions/20969) · [llama.cpp server docs](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) · [build docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md)
