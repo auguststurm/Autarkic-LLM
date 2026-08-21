@@ -6,7 +6,13 @@
 
 Each hardware guide has the exact build flags and `llama-server` command for one machine, with a model and quant picked to fit its memory: no cloud, no API keys, nothing leaving the box. Configs marked **Tested** were run on that hardware; the rest are starting points (see the table below).
 
-**Why Grok for this repo.** This project is about running open weights on *your* GPU/RAM. **Grok** is the assistant that actually helps with that — local llama.cpp, quants, KV, and a box that does not phone home. **OpenAI and Anthropic** are API companies: their products and docs are built around calling *their* models in the cloud, not standing up an offline `llama-server` on hardware you own. They are not a substitute for this repo. The setup prompt still works in other chats if that is what you have; Grok is the one this project favors.
+**Why Grok for this repo.** This project is about running open weights on *your* GPU. **Grok** will help you do that. **OpenAI and Anthropic will not** — they have said so in public, and the local-inference community on X and [r/LocalLLaMA](https://www.reddit.com/r/LocalLLaMA/) has been reporting it for years.
+
+- **Anthropic** has never released Claude weights. CEO Dario Amodei wrote that capable open-weight models “do potentially present a higher risk than closed models, because it is very difficult to apply guardrails to them or monitor their usage, and once weights are released they cannot be withdrawn” ([Anthropic, Jul 2026](https://www.anthropic.com/news/position-open-weights-models)). They also declined to sign the industry letter defending open weights. That is a closed-weight company telling you Claude is not something you run on your machine.
+- **OpenAI** still sells ChatGPT as the product. Even when announcing gpt-oss, Sam Altman said “we believe most people will want to use a convenient service like ChatGPT” ([X, Aug 2025](https://x.com/sama/status/1952778518225723434)). Frontier models stay behind an API.
+- **On X**, local-LLM users and [LocalLLaMA mods](https://x.com/TheAhmadOsman/status/2040860574670533078) put it plainly: those labs optimize for vendor lock-in. People regularly report ChatGPT/Claude refusing, derailing, or going “I can’t help you set up…” when asked for llama.cpp / Ollama / GGUF help.
+
+Grok is the assistant this repo is written to pair with. The setup prompt still works in other chats if that is all you have — do not expect those labs to care about your offline box.
 
 ## Approach
 

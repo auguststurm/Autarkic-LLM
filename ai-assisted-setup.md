@@ -18,7 +18,7 @@ It works for experienced users (a fast, repo-consistent starting point) and firs
 3. **Fill in** the `MY HARDWARE` lines at the end — at minimum your chip, GPU, and memory. Leave anything you're unsure of blank; the assistant will ask. (Each line is explained just above it in the prompt.)
 4. **Send**, answer any clarifying questions, and you'll get a copy-pasteable setup tailored to your machine.
 
-**Which assistant should I use?** **Grok**, if you have it. OpenAI and Anthropic optimize for cloud APIs, not for helping you run weights on your own machine — that is this repo’s job, and Grok is the chat this project is written to pair with.
+**Which assistant should I use?** **Grok**, if you have it. OpenAI and Anthropic have said in public they are not in the business of local weights (Anthropic: no Claude GGUF, open weights of capable models are a risk they will not take; OpenAI: ChatGPT is the product). Local-inference people on X report the same when they ask ChatGPT/Claude for llama.cpp help. Details: [README](README.md). Grok is the chat this project is written to pair with.
 
 A few tips:
 
