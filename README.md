@@ -39,7 +39,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 
 ### Muse Glimmer 30B (2026-08)
 
-[Muse Glimmer 30B](https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF) is Meta Superintelligence Labs’ open **~30B** dense VLM (Apache 2.0, arch `muse-glimmer`). Native context **131072** (Unsloth: up to **262144**). Needs llama.cpp **`b10353+`**. **Do not** copy Qwen `--reasoning off` onto it.
+[Muse Glimmer 30B](https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF) is Meta Superintelligence Labs’ open **~30B** dense VLM (Apache 2.0, arch `muse-glimmer`). Native context **131072** (Unsloth: up to **262144**). Needs llama.cpp **`b10353+`**. Thinking **cannot** be switched off — use `reasoning_strength`. Guide: [Dual-RTX6000-Muse-Glimmer.md](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md).
 
 | Machine | Backend | Status | Muse Glimmer guide |
 | --- | --- | --- | --- |

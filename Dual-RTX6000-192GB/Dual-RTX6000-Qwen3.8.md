@@ -1,8 +1,6 @@
 # Dual RTX 6000 Pro Max-Q (192 GB) - Qwen3.8-27B
 
 > ✅ **Tested** on this hardware (**2026-08-14**, Qwen3.8 release day) with **Pi Coding Agent**. Same knobs as the [Qwen3.6 Dual RTX](Dual-RTX6000-Qwen3.6.md) primary; only the weights file changed.
->
-> Same box, different model: [Muse Glimmer 30B](Dual-RTX6000-Muse-Glimmer.md) (⚠️ untested) — do **not** copy `--reasoning off` or Qwen sampling onto Muse.
 
 CUDA CC **12.0** · llama-cpp-turboquant · Ubuntu. This file is also the **Qwen3.8 appendix** other 3.8 ports link to (MTP, sampling, thinking, vision).
 

@@ -140,4 +140,4 @@ MY HARDWARE:
 - Write the `models.json` it produced to **`~/.pi/agent/models.json`**, start Pi, and you're running fully offline against `http://127.0.0.1:8080/v1`.
 - **Ran this on hardware that isn't in the [table](README.md#hardware-configurations-included) yet?** Please open an issue or PR with what worked — that's how the untested configs become tested ones.
 - **Trying Qwen3.8?** Prefer the matching `*Qwen3.8.md` guide when one exists ([overview](README.md#qwen38-2026-08-14)). Dual RTX 6000 is already ✅ Tested; for other ports, smoke-test load → first decode → Pi tools, then report results.
-- **Trying Muse Glimmer?** Use [Dual-RTX6000-Muse-Glimmer.md](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) on that box. Do not copy Qwen `--reasoning off`. Smoke-test load → first decode → Pi tools, then report results.
+- **Trying Muse Glimmer?** Use [Dual-RTX6000-Muse-Glimmer.md](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md). Thinking cannot be switched off (`reasoning_strength`). Smoke-test load → first decode → Pi tools, then report results.

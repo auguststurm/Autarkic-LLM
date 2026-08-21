@@ -1,10 +1,8 @@
 # Dual RTX 6000 Pro Max-Q (192 GB) - Muse Glimmer 30B
 
 > ⚠️ **Not yet tested** on this hardware with Muse Glimmer (researched **2026-08-14**). Confirm load → first decode → Pi tools before relying on it.
->
-> Same box, tested Qwen path: [Qwen3.8 Dual RTX](Dual-RTX6000-Qwen3.8.md) (✅ 2026-08-14). **Do not** copy Qwen `--reasoning off` or temp 0.6 / top_k 20 onto Muse.
 
-CUDA CC **12.0** · llama-cpp-turboquant · Ubuntu. Compute/memory house style matches Dual RTX Qwen (single GPU, q8/q8, pinned ctx). Agent and sampling knobs do **not**. Pi layout: [agentic harnesses — Muse](../agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent).
+CUDA CC **12.0** · llama-cpp-turboquant · Ubuntu. Single GPU, q8/q8 KV, pinned context. Pi: [agentic harnesses — Muse](../agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent).
 
 Need llama.cpp / turboquant **`b10353+`** (arch `muse-glimmer`). This box’s tip (`b10465` / `feature/turboquant-kv-cache`) already registers it and `draft-dflash`. Older builds refuse the file.
 
@@ -22,10 +20,7 @@ Need llama.cpp / turboquant **`b10353+`** (arch `muse-glimmer`). This box’s ti
 
 **Pi (this model):** `--jinja` required. Keep `--parallel 1` (slots split `-c`; a 32k slot can fill on thinking and return **empty `content`**). Never stop on `<|eom|>`. Do not pass `--reasoning-format none` (dumps thinking into `content`). Details: [agentic harnesses — Muse](../agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent). GGUF names: [local-setup](../local-setup.md#understanding-gguf-quants-why-so-many-files).
 
-| vs Dual RTX Qwen3.8 | Muse |
-| --- | --- |
-| Native ctx 262k · thinking off · top_k 20 · 16k out · optional MTP | Native **131k** · thinking **always on** · top_k **64** · **32k out** · optional **DFlash** |
-| Hybrid Gated-DeltaNet (`qwen35`) | Dense + gated attention + **SWA 2048** on 3/4 layers (`muse-glimmer`) — KV is cheap |
+Dense transformer, gated attention, **SWA 2048** on 3 of every 4 layers (`muse-glimmer`) — KV stays cheap at 131k/262k.
 
 Need the engine built first? [local-setup.md](../local-setup.md).
 
@@ -104,7 +99,7 @@ pkill -9 llama-server
 | --- | --- |
 | `--ctx-size 131072` | Official native window. One 96 GB card has lots of room. Optional [262k](#optional-262k-context) |
 | `q8_0` / `q8_0` | KV is cheap (GQA 2 KV heads + SWA on 3/4 layers). turbo V almost never required |
-| **No `--cache-ram 0`** | That is a **hybrid Qwen / DeltaNet** workaround ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)) — not this backbone |
+| **No `--cache-ram 0`** | Not this backbone ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681) is a hybrid/recurrent cache issue) |
 | `--jinja` + `--alias muse-glimmer-30b` | Embedded Muse template (required). Alias matches Pi `id` |
 | `reasoning_strength: high` | Meta default for coding / agents. **`--reasoning off` is a no-op** |
 | Sampling | Meta + Unsloth published defaults; **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
@@ -168,7 +163,7 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 
 ### DFlash (speed)
 
-Block-diffusion drafter (~1.6 GB). Different flag from Qwen MTP. Primary is without it.
+Block-diffusion drafter (~1.6 GB). `--spec-type draft-dflash`, not MTP. Primary is without it.
 
 ```bash
 hf download unsloth/Muse-Glimmer-30B-GGUF \
@@ -218,6 +213,5 @@ vLLM / SGLang (BF16 / FP8 / NVFP4 + native DFlash) are viable on this Blackwell 
 
 - [Meta llama.cpp](https://dev.meta.ai/docs/muse-glimmer/llama-cpp/) · [Unsloth Muse](https://unsloth.ai/docs/models/muse-glimmer) · [prompting](https://dev.meta.ai/docs/muse-glimmer/prompting)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses — Muse](../agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent)
-- Twin Qwen3.8 (tested): [Dual-RTX6000-Qwen3.8.md](Dual-RTX6000-Qwen3.8.md)
 
 **Last Updated:** 2026-08-20 (recipe shape; still ⚠️ untested on this box)

@@ -44,7 +44,7 @@ Each hardware guide includes a **complete** Pi `models.json` — the full `provi
 - `maxTokens` ≤ `--n-predict`.
 - Restart **both** `llama-server` and Pi after changing either side. Pi’s status bar must match the pin (stale `models.json` is a common failure mode).
 
-Hardware-specific numbers always come from **your** guide (pin table + `models.json`). Guide *shape* (download → cmake → PRIMARY → JSON): [Dual RTX Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). Tight Metal / `--fit` crush / turbo2 V: [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). Field-validated **Pi + dense Qwen 27B** lessons below cover **Qwen3.6-27B** and **Qwen3.8-27B** (Dual RTX 3.8 is field-tested). **Muse Glimmer is a different model** — do not apply the Qwen `--reasoning off` row; see [Muse Glimmer 30B + Pi](#muse-glimmer-30b--pi-coding-agent).
+Hardware-specific numbers always come from **your** guide (pin table + `models.json`). Guide *shape* (download → cmake → PRIMARY → JSON): [Dual RTX Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). Tight Metal / `--fit` crush / turbo2 V: [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). Field-validated **Pi + dense Qwen 27B** lessons below cover **Qwen3.6-27B** and **Qwen3.8-27B** (Dual RTX 3.8 is field-tested). Muse Glimmer Pi pin: [Muse Glimmer 30B + Pi](#muse-glimmer-30b--pi-coding-agent).
 
 ## Qwen3.6-27B + Pi Coding Agent (cross-hardware)
 
@@ -93,7 +93,7 @@ TurboQuant **fork** ≠ must use turbo **types**. Roomier machines keep high-pre
 
 ## Muse Glimmer 30B + Pi Coding Agent
 
-> ⚠️ **Not field-tested in this repo yet.** Hardware pin: [Dual RTX 6000 Muse Glimmer](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md). Two-limit / no-DRY / `--fit off` rules still apply. **Qwen thinking-off does not.**
+> ⚠️ **Not field-tested in this repo yet.** Hardware pin: [Dual RTX 6000 Muse Glimmer](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md). Two-limit / no-DRY / `--fit off` rules still apply. **`--reasoning off` is a no-op** on this template.
 
 Muse Glimmer is Meta’s ~30B dense VLM (arch `muse-glimmer`, llama.cpp **`b10353+`**). It is trained as a reasoning + tool model. Official docs: [Meta llama.cpp](https://dev.meta.ai/docs/muse-glimmer/llama-cpp/) · [prompting](https://dev.meta.ai/docs/muse-glimmer/prompting) · [Unsloth](https://unsloth.ai/docs/models/muse-glimmer).
 
