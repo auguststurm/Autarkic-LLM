@@ -140,26 +140,15 @@ Same cmake as the [Q8 primary](Dual-RTX6000-Qwen3.8.md#build). From `build/bin`:
 
 ## 3. Start the servers
 
-`pkill` **once**. Start the **27B on GPU 1** (`:8081`) first; wait until `/health` is ok; then GPU 0. A second `pkill` kills every `llama-server`.
+`pkill` **once**. Two terminals. Start **GPU 1** (`:8081`) first; wait until `/health` is ok; then GPU 0. A second `pkill` kills every `llama-server`.
 
-Shared flags (every process — change only `--model`, `--alias`, `--port`, `--ctx-size` from the group you start):
-
-```text
---host 127.0.0.1 --fit off
---n-gpu-layers 99 --main-gpu 0 --load-mode none
---cache-type-k q8_0 --cache-type-v q8_0 --cache-ram 0
---jinja --flash-attn on --no-context-shift --parallel 1
---ubatch-size 1024 --batch-size 1024
---reasoning off --reasoning-budget 0
---temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0
---presence-penalty 0.0 --repeat-penalty 1.0
---frequency-penalty 0.0 --repeat-last-n 64
---n-predict 16384 --kv-unified --log-verbosity 1
+```bash
+pkill -9 llama-server
 ```
 
-`CUDA_VISIBLE_DEVICES` makes the visible card `CUDA0`, so `--main-gpu 0` is correct on **both**. `--threads 12` in the command is llama-server’s **CPU** thread count (24 cores, two processes). It is not GPU compute.
+`CUDA_VISIBLE_DEVICES` makes the visible card `CUDA0`, so `--main-gpu 0` is correct on **both**. `--threads 12` is llama-server’s **CPU** thread count (24 cores, two processes), not GPU compute. `--alias` **must** match the Pi JSON `id`.
 
-`--alias` **must** match the Pi JSON `id`.
+Copy **one** pack below — both servers, then that pack’s `models.json` and `model-tiers.json`.
 
 ### Two 27B
 
@@ -177,6 +166,113 @@ Two Pi-quality 262k endpoints — [why](#why-pick-a-pack).
 | **For** | Two interactive sessions, or parallel subagents that must match the host |
 | **Status** | ✅ Load + parallel decode 2026-09-03 (35099 MiB / 35612 MiB after load) |
 
+**GPU 1** (`:8081`) — start this first:
+
+```bash
+cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
+
+CUDA_VISIBLE_DEVICES=1 ./llama-server \
+  --model ~/Documents/AIML/models/Qwen3.8-27B-UD-Q6_K_XL.gguf \
+  --alias qwen3.8-27b-gpu1 \
+  --port 8081 \
+  --ctx-size 262144 --threads 12 \
+  --host 127.0.0.1 --fit off \
+  --n-gpu-layers 99 --main-gpu 0 --load-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 --cache-ram 0 \
+  --jinja --flash-attn on --no-context-shift --parallel 1 \
+  --ubatch-size 1024 --batch-size 1024 \
+  --reasoning off --reasoning-budget 0 \
+  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
+  --presence-penalty 0.0 --repeat-penalty 1.0 \
+  --frequency-penalty 0.0 --repeat-last-n 64 \
+  --n-predict 16384 --kv-unified --log-verbosity 1
+```
+
+**GPU 0** (`:8080`):
+
+```bash
+cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
+
+CUDA_VISIBLE_DEVICES=0 ./llama-server \
+  --model ~/Documents/AIML/models/Qwen3.8-27B-UD-Q6_K_XL.gguf \
+  --alias qwen3.8-27b-gpu0 \
+  --port 8080 \
+  --ctx-size 262144 --threads 12 \
+  --host 127.0.0.1 --fit off \
+  --n-gpu-layers 99 --main-gpu 0 --load-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 --cache-ram 0 \
+  --jinja --flash-attn on --no-context-shift --parallel 1 \
+  --ubatch-size 1024 --batch-size 1024 \
+  --reasoning off --reasoning-budget 0 \
+  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
+  --presence-penalty 0.0 --repeat-penalty 1.0 \
+  --frequency-penalty 0.0 --repeat-last-n 64 \
+  --n-predict 16384 --kv-unified --log-verbosity 1
+```
+
+`~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`):
+
+```json
+{
+  "providers": {
+    "llama-cpp-8080": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false
+      },
+      "models": [
+        {
+          "id": "qwen3.8-27b-gpu0",
+          "name": "Qwen3.8-27B Q6 GPU0",
+          "reasoning": false,
+          "contextWindow": 262144,
+          "maxTokens": 16384
+        }
+      ]
+    },
+    "llama-cpp-8081": {
+      "baseUrl": "http://127.0.0.1:8081/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false
+      },
+      "models": [
+        {
+          "id": "qwen3.8-27b-gpu1",
+          "name": "Qwen3.8-27B Q6 GPU1",
+          "reasoning": false,
+          "contextWindow": 262144,
+          "maxTokens": 16384
+        }
+      ]
+    }
+  }
+}
+```
+
+`~/.pi/workflows/model-tiers.json`:
+
+```json
+{
+  "tiers": {
+    "small": "llama-cpp-8080/qwen3.8-27b-gpu0",
+    "medium": "llama-cpp-8081/qwen3.8-27b-gpu1",
+    "big": "llama-cpp-8081/qwen3.8-27b-gpu1"
+  }
+}
+```
+
+```text
+/model llama-cpp-8081/qwen3.8-27b-gpu1
+```
+
+Second Pi session (other terminal): `/model llama-cpp-8080/qwen3.8-27b-gpu0`.
+
 ### 27B + Coder
 
 Q8 Pi host + fast coding MoE — [why](#why-pick-a-pack).
@@ -193,23 +289,7 @@ Q8 Pi host + fast coding MoE — [why](#why-pick-a-pack).
 | **For** | You on 27B; code subagents (audit / patch / review) on Coder |
 | **Status** | ⚠️ VRAM and tok/s estimated. 27B Q8 is the tested Pi host |
 
-### 27B + 35B-A3B
-
-Q8 Pi host + fast general MoE — [why](#why-pick-a-pack).
-
-| GPU | Port | Alias | File | ctx | VRAM | Remaining |
-| ---: | ---: | --- | --- | ---: | ---: | ---: |
-| **0** | 8080 | `qwen3.6-35b-a3b` | `Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf` | 262144 | **~50 GB** | **~46 GB** |
-| **1** (display) | 8081 | `qwen3.8-27b-gpu1` | `Qwen3.8-27B-UD-Q8_K_XL.gguf` | 262144 | **~40 GB** | **~55 GB** |
-
-| | |
-| --- | --- |
-| **VRAM** | **~90 GB** of 192 GB (~50 + ~40). **~101 GB** remaining (~46 + ~55) |
-| **Decode** | GPU 0 35B-A3B **3B active** ~100–150 tok/s (forecast) + GPU 1 27B Q8 dense ~46 tok/s class. Both at once if they generate together |
-| **For** | You on 27B; non-code fan-out (scan / classify / ingest / summary) on 35B-A3B |
-| **Status** | ⚠️ VRAM and tok/s estimated. 27B Q8 is the tested Pi host |
-
-**27B on GPU 1** (start this first; swap the GGUF for Q6 vs Q8 from the group you are running):
+**GPU 1** (`:8081`) — start this first:
 
 ```bash
 cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
@@ -231,25 +311,29 @@ CUDA_VISIBLE_DEVICES=1 ./llama-server \
   --n-predict 16384 --kv-unified --log-verbosity 1
 ```
 
-GPU 0 is the same command with that group’s GPU 0 row: `CUDA_VISIBLE_DEVICES`, `--model`, `--alias`, `--port`, `--ctx-size`.
-
-### Confirm
+**GPU 0** (`:8080`):
 
 ```bash
-for p in 8080 8081; do echo -n ":$p "; curl -s http://127.0.0.1:$p/health || echo down; echo; done
-# /v1/models on each port → n_ctx matches the table and the --alias you set
-nvidia-smi
+cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
+
+CUDA_VISIBLE_DEVICES=0 ./llama-server \
+  --model ~/Documents/AIML/models/Qwen3-Coder-30B-A3B-Instruct-UD-Q6_K_XL.gguf \
+  --alias qwen3-coder-30b \
+  --port 8080 \
+  --ctx-size 65536 --threads 12 \
+  --host 127.0.0.1 --fit off \
+  --n-gpu-layers 99 --main-gpu 0 --load-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 --cache-ram 0 \
+  --jinja --flash-attn on --no-context-shift --parallel 1 \
+  --ubatch-size 1024 --batch-size 1024 \
+  --reasoning off --reasoning-budget 0 \
+  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
+  --presence-penalty 0.0 --repeat-penalty 1.0 \
+  --frequency-penalty 0.0 --repeat-last-n 64 \
+  --n-predict 16384 --kv-unified --log-verbosity 1
 ```
 
-Load log per process: `n_ctx_seq` matches that group, `load_mode = none`. Short decode on **each** port. `nvidia-smi` should match the pack VRAM row. Stop all: `pkill -9 llama-server`. Stop one: `pkill -9 -f 'port 8080'`.
-
-## 4. Pi `models.json`
-
-Save to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). **One provider key per `baseUrl`.** Dummy `apiKey` is required or Pi hides the models in `/model`. `compat` keeps Pi from sending a `developer` role / `reasoning_effort` these local Qwen servers are not running. Open `/model` to reload.
-
-`--alias` on the server **must** match the JSON `id`. `contextWindow` = that server’s `--ctx-size`.
-
-**27B + Coder** (27B + 35B-A3B: change the 8080 `id` / `name` / `contextWindow` to `qwen3.6-35b-a3b` / 262144):
+`~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`):
 
 ```json
 {
@@ -294,17 +378,7 @@ Save to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). **One provider key p
 }
 ```
 
-**Two 27B:** both blocks use ids `qwen3.8-27b-gpu0` / `qwen3.8-27b-gpu1`, both `contextWindow` 262144.
-
-Cloud providers (Grok / xAI via `/login`) can sit beside these keys. Optional: `pi install npm:pi-llama-cpp` for `/models` browse — **not required**; `models.json` is what `/model` and `/workflows-models` use.
-
-Connect rules (two limits, no DRY, thinking off): [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
-
-## 5. Workflow tiers
-
-If you use `pi-dynamic-workflows`, `/workflows-models` writes `~/.pi/workflows/model-tiers.json`. Ids are `providerKey/modelId`. Without a valid **medium**, workflow agents fail.
-
-**27B + specialist** — specialist is `small`; 27B is `medium` and `big`:
+`~/.pi/workflows/model-tiers.json`:
 
 ```json
 {
@@ -316,17 +390,150 @@ If you use `pi-dynamic-workflows`, `/workflows-models` writes `~/.pi/workflows/m
 }
 ```
 
-35B-A3B: `"small": "llama-cpp-8080/qwen3.6-35b-a3b"`. Two 27B: `small` → gpu0, `medium`/`big` → gpu1.
+```text
+/model llama-cpp-8081/qwen3.8-27b-gpu1
+```
 
-A workflow that puts every `agent()` on `medium` never calls GPU 0. `parallel()` work has to name `small` (or `{ model: "llama-cpp-8080/…" }`) or the second card stays idle — that is the whole point of picking 27B + specialist vs two 27Bs ([why](#why-pick-a-pack)). Packages and research skills: [Pi graphs](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
+### 27B + 35B-A3B
 
-Interactive session on the 27B:
+Q8 Pi host + fast general MoE — [why](#why-pick-a-pack).
+
+| GPU | Port | Alias | File | ctx | VRAM | Remaining |
+| ---: | ---: | --- | --- | ---: | ---: | ---: |
+| **0** | 8080 | `qwen3.6-35b-a3b` | `Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf` | 262144 | **~50 GB** | **~46 GB** |
+| **1** (display) | 8081 | `qwen3.8-27b-gpu1` | `Qwen3.8-27B-UD-Q8_K_XL.gguf` | 262144 | **~40 GB** | **~55 GB** |
+
+| | |
+| --- | --- |
+| **VRAM** | **~90 GB** of 192 GB (~50 + ~40). **~101 GB** remaining (~46 + ~55) |
+| **Decode** | GPU 0 35B-A3B **3B active** ~100–150 tok/s (forecast) + GPU 1 27B Q8 dense ~46 tok/s class. Both at once if they generate together |
+| **For** | You on 27B; non-code fan-out (scan / classify / ingest / summary) on 35B-A3B |
+| **Status** | ⚠️ VRAM and tok/s estimated. 27B Q8 is the tested Pi host |
+
+**GPU 1** (`:8081`) — start this first:
+
+```bash
+cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
+
+CUDA_VISIBLE_DEVICES=1 ./llama-server \
+  --model ~/Documents/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
+  --alias qwen3.8-27b-gpu1 \
+  --port 8081 \
+  --ctx-size 262144 --threads 12 \
+  --host 127.0.0.1 --fit off \
+  --n-gpu-layers 99 --main-gpu 0 --load-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 --cache-ram 0 \
+  --jinja --flash-attn on --no-context-shift --parallel 1 \
+  --ubatch-size 1024 --batch-size 1024 \
+  --reasoning off --reasoning-budget 0 \
+  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
+  --presence-penalty 0.0 --repeat-penalty 1.0 \
+  --frequency-penalty 0.0 --repeat-last-n 64 \
+  --n-predict 16384 --kv-unified --log-verbosity 1
+```
+
+**GPU 0** (`:8080`):
+
+```bash
+cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
+
+CUDA_VISIBLE_DEVICES=0 ./llama-server \
+  --model ~/Documents/AIML/models/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf \
+  --alias qwen3.6-35b-a3b \
+  --port 8080 \
+  --ctx-size 262144 --threads 12 \
+  --host 127.0.0.1 --fit off \
+  --n-gpu-layers 99 --main-gpu 0 --load-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 --cache-ram 0 \
+  --jinja --flash-attn on --no-context-shift --parallel 1 \
+  --ubatch-size 1024 --batch-size 1024 \
+  --reasoning off --reasoning-budget 0 \
+  --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 \
+  --presence-penalty 0.0 --repeat-penalty 1.0 \
+  --frequency-penalty 0.0 --repeat-last-n 64 \
+  --n-predict 16384 --kv-unified --log-verbosity 1
+```
+
+`~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`):
+
+```json
+{
+  "providers": {
+    "llama-cpp-8080": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false
+      },
+      "models": [
+        {
+          "id": "qwen3.6-35b-a3b",
+          "name": "Qwen3.6-35B-A3B Q8 GPU0",
+          "reasoning": false,
+          "contextWindow": 262144,
+          "maxTokens": 16384
+        }
+      ]
+    },
+    "llama-cpp-8081": {
+      "baseUrl": "http://127.0.0.1:8081/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false
+      },
+      "models": [
+        {
+          "id": "qwen3.8-27b-gpu1",
+          "name": "Qwen3.8-27B Q8 GPU1",
+          "reasoning": false,
+          "contextWindow": 262144,
+          "maxTokens": 16384
+        }
+      ]
+    }
+  }
+}
+```
+
+`~/.pi/workflows/model-tiers.json`:
+
+```json
+{
+  "tiers": {
+    "small": "llama-cpp-8080/qwen3.6-35b-a3b",
+    "medium": "llama-cpp-8081/qwen3.8-27b-gpu1",
+    "big": "llama-cpp-8081/qwen3.8-27b-gpu1"
+  }
+}
+```
 
 ```text
 /model llama-cpp-8081/qwen3.8-27b-gpu1
 ```
 
-Status bar must show **262k** on that host. New session after sampler/server changes (`/new`). Two humans / two heavy sessions: two `pi` processes, **different** `/model` ids on **different GPUs**.
+### Confirm
+
+```bash
+for p in 8080 8081; do echo -n ":$p "; curl -s http://127.0.0.1:$p/health || echo down; echo; done
+# /v1/models on each port → n_ctx matches the table and the --alias you set
+nvidia-smi
+```
+
+Load log per process: `n_ctx_seq` matches that group, `load_mode = none`. Short decode on **each** port. `nvidia-smi` should match the pack VRAM row. Stop all: `pkill -9 llama-server`. Stop one: `pkill -9 -f 'port 8080'`.
+
+## 4. Pi notes
+
+JSON for each pack is in [§3](#3-start-the-servers). Paths: `~/.pi/agent/models.json` and `~/.pi/workflows/model-tiers.json`. **One provider key per `baseUrl`.** Dummy `apiKey` is required or Pi hides the models in `/model`. `compat` keeps Pi from sending a `developer` role / `reasoning_effort` these local Qwen servers are not running. `--alias` **must** match the JSON `id`. `contextWindow` = that server’s `--ctx-size`. Open `/model` to reload.
+
+Without a valid **medium**, workflow agents fail. A workflow that puts every `agent()` on `medium` never calls GPU 0. `parallel()` work has to name `small` (or `{ model: "llama-cpp-8080/…" }`) or the second card stays idle — [why](#why-pick-a-pack).
+
+Status bar must show **262k** on the 27B host. New session after sampler/server changes (`/new`). Two humans / two heavy sessions: two `pi` processes, **different** `/model` ids on **different GPUs**.
+
+Cloud providers (Grok / xAI via `/login`) can sit beside these keys. Optional: `pi install npm:pi-llama-cpp` for `/models` browse — **not required**. Connect rules: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Packages and research skills: [Pi graphs](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
 
 ## This box
 
