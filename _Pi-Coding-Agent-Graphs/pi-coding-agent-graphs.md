@@ -250,6 +250,8 @@ That TUI writes `~/.pi/workflows/model-tiers.json`. Point **small**, **medium**,
 
 Without a valid medium mapping, the workflow can fail even when the host search succeeded.
 
+**Dual RTX 6000 (192 GB):** the tested host is still [Qwen3.8-27B Q8](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). For Tavily research, do not point all three tiers at a second 27B — the shipped skill is sequential and will not use it. Recommended pairing (⚠️ not load-tested as a pair): 27B Q8 on GPU 1 for host + Findings + Report (`medium` / `big`); Qwen3.6-35B-A3B Q8 on GPU 0 for Ingest + Skeptic (`small`). You must fork the four `agent()` calls onto those tiers. Full layout: [Best blend for Pi + Tavily](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-2xQ6.md#best-blend-for-pi--tavily-the-decision).
+
 ### First run
 
 1. Start **`llama-server`** (hardware guide).
