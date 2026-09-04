@@ -2,7 +2,7 @@
 
 > ✅ **Tested** on this hardware (**2026-08-14**, Qwen3.8 release day) with **Pi Coding Agent**. Same knobs as the [Qwen3.6 Dual RTX](Dual-RTX6000-Qwen3.6.md) primary; only the weights file changed.
 
-CUDA CC **12.0** · llama-cpp-turboquant · Ubuntu. This file is also the **Qwen3.8 appendix** other 3.8 ports link to (MTP, sampling, thinking, vision).
+Blackwell **sm_120** · llama-cpp-turboquant · Ubuntu. This file is also the **Qwen3.8 appendix** other 3.8 ports link to (MTP, sampling, thinking, vision).
 
 | Pin | Value |
 | --- | --- |
@@ -30,7 +30,7 @@ hf download unsloth/Qwen3.8-27B-GGUF \
 
 Fresh turboquant build required (arch tag `qwen35`). If load fails with unknown architecture, `git pull` and rebuild before changing flags.
 
-On this 192 GB box: **Q8** is the tested primary. Q6 (~25.9 GB) / Q5 (~20.2 GB) / Q4 (~17.9 GB) all fit; drop only for [two isolated instances](Dual-RTX6000-Qwen3.8-2xQ6.md) or speed A/Bs. Ladder: [local-setup](../local-setup.md#q8-vs-q6-vs-q5-vs-q4-quality-vs-speed).
+On this 192 GB box: **Q8** is the tested primary. Q6 (~25.9 GB) / Q5 (~20.2 GB) / Q4 (~17.9 GB) all fit. Drop to Q6 only for the two-27B [Localmaxing](Dual-RTX6000-Qwen3.8-localmaxing.md) pack; 27B + Coder / 35B-A3B keep this Q8 host. Ladder: [local-setup](../local-setup.md#q8-vs-q6-vs-q5-vs-q4-quality-vs-speed).
 
 ## Build
 
@@ -44,7 +44,7 @@ cmake --build . --config Release -j$(nproc)
 cd bin && mkdir -p ./kv-cache
 ```
 
-Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant) (not `ggml-org/llama.cpp`). Omit `-DCMAKE_CUDA_ARCHITECTURES="120"` to autodetect; set it when cross-compiling (Blackwell = CC 12.0). Prereqs and other backends: [local-setup](../local-setup.md).
+Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant) (not `ggml-org/llama.cpp`). `"120"` is the GPU compute capability (`sm_120`), not the CUDA toolkit version. Omit `-DCMAKE_CUDA_ARCHITECTURES="120"` to autodetect; set it when cross-compiling. Prereqs and other backends: [local-setup](../local-setup.md).
 
 Optional (only if you try turbo V): `./llama-server --help | grep -A2 cache-type-v` must list `turbo2`, `turbo3`, `turbo4`.
 
@@ -138,9 +138,7 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 
 ## This box
 
-**Single GPU on purpose.** ~31.5 GB weights + 262k q8/q8 KV fit one 96 GB card (all on GPU 0 — not split). That remains the **tested Pi primary** (2026-08-14). The second card stays free until you pick a second *job*, not a second copy for its own sake.
-
-**Pi + Tavily on this box** (recommended next, ⚠️ pairing not load-tested): keep this Q8 27B as the host / Findings / Report / coding session. Put **Qwen3.6-35B-A3B Q8** on the other GPU for workflow Ingest + Skeptic only. Two 27Bs do not help the shipped research skill (`concurrency: 1`, host blocked, all phases on `medium`). Layout, tiers, and the four-line skill fork: [2× guide — Best blend for Pi + Tavily](Dual-RTX6000-Qwen3.8-2xQ6.md#best-blend-for-pi--tavily-the-decision). Two heavy *coding* sessions (no graph): [2× Q6](Dual-RTX6000-Qwen3.8-2xQ6.md).
+**Single GPU on purpose.** ~31.5 GB weights + 262k q8/q8 KV fit one 96 GB card (all on GPU 0 — not split). That remains the **tested Pi primary** (2026-08-14). The second card is idle until you run a second model — that is [Localmaxing](Dual-RTX6000-Qwen3.8-localmaxing.md), not this file.
 
 The `--split-mode` alternate below is still **one** model striped across both GPUs.
 
@@ -217,9 +215,9 @@ Add `--mmproj ~/Documents/AIML/models/mmproj-F16.gguf` only if this `llama-serve
 
 ## See also
 
-- Two cards (2× Q6, or 27B Q8 + 35B-A3B for Pi + Tavily): [Dual-RTX6000-Qwen3.8-2xQ6.md](Dual-RTX6000-Qwen3.8-2xQ6.md)
+- Two cards, one model each (two 27B, or 27B + Coder / 35B-A3B): [Dual-RTX6000-Qwen3.8-localmaxing.md](Dual-RTX6000-Qwen3.8-localmaxing.md)
 - Twin 3.6 (tested 2026-08-08): [Dual-RTX6000-Qwen3.6.md](Dual-RTX6000-Qwen3.6.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 - Unsloth: [Qwen3.8](https://unsloth.ai/docs/models/qwen3.8) · [MTP](https://unsloth.ai/docs/models/mtp)
 
-**Last Updated:** 2026-09-03 (Pi + Tavily second-GPU note; primary still the 2026-08-14 tested command)
+**Last Updated:** 2026-09-04 (Localmaxing is the second-card guide; primary still the 2026-08-14 tested command)

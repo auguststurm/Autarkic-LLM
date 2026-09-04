@@ -2,7 +2,7 @@
 
 > ✅ **Tested** on this hardware (**2026-08-08**) with **Pi Coding Agent**. Qwen3.8 (same knobs, new weights, ✅ 2026-08-14): [Dual-RTX6000-Qwen3.8.md](Dual-RTX6000-Qwen3.8.md).
 
-CUDA CC **12.0** · llama-cpp-turboquant · Ubuntu. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware) · 24 GB CUDA twin: [RTX 4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md).
+Blackwell **sm_120** · llama-cpp-turboquant · Ubuntu. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware) · 24 GB CUDA twin: [RTX 4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md).
 
 | Pin | Value |
 | --- | --- |
@@ -38,7 +38,7 @@ cmake --build . --config Release -j$(nproc)
 cd bin && mkdir -p ./kv-cache
 ```
 
-Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant). Blackwell = CC 12.0. Optional turbo: `./llama-server --help | grep -A2 cache-type-v`.
+Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant). `"120"` is GPU compute capability (`sm_120`), not the CUDA toolkit version. Optional turbo: `./llama-server --help | grep -A2 cache-type-v`.
 
 ## PRIMARY command
 
@@ -110,9 +110,9 @@ Primary already has enormous headroom. If you later raise load (heavier quant, m
 ## Performance notes
 
 - **Validated 2026-08-08:** primary single-GPU **Q8_K_XL @ 262k · q8/q8 · 16k out** worked very well with Pi Coding Agent (tools, long agent sessions, full train window).
-- Primary uses **one GPU** by default — simple and fast for a ~35 GB model. The other 96 GB card stays free (or idle); large VRAM on GPU 0 covers weights + full-window KV at **q8/q8** without TurboQuant V.
+- Primary uses **one GPU** by default — simple and fast for a ~35 GB model. The other 96 GB card stays idle unless you run a second `llama-server` ([Qwen3.8 Localmaxing](Dual-RTX6000-Qwen3.8-localmaxing.md), one model per card) or the layer-split alternate below (still **one** model). Large VRAM on GPU 0 covers weights + full-window KV at **q8/q8** without TurboQuant V.
 - TurboQuant **fork** ≠ must use turbo **types**. This box is the roomiest CUDA profile in the repo: keep `q8_0`/`q8_0`; turbo V is a capacity lever for later experiments, not the quality default.
-- For heavier models or deliberate multi-card spread, see the multi-GPU section below (still untested on this hardware).
+- For heavier models or deliberate multi-card **spread of one GGUF**, see the multi-GPU section below (still untested on this hardware). Two live endpoints: [Localmaxing](Dual-RTX6000-Qwen3.8-localmaxing.md).
 - Ideal for heavy agentic workloads and long-context development.
 - Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Cross-hardware Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
@@ -143,7 +143,7 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 
 ## Alternate: multi-GPU layer split
 
-> ⚠️ **Not part of the August 8 primary test.** Primary single-GPU Q8_K_XL is the validated path. Use multi-GPU when the model does not fit on one card or you deliberately want to spread load across both 96 GB GPUs.
+> ⚠️ **Not part of the August 8 primary test.** Primary single-GPU Q8_K_XL is the validated path. This still **one** model, striped (`--split-mode layer`). Two isolated servers (one per card): [Qwen3.8 Localmaxing](Dual-RTX6000-Qwen3.8-localmaxing.md).
 
 ```bash
 hf download unsloth/Qwen3.6-35B-A3B-GGUF \
@@ -209,4 +209,10 @@ pkill -9 llama-server
 }
 ```
 
-**Last Updated:** 2026-08-20 (recipe shape; primary still the 2026-08-08 tested command)
+## See also
+
+- Two cards, one model each: [Dual-RTX6000-Qwen3.8-localmaxing.md](Dual-RTX6000-Qwen3.8-localmaxing.md)
+- Qwen3.8 single-GPU primary (✅ 2026-08-14): [Dual-RTX6000-Qwen3.8.md](Dual-RTX6000-Qwen3.8.md)
+- Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
+
+**Last Updated:** 2026-09-04 (Localmaxing pointer; primary still the 2026-08-08 tested command)

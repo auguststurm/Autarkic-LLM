@@ -94,6 +94,10 @@ The rest is judgment:
   field-tested; DGX Spark and M5 Pro ports reuse tested 3.6 knobs but are still untested — flag
   that. Use a fresh turboquant build (arch qwen35). Confirm exact UD- quant filenames on
   unsloth/Qwen3.8-27B-GGUF.
+- (Dual RTX 6000, both cards) Dual-RTX6000-Qwen3.8-localmaxing.md — one isolated llama-server
+  per GPU, one Pi provider key per baseUrl. The Q8 primary is one card. Packs: two 27B, or
+  27B + Coder-30B (code small), or 27B + 35B-A3B (general small). Do not invent a four-model
+  zoo or put a second process on the 27B host GPU.
 
 PI CODING AGENT — the only harness we are configuring:
 Once the server runs, give me a complete Pi `models.json` I can save as-is to
@@ -139,5 +143,5 @@ MY HARDWARE:
 - Start the server with the command it gave you, then watch the startup log — confirm **`n_ctx` / `n_ctx_seq`** match what you pinned (and that **decode** works, not only load). Keep Pi’s `contextWindow` in sync.
 - Write the `models.json` it produced to **`~/.pi/agent/models.json`**, start Pi, and you're running fully offline against `http://127.0.0.1:8080/v1`.
 - **Ran this on hardware that isn't in the [table](README.md#hardware-configurations-included) yet?** Please open an issue or PR with what worked — that's how the untested configs become tested ones.
-- **Trying Qwen3.8?** Prefer the matching `*Qwen3.8.md` guide when one exists ([overview](README.md#qwen38-2026-08-14)). Dual RTX 6000 is already ✅ Tested; for other ports, smoke-test load → first decode → Pi tools, then report results.
+- **Trying Qwen3.8?** Prefer the matching `*Qwen3.8.md` guide when one exists ([overview](README.md#qwen38-2026-08-14)). Dual RTX 6000 is already ✅ Tested; for other ports, smoke-test load → first decode → Pi tools, then report results. Both Dual RTX cards: [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) (one model per GPU).
 - **Trying Muse Glimmer?** Use [Dual-RTX6000-Muse-Glimmer.md](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md). Thinking cannot be switched off (`reasoning_strength`). Smoke-test load → first decode → Pi tools, then report results.

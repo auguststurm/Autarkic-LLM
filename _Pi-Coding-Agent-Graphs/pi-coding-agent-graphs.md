@@ -250,7 +250,7 @@ That TUI writes `~/.pi/workflows/model-tiers.json`. Point **small**, **medium**,
 
 Without a valid medium mapping, the workflow can fail even when the host search succeeded.
 
-**Dual RTX 6000 (192 GB):** the tested host is still [Qwen3.8-27B Q8](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). For Tavily research, do not point all three tiers at a second 27B — the shipped skill is sequential and will not use it. Recommended pairing (⚠️ not load-tested as a pair): 27B Q8 on GPU 1 for host + Findings + Report (`medium` / `big`); Qwen3.6-35B-A3B Q8 on GPU 0 for Ingest + Skeptic (`small`). You must fork the four `agent()` calls onto those tiers. Full layout: [Best blend for Pi + Tavily](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-2xQ6.md#best-blend-for-pi--tavily-the-decision).
+**Dual RTX 6000 (192 GB):** start servers from the hardware guide — single-model [Qwen3.8-27B Q8](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) or [Localmaxing](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) (one model per card). For **this** research skill the matching two-card pack is **27B + 35B-A3B** (`small` = 35B-A3B for ingest/skeptic, `medium`/`big` = 27B for findings/report) after you fork the four `agent()` calls onto those tiers. The shipped script is sequential (`concurrency: 1`) and all `medium`, so GPU 0 stays idle until you do. Two 27Bs do not help this skill. Coder-30B is for code workflows, not this graph. The 27B host should own Tavily (`web_search` / `web_fetch`); keep workflow agents file-only.
 
 ### First run
 
@@ -397,4 +397,4 @@ Run journals: `~/.pi/workflows/.../runs/*.json` — useful if chat hits max toke
 
 **Stack summary:** official Tavily tools + dynamic workflows + this skill give a practical multi-agent research graph without a custom orchestrator; the LLM remains the local model from this repo.
 
-**Last Updated:** August 14, 2026 (example skill `search-topic-research` + install/invoke walkthrough)
+**Last Updated:** 2026-09-04 (Dual RTX Localmaxing packs; shipped skill still sequential `medium`)

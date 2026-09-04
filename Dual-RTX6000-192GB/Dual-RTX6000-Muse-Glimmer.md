@@ -2,7 +2,7 @@
 
 > ⚠️ **Not yet tested** on this hardware with Muse Glimmer (researched **2026-08-14**). Confirm load → first decode → Pi tools before relying on it.
 
-CUDA CC **12.0** · llama-cpp-turboquant · Ubuntu. Single GPU, q8/q8 KV, pinned context. Pi: [agentic harnesses — Muse](../agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent).
+Blackwell **sm_120** · llama-cpp-turboquant · Ubuntu. Single GPU, q8/q8 KV, pinned context. Pi: [agentic harnesses — Muse](../agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent).
 
 Need llama.cpp / turboquant **`b10353+`** (arch `muse-glimmer`). This box’s tip (`b10465` / `feature/turboquant-kv-cache`) already registers it and `draft-dflash`. Older builds refuse the file.
 
@@ -155,7 +155,7 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 
 ## This box
 
-**Single GPU on purpose.** Q8 + 131k/262k KV + optional DFlash + mmproj fit one 96 GB card. Multi-GPU (`--split-mode layer --tensor-split 96,96`) is unused for this 30B pin.
+**Single GPU on purpose.** Q8 + 131k/262k KV + optional DFlash + mmproj fit one 96 GB card. Multi-GPU (`--split-mode layer --tensor-split 96,96`) is unused for this 30B pin. Two-card **Qwen** packs (one `llama-server` per GPU): [Localmaxing](Dual-RTX6000-Qwen3.8-localmaxing.md).
 
 **Reasoning strength:** `high` (primary) · `xhigh` for hardest problems (raise `--n-predict` if you still hit `length`) · `medium` / `low` for snappier tools. Per request: `"chat_template_kwargs": {"reasoning_strength":"low"}`. The OpenAI spelling `reasoning_effort` is **not** what this template reads.
 
@@ -212,6 +212,7 @@ vLLM / SGLang (BF16 / FP8 / NVFP4 + native DFlash) are viable on this Blackwell 
 ## See also
 
 - [Meta llama.cpp](https://dev.meta.ai/docs/muse-glimmer/llama-cpp/) · [Unsloth Muse](https://unsloth.ai/docs/models/muse-glimmer) · [prompting](https://dev.meta.ai/docs/muse-glimmer/prompting)
+- Two-card Qwen: [Dual-RTX6000-Qwen3.8-localmaxing.md](Dual-RTX6000-Qwen3.8-localmaxing.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses — Muse](../agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent)
 
-**Last Updated:** 2026-08-20 (recipe shape; still ⚠️ untested on this box)
+**Last Updated:** 2026-09-04 (sm_120 wording; Localmaxing pointer; still ⚠️ untested on this box)

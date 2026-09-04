@@ -52,7 +52,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON
 cmake --build . --config Release -j$(nproc)
 ```
 
-> **CUDA architectures (optional but recommended).** Omit `-DCMAKE_CUDA_ARCHITECTURES` to autodetect on the build machine. Set it explicitly when cross-compiling or sharing binaries:
+> **CUDA architectures (optional but recommended).** These numbers are GPU **compute capability** (`sm_XX`), not the CUDA toolkit version. Omit `-DCMAKE_CUDA_ARCHITECTURES` to autodetect on the build machine. Set it explicitly when cross-compiling or sharing binaries:
 >
 > | GPU | `-DCMAKE_CUDA_ARCHITECTURES` |
 > | --- | --- |
@@ -90,12 +90,13 @@ All configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic /
 | **Muse Glimmer 30B** | Dense VLM, 131K ctx (⚠️ Dual RTX untested) | [unsloth/Muse-Glimmer-30B-GGUF](https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/tree/main) | [meta-models/Muse-Glimmer-30B](https://huggingface.co/meta-models/Muse-Glimmer-30B) |
 | **Qwen3.8-27B** | Dense VLM, 262K ctx (✅ Dual RTX tested 2026-08-14) | [unsloth/Qwen3.8-27B-GGUF](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) | [Qwen/Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) |
 | Qwen3.6-27B | Dense, 262K ctx (field-tested paths) | [unsloth/Qwen3.6-27B-GGUF](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | [Qwen/Qwen3.6-27B](https://huggingface.co/Qwen/Qwen3.6-27B) |
-| Qwen3.6-35B-A3B | MoE (3B active) | [unsloth/Qwen3.6-35B-A3B-GGUF](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) | [QwenLM/Qwen3.6](https://github.com/QwenLM/Qwen3.6) |
+| Qwen3.6-35B-A3B | MoE (3B active); Dual RTX Localmaxing `small` (general) | [unsloth/Qwen3.6-35B-A3B-GGUF](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) | [QwenLM/Qwen3.6](https://github.com/QwenLM/Qwen3.6) |
+| Qwen3-Coder-30B-A3B | Coding MoE (3B active); Dual RTX Localmaxing `small` (code) | [unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF](https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/tree/main) | [Qwen/Qwen3-Coder-30B-A3B-Instruct](https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct) |
 | Gemma 4 E2B | Dense edge (PLE) | [unsloth/gemma-4-E2B-it-GGUF](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) | [google/gemma-4-E2B](https://huggingface.co/google/gemma-4-E2B) |
 
 Collections: [Muse Glimmer (Unsloth)](https://huggingface.co/collections/unsloth/muse-glimmer) · [Qwen3.8 (Unsloth)](https://huggingface.co/collections/unsloth/qwen38) · [Qwen3.6 (Unsloth)](https://huggingface.co/collections/unsloth/qwen36) · [Gemma 4 (Unsloth)](https://huggingface.co/collections/unsloth/gemma-4). MTP variants (e.g. `*-MTP-GGUF`) offer ~1.5–2× faster decode via multi-token prediction. Muse Glimmer’s analog is **DFlash** (`dflash-kquant.gguf`, `--spec-type draft-dflash`). **Default rule:** pick the largest / highest-quality quant that still leaves headroom for OS + KV at your pinned context — each [hardware guide](README.md#hardware-configurations-included) names the exact file.
 
-**Qwen3.8 guides** (knobs from each box’s tested 3.6 path): [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** (2026-08-14, Pi) · [Dual RTX 2× Q6](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-2xQ6.md) ✅ load + parallel decode · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) ⚠️ untested · [M5 MacBook Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ⚠️ untested. Need a fresh turboquant build (`qwen35` arch).
+**Qwen3.8 guides** (knobs from each box’s tested 3.6 path): [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** (2026-08-14, Pi) · [Dual RTX Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) one model per card (2×27B ✅, or 27B + Coder / 35B-A3B) · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) ⚠️ untested · [M5 MacBook Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ⚠️ untested. Need a fresh turboquant build (`qwen35` arch).
 
 **Muse Glimmer guide:** [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) ⚠️ untested (2026-08-14). Need llama.cpp / turboquant **`b10353+`** (`muse-glimmer` arch). Official sampling is **temp 1.0 / top_p 0.95 / top_k 64**. Thinking **cannot** be switched off (`--reasoning off` is a no-op); use `reasoning_strength` (`low`/`medium`/`high`/`xhigh`). Optional **DFlash**: `--spec-type draft-dflash` + `dflash-kquant.gguf`. Docs: [Unsloth](https://unsloth.ai/docs/models/muse-glimmer) · [Meta llama.cpp](https://dev.meta.ai/docs/muse-glimmer/llama-cpp/).
 
@@ -142,7 +143,7 @@ No public day-zero **Qwen3.8** KLD tables yet; quality steps follow prior Unslot
 | Quant | Size | Quality vs Q8 | Decode (typical) | This repo |
 | --- | --- | --- | --- | --- |
 | **UD-Q8_K_XL** | **~31.5 GB** | Near-lossless | Baseline | [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) ✅ primary |
-| **UD-Q6_K_XL** | **~25.9 GB** | Tiny step down; hard to notice | ~5–15% faster | [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) class · [Dual RTX 2×](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-2xQ6.md) |
+| **UD-Q6_K_XL** | **~25.9 GB** | Tiny step down; hard to notice | ~5–15% faster | [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) class · Dual RTX [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) two-27B pack |
 | **UD-Q5_K_XL** | **~20.2 GB** | Still very high; slight loss on hard coding | ~10–20% faster | [M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) class |
 | **UD-Q4_K_XL** | **~17.9 GB** | First step many people *feel* on long agent loops | Fastest of the four | [4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md)-class fit |
 

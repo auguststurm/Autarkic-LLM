@@ -23,7 +23,7 @@ Grok is the assistant this repo is written to pair with. The setup prompt still 
 - Primary engine: **llama-cpp-turboquant** (the TurboQuant fork of llama.cpp); build it via [`local-setup.md`](local-setup.md)
 - Preferred models: **Qwen3.8-27B** (dense VLM, Unsloth UD quants) on roomier boxes — **✅ tested** on Dual RTX 6000 day-of-release; **Muse Glimmer 30B** (Meta, Apache 2.0, Unsloth UD) as a Dual RTX starting point (⚠️ untested); **Qwen3.6** dense + MoE where still the tested path; Gemma 4 E2B for edge devices
 - Emphasis on KV-cache optimization (TurboQuant), flash attention, agent-friendly Qwen settings (thinking off, pinned context), Muse Glimmer settings (thinking **cannot** be switched off — `reasoning_strength` + clean `reasoning_content`), and stable sampling (details in the [deep dive](llama-cpp-turboquant.md))
-- **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). **Muse Glimmer + Pi** is a different row: [Muse Glimmer 30B + Pi](agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent). Multi-agent research in [Pi graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
+- **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Dual RTX second card: [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) (one model per GPU). **Muse Glimmer + Pi** is a different row: [Muse Glimmer 30B + Pi](agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent). Multi-agent research in [Pi graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
 
 ### Qwen3.8 (2026-08-14)
 
@@ -32,7 +32,7 @@ Grok is the assistant this repo is written to pair with. The setup prompt still 
 | Machine | Backend | Status | Qwen3.8 guide |
 | --- | --- | --- | --- |
 | Dual RTX 6000 Pro Max-Q (192 GB) | CUDA | ✅ **Tested** (2026-08-14, Pi agent) | [Dual-RTX6000-Qwen3.8.md](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) — Q8 @ 262k q8/q8 |
-| Dual RTX 6000 Pro Max-Q (192 GB) | CUDA | ✅ Dual load + parallel decode (2026-09-03) | [Dual-RTX6000-Qwen3.8-2xQ6.md](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-2xQ6.md) — multi-model Pi (2× Q6, or 27B+MoE) |
+| Dual RTX 6000 Pro Max-Q (192 GB) | CUDA | ✅ Dual load + parallel decode (2026-09-03) | [Dual-RTX6000-Qwen3.8-localmaxing.md](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) — Localmaxing (one model per card) |
 | DGX Spark Founders Edition (128 GB) | CUDA (GB10) | ⚠️ Untested (ported from 3.6) | [DGX-Spark-Qwen3.8.md](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) — Q6 @ 262k q8/turbo4 |
 | MacBook Pro M5 (48 GB) | Metal | ⚠️ Untested (ported from 3.6) | [M5-MacBook-Pro-Qwen3.8.md](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) — Q5 @ 196k q8/q8 |
 
@@ -67,7 +67,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.8-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/turbo4, ported from 3.6) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.6-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.8-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) |
-| Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | Multi-model Pi: 2× [Qwen3.8-27B Q6](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) or 27B Q8 + [35B-A3B](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) | ✅ Load+decode (2× Q6) | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-2xQ6.md) |
+| Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | Localmaxing (one per card): 2× [Qwen3.8-27B](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main), or 27B + [Coder-30B](https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/tree/main) / [35B-A3B](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) | ✅ Load+decode (2× Q6) | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Muse Glimmer 30B UD-Q8_K_XL](https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/tree/main) (131k q8/q8, DFlash optional) | ⚠️ Untested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) |
 
 ## Quick Start
@@ -76,7 +76,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 2. If you have not built the engine yet, do prerequisites in [`local-setup.md`](local-setup.md), then use **that guide’s** cmake (backend/arch live there).
 3. Copy the guide’s `models.json` to **`~/.pi/agent/models.json`**. Match `contextWindow` to `--ctx-size` and `maxTokens` to `--n-predict`. [Agentic harnesses](agentic-harnesses.md).
 
-**How to read a hardware guide:** pin table at the top → Download → Build → PRIMARY command → Confirm → Pi JSON → this-box fallbacks. Essays (GGUF names, flag encyclopedia, Pi theory) live in `local-setup.md`, `llama-cpp-turboquant.md`, and `agentic-harnesses.md`. Qwen3.6 and Qwen3.8 are **siblings** on the same machine, not replacements.
+**How to read a hardware guide:** pin table at the top → Download → Build → PRIMARY command → Confirm → Pi JSON → this-box fallbacks. Essays (GGUF names, flag encyclopedia, Pi theory) live in `local-setup.md`, `llama-cpp-turboquant.md`, and `agentic-harnesses.md`. Qwen3.6 and Qwen3.8 are **siblings** on the same machine, not replacements. Dual RTX **Localmaxing** is the second-card recipe (one `llama-server` per GPU), not a replacement for the Q8 primary.
 
 Your hardware is not in the table? Use [`ai-assisted-setup.md`](ai-assisted-setup.md). New to the words? [Glossary](glossary.md). Multi-agent / Tavily: [Pi Coding Agent graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
 
@@ -105,7 +105,7 @@ Autarkic-LLM/
 ├── glossary.md
 ├── AMD-7900-XTX/                   # Vulkan · Qwen3.6 MTP (tested)
 ├── DGX-Spark-128GB/                # 3.6 tested · 3.8 port untested
-├── Dual-RTX6000-192GB/             # 3.6 + 3.8 tested · 2× Q6 · Muse untested
+├── Dual-RTX6000-192GB/             # 3.6 + 3.8 tested · Localmaxing · Muse untested
 ├── M5-MacBook-Pro-48GB/            # 3.6 tested · 3.8 port untested
 ├── M4-MacBook-Air-24GB/
 ├── M4-Mac-Mini-16GB/
@@ -118,6 +118,6 @@ Autarkic-LLM/
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** 2026-09-03 (Dual RTX 2× Q6 instances)  
+**Last Updated:** 2026-09-04 (Dual RTX Localmaxing)  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)

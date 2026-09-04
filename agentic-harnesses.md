@@ -14,7 +14,7 @@ These are independent third-party projects; local-model support evolves, so chec
 
 ## Connecting to your server
 
-Each hardware guide includes a **complete** Pi `models.json` — the full `providers` object with `baseUrl`, `api`, `apiKey`, and your model. Copy the entire JSON block into **`~/.pi/agent/models.json`** as-is (`mkdir -p ~/.pi/agent` first if needed). Do not assemble a wrapper by hand. One `llama-server` → one provider key (guides use `llama-cpp`). Two servers on two GPUs → **two** provider keys with different `baseUrl`s: [Dual RTX multi-model Pi](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-2xQ6.md).
+Each hardware guide includes a **complete** Pi `models.json` — the full `providers` object with `baseUrl`, `api`, `apiKey`, and your model. Copy the entire JSON block into **`~/.pi/agent/models.json`** as-is (`mkdir -p ~/.pi/agent` first if needed). Do not assemble a wrapper by hand. One `llama-server` → one provider key (guides use `llama-cpp`). Two servers on two GPUs → **two** provider keys with different `baseUrl`s (one key per process): [Dual RTX Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) (one model per card).
 
 ```json
 {
@@ -44,7 +44,7 @@ Each hardware guide includes a **complete** Pi `models.json` — the full `provi
 - `maxTokens` ≤ `--n-predict`.
 - Restart **both** `llama-server` and Pi after changing either side. Pi’s status bar must match the pin (stale `models.json` is a common failure mode).
 
-Hardware-specific numbers always come from **your** guide (pin table + `models.json`). Guide *shape* (download → cmake → PRIMARY → JSON): [Dual RTX Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). Tight Metal / `--fit` crush / turbo2 V: [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). Field-validated **Pi + dense Qwen 27B** lessons below cover **Qwen3.6-27B** and **Qwen3.8-27B** (Dual RTX 3.8 is field-tested). Dual RTX + Tavily graphs: keep that Q8 27B as host; optional 35B-A3B on the other GPU — [blend](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-2xQ6.md#best-blend-for-pi--tavily-the-decision). Muse Glimmer Pi pin: [Muse Glimmer 30B + Pi](#muse-glimmer-30b--pi-coding-agent).
+Hardware-specific numbers always come from **your** guide (pin table + `models.json`). Guide *shape* (download → cmake → PRIMARY → JSON): [Dual RTX Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). Tight Metal / `--fit` crush / turbo2 V: [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). Field-validated **Pi + dense Qwen 27B** lessons below cover **Qwen3.6-27B** and **Qwen3.8-27B** (Dual RTX 3.8 is field-tested). Dual RTX two cards (one model each; pick by the second stream): [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md). Muse Glimmer Pi pin: [Muse Glimmer 30B + Pi](#muse-glimmer-30b--pi-coding-agent).
 
 ## Qwen3.6-27B + Pi Coding Agent (cross-hardware)
 
@@ -112,6 +112,6 @@ Need a **fresh** turboquant / llama.cpp (`LLM_ARCH_MUSE_GLIMMER`). Optional spee
 
 ## Multi-agent workflows, Tavily & research graphs
 
-Once Pi points at your local server, you can layer **dynamic workflows** (parallel specialists, synthesis) and optional **Tavily** web search. The recommended research path is the generic skill [`search-topic-research`](_Pi-Coding-Agent-Graphs/example-skills/search-topic-research/) (host Tavily → pack → four-phase graph → dated report). Packages, launch (`TAVILY_API_KEY`), skill install, and workflow gotchas are in **[Pi Coding Agent graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)**.
+Once Pi points at your local server, you can layer **dynamic workflows** (parallel specialists, synthesis) and optional **Tavily** web search. Dual RTX two-card packs and `small` / `medium` / `big` mapping: [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md). The recommended research path is the generic skill [`search-topic-research`](_Pi-Coding-Agent-Graphs/example-skills/search-topic-research/) (host Tavily → pack → four-phase graph → dated report). Packages, launch (`TAVILY_API_KEY`), skill install, and workflow gotchas are in **[Pi Coding Agent graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)**.
 
 > Tavily is cloud search: the model stays local; search traffic does not. Skip it for pure offline use.
