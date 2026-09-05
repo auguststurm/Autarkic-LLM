@@ -250,7 +250,7 @@ That TUI writes `~/.pi/workflows/model-tiers.json`. Point **small**, **medium**,
 
 Without a valid medium mapping, the workflow can fail even when the host search succeeded.
 
-**Dual RTX 6000 (192 GB):** start servers from the hardware guide — single-model [Qwen3.8-27B Q8](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) or [Localmaxing](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) (one model per card). For **this** research skill the matching two-card pack is **27B + 35B-A3B** (`small` = 35B-A3B for ingest/skeptic, `medium`/`big` = 27B for findings/report) after you fork the four `agent()` calls onto those tiers. The shipped script is sequential (`concurrency: 1`) and all `medium`, so GPU 0 stays idle until you do. Two 27Bs do not help this skill. Coder-30B is for code workflows, not this graph. The 27B host should own Tavily (`web_search` / `web_fetch`); keep workflow agents file-only.
+**Dual RTX 6000 (192 GB):** this example skill is **one GPU**. Two cards: install [search-topic-research-dual-rtx](../Dual-RTX6000-192GB/search-topic-research-dual-rtx/) (one `cp`, then `/skill:search-topic-research-dual-rtx`). Servers and tiers: [Localmaxing](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md).
 
 ### First run
 
@@ -355,7 +355,7 @@ Run journals: `~/.pi/workflows/.../runs/*.json` — useful if chat hits max toke
 ## Observed behavior
 
 - Tavily tools appear when the key is in the process env.
-- Dynamic workflows support **parallel** specialists and a **synthesis** step; this skill runs its four agents **sequentially** (`concurrency: 1`) to stay stable on local dense Qwen.
+- Dynamic workflows support **parallel** specialists and a **synthesis** step; this skill runs its four agents **sequentially** (`concurrency: 1`) so it stays a one-GPU drop-in. Dual RTX: [search-topic-research-dual-rtx](../Dual-RTX6000-192GB/search-topic-research-dual-rtx/).
 - Report quality tracks **stable local settings** (context pin, agent sampling, no DRY for tool paths) and **pack quality** (the workflow cannot search).
 - Large runs can still overflow a small `contextWindow` or hit **`maxTokens` / `--n-predict`** on the final “show the report” turn even when the workflow completed. Prefer reading the file on disk.
 
@@ -379,7 +379,6 @@ Run journals: `~/.pi/workflows/.../runs/*.json` — useful if chat hits max toke
 
 ## Roadmap
 
-- Optional **model tier** split (lighter Ingest/Skeptic on **small**, Report on **medium**) once local routing is field-tested
 - Domain forks (keep the generic skill unchanged)
 - Optional project-cwd output root (today the skill’s `$ROOT` is the global skill directory)
 

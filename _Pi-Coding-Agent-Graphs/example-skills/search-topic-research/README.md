@@ -108,7 +108,7 @@ Headings are fixed — see `references/report-template.md`:
 
 - Short host skill; pack is durable memory (append after each search).
 - `max_results: 6`, `concurrency: 1`, `agentRetries: 2`.
-- Four workflow agents (Ingest → Findings → Skeptic → Report).
+- Four workflow agents (Ingest → Findings → Skeptic → Report), sequential, **medium** — one GPU.
 - STAMP/paths only from bash (`$HOME`, `date +%Y-%m-%d`).
 
 If the model **loops on dates**, invents homes, or repeats garbage: fix server/sampler/KV first, then re-run. Keep `models.json` `contextWindow` / `maxTokens` aligned with the server.

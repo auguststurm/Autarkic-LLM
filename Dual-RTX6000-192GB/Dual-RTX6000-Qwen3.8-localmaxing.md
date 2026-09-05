@@ -529,11 +529,78 @@ Load log per process: `n_ctx_seq` matches that group, `load_mode = none`. Short 
 
 JSON for each pack is in [§3](#3-start-the-servers). Paths: `~/.pi/agent/models.json` and `~/.pi/workflows/model-tiers.json`. **One provider key per `baseUrl`.** Dummy `apiKey` is required or Pi hides the models in `/model`. `compat` keeps Pi from sending a `developer` role / `reasoning_effort` these local Qwen servers are not running. `--alias` **must** match the JSON `id`. `contextWindow` = that server’s `--ctx-size`. Open `/model` to reload.
 
-Without a valid **medium**, workflow agents fail. A workflow that puts every `agent()` on `medium` never calls GPU 0. `parallel()` work has to name `small` (or `{ model: "llama-cpp-8080/…" }`) or the second card stays idle — [why](#why-pick-a-pack).
-
-Status bar must show **262k** on the 27B host. New session after sampler/server changes (`/new`). Two humans / two heavy sessions: two `pi` processes, **different** `/model` ids on **different GPUs**.
+Without a valid **medium**, workflow agents fail. Status bar must show **262k** on the 27B host. New session after sampler/server changes (`/new`). Two humans / two heavy sessions: two `pi` processes, **different** `/model` ids on **different GPUs**.
 
 Cloud providers (Grok / xAI via `/login`) can sit beside these keys. Optional: `pi install npm:pi-llama-cpp` for `/models` browse — **not required**. Connect rules: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Packages and research skills: [Pi graphs](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
+
+## 5. Use both cards in Pi
+
+Servers from [§3](#3-start-the-servers) only **hold** two models. Pi uses GPU 0 when a call hits `:8080` (`small`). Everything else — your chat, `medium`, `big`, `agent()` with no `tier` — is GPU 1.
+
+That is why `/skill:search-topic-research` looked like this: host Tavily on GPU 0 (your `/model`), then subagents all `medium` on GPU 1. The [generic skill](../_Pi-Coding-Agent-Graphs/example-skills/search-topic-research/) is a one-GPU drop-in. Keep it for one-card machines.
+
+### Research on this box
+
+Pack already running. Tiers already in [§3](#3-start-the-servers) (`small` → `:8080`, `medium`/`big` → `:8081`). `/model` on GPU 1.
+
+```bash
+mkdir -p ~/.pi/agent/skills
+cp -a Dual-RTX6000-192GB/search-topic-research-dual-rtx \
+      ~/.pi/agent/skills/search-topic-research-dual-rtx
+```
+
+`/reload`, then:
+
+```text
+/skill:search-topic-research-dual-rtx EU AI Act enforcement timeline 2025-2026
+```
+
+Watch `nvidia-smi -l 1`:
+
+| When | GPU 0 (`:8080` / `small`) | GPU 1 (`:8081` / `medium`+`big`) |
+| --- | --- | --- |
+| Host Tavily (pack) | only if `/model` is GPU 0 | only if `/model` is GPU 1 (this guide) |
+| Findings | busy | busy |
+| Skeptic | busy | busy |
+| Report | idle | busy |
+
+If Findings shows GPU 1 only, `/workflows` agent ids are all `llama-cpp-8081/…` — tiers are wrong or this skill is not the one that ran.
+
+### Any other workflow
+
+Stock `/code-review` / `/deep-research` / `/ultracode` stay on `medium`. For work you write, same `parallel()` in one phase:
+
+```javascript
+await parallel([
+  () => agent(jobA, { tier: "small", label: "gpu0" }),
+  () => agent(jobB, { tier: "medium", label: "gpu1" }),
+])
+```
+
+Smoke test (`/workflows run`, paste). Both cards high util during **Both GPUs**:
+
+```javascript
+export const meta = {
+  name: "dual_rtx_both_gpus",
+  phases: [{ title: "Both GPUs" }, { title: "Merge" }],
+}
+
+phase("Both GPUs")
+const [a, b] = await parallel([
+  () => agent("Reply with exactly: GPU0_OK", { tier: "small", label: "gpu0" }),
+  () => agent("Reply with exactly: GPU1_OK", { tier: "medium", label: "gpu1" }),
+])
+
+phase("Merge")
+return await agent(`One line: ${a} / ${b}`, { tier: "big", label: "merge" })
+```
+
+When Pi writes a workflow, include:
+
+```text
+Inside every parallel(), split agents across tier "small" and "medium" (i % 2).
+Both GPUs must generate at once. Do not put the whole fleet on medium.
+```
 
 ## This box
 
@@ -556,6 +623,7 @@ Cloud providers (Grok / xAI via `/login`) can sit beside these keys. Optional: `
 - 3.6 MoE **split across both cards** (different layout): [Dual-RTX6000-Qwen3.6.md](Dual-RTX6000-Qwen3.6.md#alternate-multi-gpu-layer-split)
 - Pi connect: [agentic harnesses](../agentic-harnesses.md)
 - Workflows, Tavily, skills: [pi-coding-agent-graphs](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
+- Dual RTX research skill: [search-topic-research-dual-rtx](search-topic-research-dual-rtx/)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md)
 - Unsloth: [Qwen3.8](https://unsloth.ai/docs/models/qwen3.8) · [Qwen3.6](https://unsloth.ai/docs/models/qwen3.6) · [Coder-30B](https://unsloth.ai/docs/models/tutorials/qwen3-coder-how-to-run-locally) · [Coder-Next](https://unsloth.ai/docs/models/qwen3-coder-next) · [Flash-Next](https://unsloth.ai/docs/models/qwen3.8-next)
 
