@@ -53,7 +53,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 | Hardware | Memory | Backend | Model | Tested | Guide |
 | --- | --- | --- | --- | --- | --- |
 | Jetson Orin Nano Super | 8 GB | CUDA (sm_87) | [Gemma 4 E2B Q4_K_S](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) (16k q8/q8) | ✅ Tested | [guide](Jetson-Orin-Nano-Super/Jetson-Orin-Gemma4-E2B.md) |
-| Jetson Orin Nano Super | 8 GB | CUDA (sm_87) | [LFM2.5-2.6B Q8_0](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/tree/main) (16k q8/q8) | ⚠️ Untested | [guide](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) |
+| Jetson Orin Nano Super | 8 GB | CUDA (sm_87) | [LFM2.5-2.6B Q8_0](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/tree/main) (32k q8/q8) | ⚠️ Untested | [guide](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) |
 | M4 Mac Mini | 16 GB | Metal | [Gemma 4 E2B Q4_K_S](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) (recommended) | ⚠️ Untested | [guide](M4-Mac-Mini-16GB/M4-Mac-Mini-Gemma-4-E2B.md) |
 | M4 Mac Mini (experimental) | 16 GB | Metal | [Qwen3.6-35B-A3B UD-IQ2_M](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) (tight, turbo2 V, ~8k start) | ⚠️ Untested | [guide](M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md) |
 | M2 Mac Mini | 16 GB | Metal | [Gemma 4 E2B Q4_K_S](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) (recommended) | ⚠️ Untested | [guide](M2-Mac-Mini-16GB/M2-Mac-Mini-Gemma-4-E2B.md) |

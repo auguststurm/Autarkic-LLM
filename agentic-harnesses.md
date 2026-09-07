@@ -112,15 +112,16 @@ Need a **fresh** turboquant / llama.cpp (`LLM_ARCH_MUSE_GLIMMER`). Optional spee
 
 ## LFM2.5-2.6B + Pi Coding Agent
 
-> ⚠️ **Not field-tested in this repo yet.** Hardware pin: [Jetson Orin Nano Super LFM2.5](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md). Two-limit / no-DRY / `--fit off` rules still apply. Omit `--reasoning off` — the chat template always starts the assistant with `<think>`.
+> ⚠️ **Not field-tested in this repo yet.** Hardware pin: [Jetson Orin Nano Super LFM2.5](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) — **32k q8/q8**, `--n-predict` / `maxTokens` **8192**. Two-limit / no-DRY / `--fit off` rules still apply. Omit `--reasoning off` — the chat template always starts the assistant with `<think>`.
 
 Official card: [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B). The card **does not recommend this model for agentic coding** — the tested Jetson coding pin remains [Gemma 4 E2B](Jetson-Orin-Nano-Super/Jetson-Orin-Gemma4-E2B.md).
 
 | Prefer for Pi + LFM2.5-2.6B | Avoid |
 | --- | --- |
 | **`--jinja`** | Skipping `--jinja` |
-| Thinking in `reasoning_content`, answer/tools in `content` | `--reasoning off` / `--reasoning-budget 0` / `--reasoning-format none` |
-| **`--n-predict` large enough** (Jetson primary **4096**) — thinking counts against the output cap | Tiny `maxTokens` (empty `content`, `finish_reason: length`) |
+| Pi `reasoning` **true**, `thinkingLevelMap.off` **null**; thinking in `reasoning_content` | `--reasoning off` / `--reasoning-budget 0` / `--reasoning-format none` |
+| **`--ctx-size` / `contextWindow` 32768** | Gemma’s 16k window (Pi first-turn `length`; [guide](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md#pi-truncation-on-the-first-turn)) |
+| **`--n-predict` / `maxTokens` 8192** (raise both to **16384** if still `length`) — thinking counts against the cap | `maxTokens` 4096 |
 | Official sampling: **`temp 0.1`**, **`top_k 50`**, **`repeat-penalty 1.1`**, **`presence 0`** | Gemma (`temp 0.75` / `top_p 0.92`) or Qwen Pi (`temp 0.6` / `top_k 20`) sampling |
 | **Q8_0** while it loads; **Q6_K** if it does not | Starting at **Q4_K_M** |
 | **`--parallel 1`** | Raising `-np` without scaling `-c` |
