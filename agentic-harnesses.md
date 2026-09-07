@@ -44,7 +44,7 @@ Each hardware guide includes a **complete** Pi `models.json` — the full `provi
 - `maxTokens` ≤ `--n-predict`.
 - Restart **both** `llama-server` and Pi after changing either side. Pi’s status bar must match the pin (stale `models.json` is a common failure mode).
 
-Hardware-specific numbers always come from **your** guide (pin table + `models.json`). Guide *shape* (download → cmake → PRIMARY → JSON): [Dual RTX Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). Tight Metal / `--fit` crush / turbo2 V: [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). Field-validated **Pi + dense Qwen 27B** lessons below cover **Qwen3.6-27B** and **Qwen3.8-27B** (Dual RTX 3.8 is field-tested). Dual RTX two cards (one model each; pick by the second stream): [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md). Muse Glimmer Pi pin: [Muse Glimmer 30B + Pi](#muse-glimmer-30b--pi-coding-agent).
+Hardware-specific numbers always come from **your** guide (pin table + `models.json`). Guide *shape* (download → cmake → PRIMARY → JSON): [Dual RTX Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). Tight Metal / `--fit` crush / turbo2 V: [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). Field-validated **Pi + dense Qwen 27B** lessons below cover **Qwen3.6-27B** and **Qwen3.8-27B** (Dual RTX 3.8 is field-tested). Dual RTX two cards (one model each; pick by the second stream): [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md). Muse Glimmer Pi pin: [Muse Glimmer 30B + Pi](#muse-glimmer-30b--pi-coding-agent). LFM2.5-2.6B Pi pin: [LFM2.5-2.6B + Pi](#lfm25-26b--pi-coding-agent).
 
 ## Qwen3.6-27B + Pi Coding Agent (cross-hardware)
 
@@ -109,6 +109,22 @@ Muse Glimmer is Meta’s ~30B dense VLM (arch `muse-glimmer`, llama.cpp **`b1035
 | **No DRY** | DRY on path-heavy tool loops ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
 
 Need a **fresh** turboquant / llama.cpp (`LLM_ARCH_MUSE_GLIMMER`). Optional speed: **DFlash** (`--spec-type draft-dflash` + `dflash-kquant.gguf`), not Qwen MTP.
+
+## LFM2.5-2.6B + Pi Coding Agent
+
+> ⚠️ **Not field-tested in this repo yet.** Hardware pin: [Jetson Orin Nano Super LFM2.5](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md). Two-limit / no-DRY / `--fit off` rules still apply. Omit `--reasoning off` — the chat template always starts the assistant with `<think>`.
+
+Official card: [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B). The card **does not recommend this model for agentic coding** — the tested Jetson coding pin remains [Gemma 4 E2B](Jetson-Orin-Nano-Super/Jetson-Orin-Gemma4-E2B.md).
+
+| Prefer for Pi + LFM2.5-2.6B | Avoid |
+| --- | --- |
+| **`--jinja`** | Skipping `--jinja` |
+| Thinking in `reasoning_content`, answer/tools in `content` | `--reasoning off` / `--reasoning-budget 0` / `--reasoning-format none` |
+| **`--n-predict` large enough** (Jetson primary **4096**) — thinking counts against the output cap | Tiny `maxTokens` (empty `content`, `finish_reason: length`) |
+| Official sampling: **`temp 0.1`**, **`top_k 50`**, **`repeat-penalty 1.1`**, **`presence 0`** | Gemma (`temp 0.75` / `top_p 0.92`) or Qwen Pi (`temp 0.6` / `top_k 20`) sampling |
+| **Q8_0** while it loads; **Q6_K** if it does not | Starting at **Q4_K_M** |
+| **`--parallel 1`** | Raising `-np` without scaling `-c` |
+| **No DRY** | DRY on path-heavy tool loops ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
 
 ## Multi-agent workflows, Tavily & research graphs
 

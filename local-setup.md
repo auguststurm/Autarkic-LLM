@@ -83,7 +83,7 @@ cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 
 ### Model catalog (Hugging Face)
 
-All configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic / "UD" quants) so they run on [llama.cpp](https://github.com/ggml-org/llama.cpp). Quant suffixes (`Q4`, `Q6`, `IQ2`, `_K_XL`, …) trade file size/memory for quality. **How to read those names and pick a level** is in [Understanding GGUF quants](#understanding-gguf-quants-why-so-many-files) below. Short defs: [Glossary](glossary.md) · [Unsloth Dynamic GGUFs](https://unsloth.ai/docs/basics/unsloth-dynamic-2.0-ggufs).
+Most configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic / "UD" quants) so they run on [llama.cpp](https://github.com/ggml-org/llama.cpp). **LFM2.5-2.6B** is the exception: official Liquid AI GGUFs (not Unsloth). Quant suffixes (`Q4`, `Q6`, `IQ2`, `_K_XL`, …) trade file size/memory for quality. **How to read those names and pick a level** is in [Understanding GGUF quants](#understanding-gguf-quants-why-so-many-files) below. Short defs: [Glossary](glossary.md) · [Unsloth Dynamic GGUFs](https://unsloth.ai/docs/basics/unsloth-dynamic-2.0-ggufs).
 
 | Model | Type | GGUF files & downloads | Original weights |
 | --- | --- | --- | --- |
@@ -93,12 +93,15 @@ All configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic /
 | Qwen3.6-35B-A3B | MoE (3B active); Dual RTX Localmaxing `small` (general) | [unsloth/Qwen3.6-35B-A3B-GGUF](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) | [QwenLM/Qwen3.6](https://github.com/QwenLM/Qwen3.6) |
 | Qwen3-Coder-30B-A3B | Coding MoE (3B active); Dual RTX Localmaxing `small` (code) | [unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF](https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/tree/main) | [Qwen/Qwen3-Coder-30B-A3B-Instruct](https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct) |
 | Gemma 4 E2B | Dense edge (PLE) (✅ Jetson Orin Nano Super tested) | [unsloth/gemma-4-E2B-it-GGUF](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) | [google/gemma-4-E2B](https://huggingface.co/google/gemma-4-E2B) |
+| LFM2.5-2.6B | Hybrid edge (conv + 8 GQA), 128K train ctx (⚠️ Jetson untested) | [LiquidAI/LFM2.5-2.6B-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/tree/main) | [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B) |
 
 Collections: [Muse Glimmer (Unsloth)](https://huggingface.co/collections/unsloth/muse-glimmer) · [Qwen3.8 (Unsloth)](https://huggingface.co/collections/unsloth/qwen38) · [Qwen3.6 (Unsloth)](https://huggingface.co/collections/unsloth/qwen36) · [Gemma 4 (Unsloth)](https://huggingface.co/collections/unsloth/gemma-4). MTP variants (e.g. `*-MTP-GGUF`) offer ~1.5–2× faster decode via multi-token prediction. Muse Glimmer’s analog is **DFlash** (`dflash-kquant.gguf`, `--spec-type draft-dflash`). **Default rule:** pick the largest / highest-quality quant that still leaves headroom for OS + KV at your pinned context — each [hardware guide](README.md#hardware-configurations-included) names the exact file.
 
 **Qwen3.8 guides** (knobs from each box’s tested 3.6 path): [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** (2026-08-14, Pi) · [Dual RTX Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) one model per card (2×27B ✅, or 27B + Coder / 35B-A3B) · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) ⚠️ untested · [M5 MacBook Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ⚠️ untested. Need a fresh turboquant build (`qwen35` arch).
 
 **Muse Glimmer guide:** [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) ⚠️ untested (2026-08-14). Need llama.cpp / turboquant **`b10353+`** (`muse-glimmer` arch). Official sampling is **temp 1.0 / top_p 0.95 / top_k 64**. Thinking **cannot** be switched off (`--reasoning off` is a no-op); use `reasoning_strength` (`low`/`medium`/`high`/`xhigh`). Optional **DFlash**: `--spec-type draft-dflash` + `dflash-kquant.gguf`. Docs: [Unsloth](https://unsloth.ai/docs/models/muse-glimmer) · [Meta llama.cpp](https://dev.meta.ai/docs/muse-glimmer/llama-cpp/).
+
+**LFM2.5-2.6B guide:** [Jetson Orin Nano Super](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) ⚠️ untested (2026-09-07). Official Liquid GGUF. **Q8_0** primary (2.87 GB); **Q6_K** (2.22 GB) is the headroom swap. Official sampling **temp 0.1 / top_k 50 / repeat-penalty 1.1**. Template always opens `<think>` — omit `--reasoning off`. Docs: [Liquid model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B).
 
 **Unsloth extras worth knowing** ([Qwen3.8 guide](https://unsloth.ai/docs/models/qwen3.8) · [MTP](https://unsloth.ai/docs/models/mtp) · [Muse Glimmer](https://unsloth.ai/docs/models/muse-glimmer)): UD GGUFs are **Dynamic V3.0** (developer-role + better nested tool calls); Qwen optional **`--spec-type draft-mtp --spec-draft-n-max 2`** for ~1.4–2.2× decode on CUDA — recipe in [Dual RTX Qwen3.8 optionals](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#qwen38-optionals). Official Qwen sampling differs for thinking (temp 1.0) vs instruct (temp 0.7 / presence 1.5) — Pi tool sessions on **Qwen** keep presence **0**. Blackwell boxes may also try **NVFP4** via vLLM/SGLang (different stack).
 
@@ -174,7 +177,7 @@ Dense ~27B UD pick order: **Q8 → Q6 → Q5 → Q4 → IQ3/IQ2**. [Unsloth Dyna
 
 ### Download
 
-> **Disk space:** GGUFs are large. Muse Glimmer 30B `UD-Q8_K_XL` is ~32.3 GB (`UD-Q6_K_XL` ~26.3 GB, `UD-Q4_K_XL` ~15.9 GB; optional `dflash-kquant.gguf` ~1.6 GB). Qwen3.8-27B `UD-Q8_K_XL` is ~31.5 GB, `UD-Q6_K_XL` ~25.9 GB, `UD-Q5_K_XL` ~20.2 GB, `UD-Q4_K_XL` ~17.9 GB. Qwen3.6-27B `Q6_K_XL` is ~22 GB; 35B-A3B `Q4_K_XL` ~22 GB (down to ~11.5 GB for the `IQ2_M` used on 16 GB Macs); Gemma 4 E2B `Q4_K_S` ~3 GB. Make sure you have the room — and note `hf_transfer` downloads can momentarily use extra space.
+> **Disk space:** GGUFs are large. Muse Glimmer 30B `UD-Q8_K_XL` is ~32.3 GB (`UD-Q6_K_XL` ~26.3 GB, `UD-Q4_K_XL` ~15.9 GB; optional `dflash-kquant.gguf` ~1.6 GB). Qwen3.8-27B `UD-Q8_K_XL` is ~31.5 GB, `UD-Q6_K_XL` ~25.9 GB, `UD-Q5_K_XL` ~20.2 GB, `UD-Q4_K_XL` ~17.9 GB. Qwen3.6-27B `Q6_K_XL` is ~22 GB; 35B-A3B `Q4_K_XL` ~22 GB (down to ~11.5 GB for the `IQ2_M` used on 16 GB Macs); Gemma 4 E2B `Q4_K_S` ~3 GB; LFM2.5-2.6B `Q8_0` 2.87 GB (`Q6_K` 2.22 GB). Make sure you have the room — and note `hf_transfer` downloads can momentarily use extra space.
 
 ```bash
 pip install -U huggingface_hub hf_transfer
@@ -198,6 +201,11 @@ hf download unsloth/Qwen3.6-27B-GGUF \
 # Gemma example (Mac Mini / Jetson guides)
 hf download unsloth/gemma-4-E2B-it-GGUF \
   gemma-4-E2B-it-Q4_K_S.gguf \
+  --local-dir ~/Documents/AIML/models
+
+# LFM2.5 example (Jetson guide; official Liquid GGUF)
+hf download LiquidAI/LFM2.5-2.6B-GGUF \
+  LFM2.5-2.6B-Q8_0.gguf \
   --local-dir ~/Documents/AIML/models
 ```
 

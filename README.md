@@ -2,7 +2,7 @@
 
 > 🤖 **Setting up a machine? Don't read this whole repo — let an AI do it.** Prefer **Grok**. Copy the prompt in **[`ai-assisted-setup.md`](ai-assisted-setup.md)**, paste your hardware at the bottom, and it will use this repo to generate your build, `llama-server` command, model download, and Pi Coding Agent `models.json`.
 
-**Per-machine llama.cpp configs for running Muse Glimmer, Qwen3.8, Qwen3.6, and Gemma 4 fully offline.**
+**Per-machine llama.cpp configs for running Muse Glimmer, Qwen3.8, Qwen3.6, Gemma 4, and LFM2.5 fully offline.**
 
 Each hardware guide has the exact build flags and `llama-server` command for one machine, with a model and quant picked to fit its memory: no cloud, no API keys, nothing leaving the box. Configs marked **Tested** were run on that hardware; the rest are starting points (see the table below).
 
@@ -21,9 +21,9 @@ Grok is the assistant this repo is written to pair with. The setup prompt still 
 ## Current Focus
 
 - Primary engine: **llama-cpp-turboquant** (the TurboQuant fork of llama.cpp); build it via [`local-setup.md`](local-setup.md)
-- Preferred models: **Qwen3.8-27B** (dense VLM, Unsloth UD quants) on roomier boxes — **✅ tested** on Dual RTX 6000 day-of-release; **Muse Glimmer 30B** (Meta, Apache 2.0, Unsloth UD) as a Dual RTX starting point (⚠️ untested); **Qwen3.6** dense + MoE where still the tested path; **Gemma 4 E2B** for edge devices — **✅ tested** on Jetson Orin Nano Super
-- Emphasis on KV-cache optimization (TurboQuant), flash attention, agent-friendly Qwen settings (thinking off, pinned context), Muse Glimmer settings (thinking **cannot** be switched off — `reasoning_strength` + clean `reasoning_content`), and stable sampling (details in the [deep dive](llama-cpp-turboquant.md))
-- **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Dual RTX second card: [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) (one model per GPU). **Muse Glimmer + Pi** is a different row: [Muse Glimmer 30B + Pi](agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent). Multi-agent research in [Pi graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
+- Preferred models: **Qwen3.8-27B** (dense VLM, Unsloth UD quants) on roomier boxes — **✅ tested** on Dual RTX 6000 day-of-release; **Muse Glimmer 30B** (Meta, Apache 2.0, Unsloth UD) as a Dual RTX starting point (⚠️ untested); **Qwen3.6** dense + MoE where still the tested path; **Gemma 4 E2B** for edge devices — **✅ tested** on Jetson Orin Nano Super; **LFM2.5-2.6B** as a Jetson alternative (⚠️ untested; official Liquid GGUF, always-on thinking)
+- Emphasis on KV-cache optimization (TurboQuant), flash attention, agent-friendly Qwen settings (thinking off, pinned context), Muse Glimmer / LFM2.5 settings (thinking **cannot** be switched off — clean `reasoning_content`), and stable sampling (details in the [deep dive](llama-cpp-turboquant.md))
+- **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Dual RTX second card: [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) (one model per GPU). **Muse Glimmer + Pi** is a different row: [Muse Glimmer 30B + Pi](agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent). **LFM2.5-2.6B + Pi** (always-on `<think>`): [LFM2.5-2.6B + Pi](agentic-harnesses.md#lfm25-26b--pi-coding-agent). Multi-agent research in [Pi graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
 
 ### Qwen3.8 (2026-08-14)
 
@@ -53,6 +53,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 | Hardware | Memory | Backend | Model | Tested | Guide |
 | --- | --- | --- | --- | --- | --- |
 | Jetson Orin Nano Super | 8 GB | CUDA (sm_87) | [Gemma 4 E2B Q4_K_S](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) (16k q8/q8) | ✅ Tested | [guide](Jetson-Orin-Nano-Super/Jetson-Orin-Gemma4-E2B.md) |
+| Jetson Orin Nano Super | 8 GB | CUDA (sm_87) | [LFM2.5-2.6B Q8_0](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/tree/main) (16k q8/q8) | ⚠️ Untested | [guide](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) |
 | M4 Mac Mini | 16 GB | Metal | [Gemma 4 E2B Q4_K_S](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) (recommended) | ⚠️ Untested | [guide](M4-Mac-Mini-16GB/M4-Mac-Mini-Gemma-4-E2B.md) |
 | M4 Mac Mini (experimental) | 16 GB | Metal | [Qwen3.6-35B-A3B UD-IQ2_M](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) (tight, turbo2 V, ~8k start) | ⚠️ Untested | [guide](M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md) |
 | M2 Mac Mini | 16 GB | Metal | [Gemma 4 E2B Q4_K_S](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/tree/main) (recommended) | ⚠️ Untested | [guide](M2-Mac-Mini-16GB/M2-Mac-Mini-Gemma-4-E2B.md) |
@@ -111,13 +112,13 @@ Autarkic-LLM/
 ├── M4-Mac-Mini-16GB/
 ├── M2-Mac-Mini-16GB/
 ├── Win-RTX4090-24GB/               # WSL2 paths: ~/AIML, ~/GitHub
-└── Jetson-Orin-Nano-Super/         # Gemma 4 E2B tested
+└── Jetson-Orin-Nano-Super/         # Gemma 4 E2B tested · LFM2.5 untested
 ```
 
 **Paths:** Linux/macOS/Jetson guides use `~/Documents/AIML/models` and `~/Documents/GitHub/llama-cpp-turboquant`. **Windows is WSL2** (`~/AIML`, `~/GitHub`). Any path works if `--model` matches.
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** 2026-09-04 (Dual RTX Localmaxing)  
+**Last Updated:** 2026-09-07 (Jetson LFM2.5-2.6B)  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)
