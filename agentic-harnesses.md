@@ -112,16 +112,17 @@ Need a **fresh** turboquant / llama.cpp (`LLM_ARCH_MUSE_GLIMMER`). Optional spee
 
 ## LFM2.5-2.6B + Pi Coding Agent
 
-> ✅ **Field-tested on Jetson Orin Nano Super** ([guide](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md), 2026-09-08) — **64k q8/q8**, `--n-predict` / `maxTokens` **8192** (native stretch **128k** after 64k is clean). Two-limit / no-DRY / `--fit off` rules still apply. Omit `--reasoning off` — the chat template always starts the assistant with `<think>`.
+> ✅ **Field-tested on Jetson Orin Nano Super** ([guide](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md), 2026-09-08) — **64k q8/q8**, `--n-predict` / `maxTokens` **8192** (native stretch **128k** after 64k is clean). Two-limit / no-DRY / `--fit off` rules still apply. Omit server `--reasoning off` — the chat template always starts the assistant with `<think>`. For Pi **skills / tool calls**, use `reasoning` **false** and omit `thinkingLevelMap` (does not strip the template prefix).
 
 Official card: [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B). The card **does not recommend** this model for agentic coding; on the Jetson it is a strong Pi daily driver anyway. Thinking-off sibling: [Gemma 4 E2B](Jetson-Orin-Nano-Super/Jetson-Orin-Gemma4-E2B.md) @ 16k.
 
 | Prefer for Pi + LFM2.5-2.6B | Avoid |
 | --- | --- |
 | **`--jinja`** | Skipping `--jinja` |
-| Pi `reasoning` **true**, `thinkingLevelMap.off` **null**; thinking in `reasoning_content` | `--reasoning off` / `--reasoning-budget 0` / `--reasoning-format none` |
+| **Skills / tools:** Pi `reasoning` **false**, no `thinkingLevelMap` (field-tested; less over-think before the tool) | `reasoning` **true** while first wiring skills (thinks about the skill instead of calling it) |
+| **Traces:** Pi `reasoning` **true**, `thinkingLevelMap.off` **null**; think in `reasoning_content` | Assuming Pi `reasoning: false` removes `<think>` from the GGUF (it does not) |
 | **`--ctx-size` / `contextWindow` 65536** (stretch **131072**) | Gemma’s 16k window (Pi first-turn `length`; [guide](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md#pi-truncation-on-the-first-turn)) |
-| **`--n-predict` / `maxTokens` 8192** (raise both to **16384** if still `length`) — thinking counts against the cap | `maxTokens` 4096 |
+| **`--n-predict` / `maxTokens` 8192** (raise both to **16384** if still `length`) — think tokens still count against the cap | `maxTokens` 4096 |
 | Official sampling: **`temp 0.1`**, **`top_k 50`**, **`repeat-penalty 1.1`**, **`presence 0`** | Gemma (`temp 0.75` / `top_p 0.92`) or Qwen Pi (`temp 0.6` / `top_k 20`) sampling |
 | **Q8_0** while it loads; **Q6_K** if it does not | Starting at **Q4_K_M** |
 | **`--parallel 1`** | Raising `-np` without scaling `-c` |

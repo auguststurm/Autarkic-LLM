@@ -4,7 +4,7 @@
 
 8 GB LPDDR5 (~7.3 Gi usable) · Ampere sm_**87** · llama-cpp-turboquant. **Paths:** `~/Documents/AIML/models` · `~/Documents/GitHub/llama-cpp-turboquant`. Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent). If you OOM, drop `--ctx-size`, never bare `--fit on`. Do **not** drop `--n-predict` / `maxTokens` to 4096 — that is the first-turn Pi `length` stop ([below](#pi-truncation-on-the-first-turn)).
 
-The [model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B) does **not** recommend this model for agentic coding. On this box it is a strong Pi daily driver anyway (64k, always-on `<think>`).
+The [model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B) does **not** recommend this model for agentic coding. On this box it is a strong Pi daily driver anyway (64k). The GGUF template always opens `<think>`; for Pi **skills / tool calls** start with `reasoning` **false** ([below](#pi-coding-agent-modelsjson)).
 
 | Pin | Value |
 | --- | --- |
@@ -15,7 +15,7 @@ The [model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B) does **not** recom
 | **KV** | `q8_0` / `q8_0` (do **not** turbo V for the 64k pin) |
 | **Output** | `--n-predict 8192` · Pi `maxTokens` **8192** (thinking counts against this) |
 | **Sampling** | temp **0.1** · top_k **50** · repeat **1.1** (Liquid card) |
-| **Thinking** | Template always opens `<think>`. Omit `--reasoning off`. Pi: `reasoning` **true**, `thinkingLevelMap.off` **null** |
+| **Thinking** | Template always opens `<think>` (omit server `--reasoning off`). **Pi skills/tools:** `reasoning` **false**, no `thinkingLevelMap`. **Pi traces:** `reasoning` **true**, `thinkingLevelMap.off` **null** |
 | **Paths** | `~/Documents/AIML/models` · `~/Documents/GitHub/llama-cpp-turboquant` |
 
 Need the engine? [local-setup.md](../local-setup.md) (JetPack / CUDA).
@@ -205,9 +205,15 @@ hf download LiquidAI/LFM2.5-2.6B-GGUF \
 
 ## Pi Coding Agent `models.json`
 
-Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Replace any earlier 16k / 32k copy. Open `/model` to reload (Pi reloads this file there; restart if the status bar is stale). `/new` after the pin change.
+Save **one** of these files to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Replace any earlier 16k / 32k copy. Open `/model` to reload (Pi reloads this file there; restart if the status bar is stale). `/new` after a pin or reasoning-shape change.
 
-`maxTokens` ≤ `--n-predict` (8192). `contextWindow` = `--ctx-size` (65536). `reasoning: true` and `thinkingLevelMap.off: null` are Pi’s documented shape for a model that cannot disable thinking ([models.md](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/models.md)). `supportsReasoningEffort: false` is Liquid’s Pi note for this endpoint.
+`maxTokens` ≤ `--n-predict` (8192). `contextWindow` = `--ctx-size` (65536). Both blocks use `id` **`lfm2.5-2.6b`** to match `--alias`. `compat.supportsReasoningEffort: false` is Liquid’s Pi note for this endpoint. Same llama-server command either way — do not add `--reasoning off`; the [chat template](https://huggingface.co/LiquidAI/LFM2.5-2.6B/blob/main/chat_template.jinja) always ends the generation prompt with `<|im_start|>assistant\n<think>`.
+
+### Skills / tools (start here)
+
+Field-tested on this box while first building Pi **skills** and calling specific tools. Set `reasoning` **false** and **omit** `thinkingLevelMap`. Pi then does not run the reasoning-model path, so the agent invokes the tool instead of thinking about invoking the tool. Too much thinking for things that needed to just work.
+
+This does **not** strip `<think>` from the GGUF. The model may still spend think tokens (they still count against `maxTokens` / `--n-predict`). What changes is Pi: no `thinkingLevelMap.off: null` lock, no reasoning-harness handling of `reasoning_content` before the tool loop.
 
 ```json
 {
@@ -219,7 +225,35 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Rep
       "models": [
         {
           "id": "lfm2.5-2.6b",
-          "name": "LFM2.5-2.6B Q8_0 (64k) - Jetson Orin Nano Super",
+          "name": "LFM2.5-2.6B Q8_0 (64k, tools) - Jetson Orin Nano Super",
+          "reasoning": false,
+          "contextWindow": 65536,
+          "maxTokens": 8192,
+          "compat": {
+            "supportsReasoningEffort": false
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+### Thinking on
+
+Pi’s documented shape for a model that cannot disable thinking ([models.md](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/models.md)): `reasoning` **true**, `thinkingLevelMap.off` **null** (hides Off in the UI). Use this when you want traces in `reasoning_content` and a clean `content` / tool split. Worse for early skill work: the model burns the output budget thinking about the skill instead of calling it.
+
+```json
+{
+  "providers": {
+    "llama-cpp": {
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "1337",
+      "models": [
+        {
+          "id": "lfm2.5-2.6b",
+          "name": "LFM2.5-2.6B Q8_0 (64k, think) - Jetson Orin Nano Super",
           "reasoning": true,
           "thinkingLevelMap": {
             "off": null
@@ -236,18 +270,18 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Rep
 }
 ```
 
-If 8192 still ends with `finish_reason: length`, set **both** `--n-predict` and `maxTokens` to **16384** (Pi’s default `maxTokens`). For the 128k stretch, only change `contextWindow` to **131072** and the `name` suffix to `(128k)`.
+If 8192 still ends with `finish_reason: length`, set **both** `--n-predict` and `maxTokens` to **16384** (Pi’s default `maxTokens`). For the 128k stretch, only change `contextWindow` to **131072** and the `name` suffix. `/new` after switching between the two JSON shapes.
 
 ## Performance notes
 
-- ✅ **Tested** Pi daily pin is **64k / 8192** — load, decode, and Pi tools hold up well on this box. Not Gemma’s 16k / 2048 and not Liquid’s 32k memory-constrained example. A 16k `contextWindow` plus `maxTokens` 4096 produces Pi’s **“Response was truncated before completion.”** on the first turn ([above](#pi-truncation-on-the-first-turn)).
+- ✅ **Tested** Pi daily pin is **64k / 8192**. For **skills / specific tool calls**, use the [tools JSON](#skills--tools-start-here) (`reasoning` false, no `thinkingLevelMap`). Keep the [think JSON](#thinking-on) when you want traces. Not Gemma’s 16k / 2048 and not Liquid’s 32k memory-constrained example. A 16k `contextWindow` plus `maxTokens` 4096 produces Pi’s **“Response was truncated before completion.”** on the first turn ([above](#pi-truncation-on-the-first-turn)).
 - 128k remains a [stretch](#native-128k-stretch), not part of the 2026-09-08 test.
 - `n_ctx_seq (65536) < n_ctx_train (131072)` is expected on the daily pin.
 - Q8_0 is the quality pin (2.87 GB vs tested Gemma ~3 GB on this box). Q6_K is the headroom swap, not the first download.
 - Run in **MAXN SUPER** power mode; monitor with `jtop`.
 - Enable zram if `free -h` shows swap 0 — required before the 128k stretch; unified memory spikes on prefill will otherwise SIGKILL the server.
-- Empty `content` with `finish_reason: length` → raise **both** `--n-predict` and Pi `maxTokens` (next step **16384**), not `--reasoning off`. Then `/new`.
+- Empty `content` with `finish_reason: length` → raise **both** `--n-predict` and Pi `maxTokens` (next step **16384**). Do not add server `--reasoning off` to “fix” truncation (the template still opens `<think>`). Flaky skill/tool calls → tools JSON, then `/new`.
 - After pin changes, restart **llama-server and Pi** so the status bar matches `65536` / `8192` (or `131072` / `8192` on the stretch).
 - Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
 
-**Last Updated:** 2026-09-08 (✅ Tested Pi @ 64k q8/q8)
+**Last Updated:** 2026-09-08 (✅ Tested Pi @ 64k q8/q8; skills JSON `reasoning` false)
