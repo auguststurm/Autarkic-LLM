@@ -1,6 +1,6 @@
 # Nvidia Jetson Orin Nano Super - Gemma 4 E2B
 
-> ✅ **Tested** on this hardware (**2026-09-07**) with **Pi Coding Agent**. Q4_K_S @ 16k q8/q8 on 8 GB unified; drop `--ctx-size` if you OOM. Sibling on this box: [LFM2.5-2.6B](Jetson-Orin-LFM2.5-2.6B.md) (✅ tested @ 64k, always-on `<think>` — do not copy that pin here).
+> ✅ **Tested** on this hardware (**2026-09-07**) with **Pi Coding Agent**. Q4_K_S @ 16k q8/q8 on 8 GB unified; drop `--ctx-size` if you OOM. Siblings on this box: [LFM2.5-2.6B](Jetson-Orin-LFM2.5-2.6B.md) (✅ tested @ 64k, always-on `<think>`) · [MiniCPM5-2B](Jetson-Orin-MiniCPM5-2B.md) (⚠️ untested @ 32k, PRIMARY think **off**) — do not copy those pins here.
 
 8 GB LPDDR5 (~7.3 Gi usable) · Ampere sm_**87** · llama-cpp-turboquant. **Paths:** `~/Documents/AIML/models` · `~/Documents/GitHub/llama-cpp-turboquant`. Pi: [agentic harnesses](../agentic-harnesses.md). If you OOM, drop `--ctx-size`, never bare `--fit on`.
 

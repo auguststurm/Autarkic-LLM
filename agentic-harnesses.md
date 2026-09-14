@@ -44,7 +44,7 @@ Each hardware guide includes a **complete** Pi `models.json` — the full `provi
 - `maxTokens` ≤ `--n-predict`.
 - Restart **both** `llama-server` and Pi after changing either side. Pi’s status bar must match the pin (stale `models.json` is a common failure mode).
 
-Hardware-specific numbers always come from **your** guide (pin table + `models.json`). Guide *shape* (download → cmake → PRIMARY → JSON): [Dual RTX Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). Tight Metal / `--fit` crush / turbo2 V: [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). Field-validated **Pi + dense Qwen 27B** lessons below cover **Qwen3.6-27B** and **Qwen3.8-27B** (Dual RTX 3.8 is field-tested). Dual RTX two cards (one model each; pick by the second stream): [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md). Muse Glimmer Pi pin: [Muse Glimmer 30B + Pi](#muse-glimmer-30b--pi-coding-agent). LFM2.5-2.6B Pi pin: [LFM2.5-2.6B + Pi](#lfm25-26b--pi-coding-agent).
+Hardware-specific numbers always come from **your** guide (pin table + `models.json`). Guide *shape* (download → cmake → PRIMARY → JSON): [Dual RTX Qwen3.8](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). Tight Metal / `--fit` crush / turbo2 V: [M4 Air](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md). Field-validated **Pi + dense Qwen 27B** lessons below cover **Qwen3.6-27B** and **Qwen3.8-27B** (Dual RTX 3.8 is field-tested). Dual RTX two cards (one model each; pick by the second stream): [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md). Muse Glimmer Pi pin: [Muse Glimmer 30B + Pi](#muse-glimmer-30b--pi-coding-agent). LFM2.5-2.6B Pi pin: [LFM2.5-2.6B + Pi](#lfm25-26b--pi-coding-agent). MiniCPM5-2B Pi pin: [MiniCPM5-2B + Pi](#minicpm5-2b--pi-coding-agent).
 
 ## Qwen3.6-27B + Pi Coding Agent (cross-hardware)
 
@@ -114,7 +114,7 @@ Need a **fresh** turboquant / llama.cpp (`LLM_ARCH_MUSE_GLIMMER`). Optional spee
 
 > ✅ **Field-tested on Jetson Orin Nano Super** ([guide](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md), 2026-09-08) — **64k q8/q8**, `--n-predict` / `maxTokens` **8192** (native stretch **128k** after 64k is clean). Two-limit / no-DRY / `--fit off` rules still apply. Omit server `--reasoning off` — the chat template always starts the assistant with `<think>`. For Pi **skills / tool calls**, use `reasoning` **false** and omit `thinkingLevelMap` (does not strip the template prefix).
 
-Official card: [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B). The card **does not recommend** this model for agentic coding; on the Jetson it is a strong Pi daily driver anyway. Thinking-off sibling: [Gemma 4 E2B](Jetson-Orin-Nano-Super/Jetson-Orin-Gemma4-E2B.md) @ 16k.
+Official card: [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B). The card **does not recommend** this model for agentic coding; on the Jetson it is a strong Pi daily driver anyway. Thinking-off siblings on that box: [Gemma 4 E2B](Jetson-Orin-Nano-Super/Jetson-Orin-Gemma4-E2B.md) @ 16k · [MiniCPM5-2B](Jetson-Orin-Nano-Super/Jetson-Orin-MiniCPM5-2B.md) @ 32k (⚠️ untested).
 
 | Prefer for Pi + LFM2.5-2.6B | Avoid |
 | --- | --- |
@@ -127,6 +127,27 @@ Official card: [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6
 | **Q8_0** while it loads; **Q6_K** if it does not | Starting at **Q4_K_M** |
 | **`--parallel 1`** | Raising `-np` without scaling `-c` |
 | **No DRY** | DRY on path-heavy tool loops ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
+
+## MiniCPM5-2B + Pi Coding Agent
+
+> ⚠️ **Not field-tested in this repo yet.** Hardware pin: [Jetson Orin Nano Super MiniCPM5-2B](Jetson-Orin-Nano-Super/Jetson-Orin-MiniCPM5-2B.md). Two-limit / no-DRY / `--fit off` rules still apply. OpenBMB documents a Think/No-think **toggle** (unlike LFM/Muse); PRIMARY **forces off**. Confirm with the guide’s curl before trusting Pi.
+
+Official GGUF: [openbmb/MiniCPM5-2B-GGUF](https://huggingface.co/openbmb/MiniCPM5-2B-GGUF). llama.cpp deploy: [OpenBMB llama_cpp.md](https://github.com/OpenBMB/MiniCPM/blob/main/docs/deployment/llama_cpp.md). Dense stock **LlamaForCausalLM**, native **131072**, **text-only** (no `mmproj`). OpenBMB’s published MiniCPM5-2B mode is Think (temp **1.0** / top_p **0.95**). On llama-server the switch is **`--reasoning on|off`**. MiniCPM5-**1B** No-think sampling (temp **0.7**) is a different row — do not copy it onto 2B.
+
+| Prefer for Pi + MiniCPM5-2B | Avoid |
+| --- | --- |
+| **`--jinja`** | Skipping `--jinja` |
+| **Skills / tools:** server `--reasoning off` + `--reasoning-budget 0`; Pi `reasoning` **false**, no `thinkingLevelMap` | `--chat-template-kwargs '{"enable_thinking":false}'` (deprecated; current llama-server wants `--reasoning off`) |
+| **Traces:** `--reasoning on` (drop `--reasoning-budget 0`); Pi `reasoning` **true**, `thinkingLevelMap.off` **null** | `--reasoning-format none` (dumps `<think>` into `content`) |
+| **`--ctx-size` / `contextWindow` 32768** (OpenBMB small-GPU step; stretch **65536** / native **131072**) | OpenBMB’s llama.cpp example **8192** as a Pi window (compaction `reserveTokens` 16384) |
+| **`--n-predict` / `maxTokens` 8192** (raise both to **16384** if still `length` — think tokens count) | Gemma’s `maxTokens` 2048 with thinking on |
+| Official sampling: **`temp 1.0`**, **`top_p 0.95`**, **`min_p 0.0`**, **`repeat-penalty 1.0`** (try **1.05** if it loops) | Gemma (`temp 0.75`) or LFM (`temp 0.1` / `top_k 50`) sampling |
+| **Q8_0** while it loads; **Q4_K_M** if it does not (OpenBMB edge rec) | Starting at **F16** on 8 GB |
+| Omit `--mmproj` | Passing a MiniCPM-V projector (different model; not tried) |
+| **`--parallel 1`** | Raising `-np` without scaling `-c` |
+| **No DRY** | DRY on path-heavy tool loops ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
+
+XML-style tool tags (`<tool_call>`) are part of the MiniCPM5 template ([vLLM recipe](https://recipes.vllm.ai/openbmb/MiniCPM5-2B)). Upstream llama.cpp MiniCPM5 parser: [#24889](https://github.com/ggml-org/llama.cpp/pull/24889) — **not verified** on the Jetson turboquant build. Smoke-test real Pi `ls` / `read` before trusting skills.
 
 ## Multi-agent workflows, Tavily & research graphs
 

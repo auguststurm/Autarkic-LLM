@@ -13,10 +13,11 @@ A deeper companion to [`local-setup.md`](local-setup.md): what the **llama-cpp-t
 - **Pi + dense Qwen 27B tools (3.6 / 3.8):** `--reasoning off` (prefer over deprecated `enable_thinking` kwargs alone); **no DRY**; tool sampling often `temp 0.6` / `top_p 0.95` / `top_k 20` / `presence 0` / `repeat 1.0`. See [agentic harnesses](agentic-harnesses.md).
 - **Pi + Muse Glimmer 30B:** `--reasoning off` is a **no-op**. Use `--jinja` + `reasoning_strength` (`high` for agents). Official sampling **temp 1.0 / top_p 0.95 / top_k 64**. Optional speed: **DFlash** (`--spec-type draft-dflash`), not MTP. See [Dual RTX Muse](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md).
 - **Pi + LFM2.5-2.6B:** omit server `--reasoning off` (template always opens `<think>`). Official sampling **temp 0.1 / top_k 50 / repeat-penalty 1.1**. Jetson primary **Q8_0 @ 64k** (✅ tested; native stretch **128k**), `--n-predict` / Pi `maxTokens` **8192**. Pi **skills/tools:** `reasoning` false, no `thinkingLevelMap` (more stable tool calls). Pi **traces:** `reasoning` true, `thinkingLevelMap.off` null. Keep q8/q8 — KV is cheap on this hybrid. See [Jetson LFM2.5](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md).
+- **Pi + MiniCPM5-2B:** OpenBMB documents a Think/No-think toggle. PRIMARY **`--reasoning off`** + `--reasoning-budget 0` (not `enable_thinking` kwargs) — **untested** on this repo’s Jetson build. Official sampling **temp 1.0 / top_p 0.95 / min_p 0.0** (OpenBMB; add `--repeat-penalty 1.05` if it loops). Jetson starting pin **Q8_0 @ 32k** (⚠️ untested). Text-only GGUF — no `mmproj`. See [Jetson MiniCPM5](Jetson-Orin-Nano-Super/Jetson-Orin-MiniCPM5-2B.md).
 - **Two limits:** `--ctx-size` / Pi `contextWindow` = input; `--n-predict` / Pi `maxTokens` = one reply. Multi-agent runs often need large **input**; long reports need large **output**.
 - **Checkpointing / cache-ram** can help non-hybrid models; **hybrid Qwen (3.5/3.6/3.8)** guides usually omit checkpoints and may use `--cache-ram 0` for multi-turn correctness (§5). The LFM2.5 Jetson guide omits them too (hybrid conv + GQA).
 - **`--fit off` + pinned `--ctx-size`** for agents. Conservative **batch** sizes avoid peak OOM.
-- **Small dense / hybrid edge** (Gemma 4 E2B, LFM2.5-2.6B) and **low-active MoE** (Qwen3.6-35B-A3B) fit lower-memory devices; MoE *full* weights must still fit.
+- **Small dense / hybrid edge** (Gemma 4 E2B, LFM2.5-2.6B, MiniCPM5-2B) and **low-active MoE** (Qwen3.6-35B-A3B) fit lower-memory devices; MoE *full* weights must still fit.
 
 ---
 
@@ -65,7 +66,7 @@ Step 4 (aggro):    --cache-type-k q8_0 --cache-type-v turbo2    # long context; 
 - **CUDA — room / agent quality (Win 4090 field-validated Pi baseline; prefer when VRAM allows):** `--cache-type-k q8_0 --cache-type-v q8_0`, then raise `--ctx-size`; add **turbo V** only if overflow forces capacity. See [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md).
 - **CUDA — large headroom (DGX, Dual RTX 6000):** Dual RTX primary is field-tested **262k q8/q8** with Pi on **Qwen3.8** ([guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md); same knobs as [3.6](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md)). DGX tested path keeps **q8/turbo4** at 262k ([3.8 port](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) still untested). Turbo V is a capacity lever — follow the per-machine guide.
 - **Metal — memory-bound (M4 Air tested; 16 GB Mini Qwen experimental):** `--cache-type-k q8_0 --cache-type-v turbo2` so long context fits after large weights. See the [M4 Air guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
-- **Metal — roomier (M5 Pro ~196k Qwen3.6-27B tested; [3.8 port](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md); Mini Gemma) and Jetson (Orin Nano Super ✅ Gemma @ 16k; ✅ LFM2.5 @ 64k q8/q8):** primary often `--cache-type-k q8_0 --cache-type-v q8_0`; turbo V is optional headroom. See [Jetson Gemma 4 E2B](Jetson-Orin-Nano-Super/Jetson-Orin-Gemma4-E2B.md) · [Jetson LFM2.5](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md).
+- **Metal — roomier (M5 Pro ~196k Qwen3.6-27B tested; [3.8 port](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md); Mini Gemma) and Jetson (Orin Nano Super ✅ Gemma @ 16k; ✅ LFM2.5 @ 64k q8/q8; ⚠️ MiniCPM5-2B @ 32k):** primary often `--cache-type-k q8_0 --cache-type-v q8_0`; turbo V is optional headroom. See [Jetson Gemma 4 E2B](Jetson-Orin-Nano-Super/Jetson-Orin-Gemma4-E2B.md) · [Jetson LFM2.5](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) · [Jetson MiniCPM5](Jetson-Orin-Nano-Super/Jetson-Orin-MiniCPM5-2B.md).
 
 ### When NOT to use aggressive V compression
 
@@ -154,6 +155,7 @@ These reuse computed state across requests so repeated prompts/turns don't repro
 
 - **Generic / older guide baseline:** `--temp 0.65 --top-p 0.90 --min-p 0.0 --repeat-penalty 1.10 --presence-penalty 0.0` (Gemma: `--temp 0.75 --top-p 0.92`).
 - **LFM2.5-2.6B (Liquid card):** `--temp 0.1 --top-k 50 --repeat-penalty 1.1 --min-p 0.0 --presence-penalty 0.0`. Do not copy Gemma or Qwen sampling onto this template.
+- **MiniCPM5-2B (OpenBMB card / llama.cpp deploy):** `--temp 1.0 --top-p 0.95 --min-p 0.0`. Leave repeat-penalty at default **1.0** (off) unless it loops, then **1.05**. Do not copy Gemma, LFM, or MiniCPM5-**1B** No-think (`temp 0.7`) onto 2B. Jetson PRIMARY omits an explicit `--repeat-penalty`.
 - **Qwen3.6 / Qwen3.8 + Pi tool/agent (field-validated direction on 3.6; same default for 3.8 ports):** `--temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 --presence-penalty 0.0 --repeat-penalty 1.0` — tool/path friendly. **Do not enable DRY** for Qwen tool loops (path/name corruption). Official **non-thinking chat** cards (including Qwen3.8 instruct) may suggest higher presence (e.g. 1.5); that can help chat loops but **hurts path reuse** in shell/write agents.
 - **`--temp`**: randomness. Lower (0.6–0.7) = more deterministic/code-friendly; higher = more creative.
 - **`--top-p` / `--top-k` / `--min-p`**: nucleus / top-k / min-p filters.
@@ -172,7 +174,7 @@ These reuse computed state across requests so repeated prompts/turns don't repro
 ## See also
 
 - [`local-setup.md`](local-setup.md): clone, build, download, and `models.json` integration.
-- [`agentic-harnesses.md`](agentic-harnesses.md): Pi / OpenClaw / Hermes; **dense Qwen 27B (3.6 / 3.8) + Pi** cross-hardware lessons; Muse / LFM2.5 always-on thinking.
+- [`agentic-harnesses.md`](agentic-harnesses.md): Pi / OpenClaw / Hermes; **dense Qwen 27B (3.6 / 3.8) + Pi** cross-hardware lessons; Muse / LFM2.5 always-on thinking; MiniCPM5-2B OpenBMB-documented think toggle (⚠️ untested).
 - [`_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md`](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md): multi-agent workflows, Tavily, example research skill.
 - Hardware guides: per-machine **PRIMARY** commands ([README table](README.md#hardware-configurations-included)). This file is the flag encyclopedia; GGUF names live in [`local-setup.md`](local-setup.md#understanding-gguf-quants-why-so-many-files). **Qwen3.8** optionals: [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#qwen38-optionals).
 - [TurboQuant design discussion](https://github.com/ggml-org/llama.cpp/discussions/20969) · [llama.cpp server docs](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) · [build docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md)
