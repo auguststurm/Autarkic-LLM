@@ -56,6 +56,7 @@ cmake --build . --config Release -j$(nproc)
 >
 > | GPU | `-DCMAKE_CUDA_ARCHITECTURES` |
 > | --- | --- |
+> | RTX 3090 (Ampere) | `"86"` |
 > | Jetson Orin Nano | `"87"` |
 > | RTX 4090 (Ada) | `"89"` |
 > | RTX 6000 Pro Max-Q (Blackwell) | `"120"` |
@@ -68,7 +69,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
 cmake --build . --config Release -j$(nproc)
 ```
 
-> Vulkan is the recommended backend on AMD Radeon GPUs (e.g. RX 7900 XTX). Do not build with `-DGGML_CUDA=ON` unless you also have an NVIDIA GPU.
+> Vulkan is the recommended backend on AMD Radeon GPUs (e.g. RX 7900 XTX) **for turboquant / Qwen**. Do not build with `-DGGML_CUDA=ON` unless you also have an NVIDIA GPU. **Ternary Bonsai 2 is HIP / ROCm** (`-DGGML_HIP=ON`, `gfx1100`) on that card — current Vulkan `PQ2_0` falls back to CPU. Guide: [7900-XTX-Bonsai-2-27B.md](AMD-7900-XTX/7900-XTX-Bonsai-2-27B.md).
 
 **macOS (Metal):**
 
@@ -79,15 +80,16 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=O
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 ```
 
-## 3. Model Download (Unsloth GGUF)
+## 3. Model Download (GGUF)
 
 ### Model catalog (Hugging Face)
 
-Most configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic / "UD" quants) so they run on [llama.cpp](https://github.com/ggml-org/llama.cpp). Exceptions (official vendor GGUFs, not Unsloth): **LFM2.5-2.6B** (Liquid AI) and **MiniCPM5-2B** (OpenBMB). Quant suffixes (`Q4`, `Q6`, `IQ2`, `_K_XL`, …) trade file size/memory for quality. **How to read those names and pick a level** is in [Understanding GGUF quants](#understanding-gguf-quants-why-so-many-files) below. Short defs: [Glossary](glossary.md) · [Unsloth Dynamic GGUFs](https://unsloth.ai/docs/basics/unsloth-dynamic-2.0-ggufs).
+Most configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic / "UD" quants) so they run on [llama.cpp](https://github.com/ggml-org/llama.cpp) / [llama-cpp-turboquant](llama-cpp-turboquant.md). Exceptions (official vendor GGUFs, not Unsloth): **LFM2.5-2.6B** (Liquid AI) and **MiniCPM5-2B** (OpenBMB). **Ternary Bonsai 2** GGUFs need the [PrismML llama.cpp fork](https://github.com/PrismML-Eng/llama.cpp), not turboquant. Quant suffixes (`Q4`, `Q6`, `IQ2`, `_K_XL`, …) trade file size/memory for quality. **How to read those names and pick a level** is in [Understanding GGUF quants](#understanding-gguf-quants-why-so-many-files) below. Short defs: [Glossary](glossary.md) · [Unsloth Dynamic GGUFs](https://unsloth.ai/docs/basics/unsloth-dynamic-2.0-ggufs).
 
 | Model | Type | GGUF files & downloads | Original weights |
 | --- | --- | --- | --- |
 | **Muse Glimmer 30B** | Dense VLM, 131K ctx (⚠️ Dual RTX untested) | [unsloth/Muse-Glimmer-30B-GGUF](https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/tree/main) | [meta-models/Muse-Glimmer-30B](https://huggingface.co/meta-models/Muse-Glimmer-30B) |
+| **Ternary Bonsai 2 27B** | Ternary Qwen3.8-27B, 262K ctx (⚠️ Dual RTX untested; **PrismML fork**) | [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/tree/main) | [Qwen/Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) |
 | **Qwen3.8-27B** | Dense VLM, 262K ctx (✅ Dual RTX tested 2026-08-14) | [unsloth/Qwen3.8-27B-GGUF](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) | [Qwen/Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) |
 | Qwen3.6-27B | Dense, 262K ctx (field-tested paths) | [unsloth/Qwen3.6-27B-GGUF](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | [Qwen/Qwen3.6-27B](https://huggingface.co/Qwen/Qwen3.6-27B) |
 | Qwen3.6-35B-A3B | MoE (3B active); Dual RTX Localmaxing `small` (general) | [unsloth/Qwen3.6-35B-A3B-GGUF](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) | [QwenLM/Qwen3.6](https://github.com/QwenLM/Qwen3.6) |
@@ -105,6 +107,8 @@ Collections: [Muse Glimmer (Unsloth)](https://huggingface.co/collections/unsloth
 **LFM2.5-2.6B guide:** [Jetson Orin Nano Super](Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) **✅ Tested** (2026-09-08, Pi). Official Liquid GGUF. **Q8_0 @ 64k q8/q8**, `--n-predict` / Pi `maxTokens` **8192** (think tokens count against the cap; 16k / 4096 truncates on the first Pi turn). Native stretch **128k** after 64k is clean. **Q6_K** (2.22 GB) is the headroom swap. Official sampling **temp 0.1 / top_k 50 / repeat-penalty 1.1**. Template always opens `<think>` — omit server `--reasoning off`. Pi **skills/tools:** `reasoning` false, no `thinkingLevelMap`. Pi **traces:** `reasoning` true, `thinkingLevelMap.off` null. Docs: [Liquid model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B).
 
 **MiniCPM5-2B guide:** [Jetson Orin Nano Super](Jetson-Orin-Nano-Super/Jetson-Orin-MiniCPM5-2B.md) ⚠️ untested (2026-09-14). Official OpenBMB GGUF (stock `LlamaForCausalLM`). **Q8_0 @ 32k q8/q8**, `--n-predict` / Pi `maxTokens` **8192**. **Q4_K_M** (1.56 GB) is OpenBMB’s edge rec / headroom swap. Official sampling **temp 1.0 / top_p 0.95 / min_p 0.0** (add `--repeat-penalty 1.05` if it loops). OpenBMB documents a Think/No-think **toggle**; PRIMARY **forces `--reasoning off`** + `--reasoning-budget 0` for Pi tools (not `enable_thinking` kwargs). Confirm with the guide’s curl. Text-only — no `mmproj` in this GGUF (vision is MiniCPM-V, not this file). Docs: [GGUF card](https://huggingface.co/openbmb/MiniCPM5-2B-GGUF) · [llama.cpp deploy](https://github.com/OpenBMB/MiniCPM/blob/main/docs/deployment/llama_cpp.md).
+
+**Ternary Bonsai 2 guides:** [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md) ⚠️ untested (CUDA, 262k) · [Windows RTX 3090 WSL2](Win-RTX3090-24GB/Windows-RTX3090-Bonsai-2-27B.md) ⚠️ untested (CUDA, 131k, `~/AIML` / `~/GitHub`) · [AMD 7900 XTX](AMD-7900-XTX/7900-XTX-Bonsai-2-27B.md) ⚠️ untested (**HIP / ROCm**, 131k — not this folder’s Vulkan Qwen build). Same Qwen3.8-27B hybrid backbone, ternary g128 weights. Download **both** `Ternary-Bonsai-2-27B-PQ2_0.gguf` (~7.2 GB) and `Ternary-Bonsai-2-27B-PTQ1_0.gguf` (~5.9 GB). PRIMARY is **PQ2_0** (Vulkan: PTQ1_0 only, slow until fork kernels land). **Engine:** clone [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) `prism` branch (`llama.cpp-prism`) — turboquant will refuse the types. Skip the ~54 GB `*-F16.gguf`. Optional vision: `Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. Docs: [model card](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · [Bonsai 2](https://docs.prismml.com/bonsai-2-27b).
 
 **Unsloth extras worth knowing** ([Qwen3.8 guide](https://unsloth.ai/docs/models/qwen3.8) · [MTP](https://unsloth.ai/docs/models/mtp) · [Muse Glimmer](https://unsloth.ai/docs/models/muse-glimmer)): UD GGUFs are **Dynamic V3.0** (developer-role + better nested tool calls); Qwen optional **`--spec-type draft-mtp --spec-draft-n-max 2`** for ~1.4–2.2× decode on CUDA — recipe in [Dual RTX Qwen3.8 optionals](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#qwen38-optionals). Official Qwen sampling differs for thinking (temp 1.0) vs instruct (temp 0.7 / presence 1.5) — Pi tool sessions on **Qwen** keep presence **0**. Blackwell boxes may also try **NVFP4** via vLLM/SGLang (different stack).
 

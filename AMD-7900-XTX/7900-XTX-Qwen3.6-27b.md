@@ -119,4 +119,6 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 > Note: `maxTokens` is high to match this guide’s `--n-predict`; for typical agent turns you may prefer a lower `maxTokens` (e.g. 8192) while leaving server `--n-predict` high.
 
 
-**Last Updated:** July 2026
+Bonsai 2 on this card is a **different engine** (PrismML HIP, not this Vulkan turboquant build): [7900-XTX-Bonsai-2-27B.md](7900-XTX-Bonsai-2-27B.md).
+
+**Last Updated:** July 2026 (Bonsai 2 pointer 2026-09-18)

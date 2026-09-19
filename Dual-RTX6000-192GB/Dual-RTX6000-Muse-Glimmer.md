@@ -213,6 +213,7 @@ vLLM / SGLang (BF16 / FP8 / NVFP4 + native DFlash) are viable on this Blackwell 
 
 - [Meta llama.cpp](https://dev.meta.ai/docs/muse-glimmer/llama-cpp/) · [Unsloth Muse](https://unsloth.ai/docs/models/muse-glimmer) · [prompting](https://dev.meta.ai/docs/muse-glimmer/prompting)
 - Two-card Qwen: [Dual-RTX6000-Qwen3.8-localmaxing.md](Dual-RTX6000-Qwen3.8-localmaxing.md)
+- Ternary Qwen3.8 pack (⚠️ untested, PrismML fork): [Dual-RTX6000-Bonsai-2-27B.md](Dual-RTX6000-Bonsai-2-27B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses — Muse](../agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent)
 
 **Last Updated:** 2026-09-04 (sm_120 wording; Localmaxing pointer; still ⚠️ untested on this box)

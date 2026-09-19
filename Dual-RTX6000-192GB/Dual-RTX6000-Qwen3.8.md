@@ -216,6 +216,7 @@ Add `--mmproj ~/Documents/AIML/models/mmproj-F16.gguf` only if this `llama-serve
 ## See also
 
 - Two cards, one model each (two 27B, or 27B + Coder / 35B-A3B): [Dual-RTX6000-Qwen3.8-localmaxing.md](Dual-RTX6000-Qwen3.8-localmaxing.md)
+- Same backbone, ternary ~6–7 GB (⚠️ untested, **PrismML fork**): [Dual-RTX6000-Bonsai-2-27B.md](Dual-RTX6000-Bonsai-2-27B.md)
 - Twin 3.6 (tested 2026-08-08): [Dual-RTX6000-Qwen3.6.md](Dual-RTX6000-Qwen3.6.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 - Unsloth: [Qwen3.8](https://unsloth.ai/docs/models/qwen3.8) · [MTP](https://unsloth.ai/docs/models/mtp)

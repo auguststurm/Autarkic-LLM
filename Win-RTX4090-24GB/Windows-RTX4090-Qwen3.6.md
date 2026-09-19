@@ -154,5 +154,6 @@ Same model family. Different **KV budget**.
 
 - `nvidia-smi` **inside** WSL. One long-lived server; don’t share the GPU heavily.
 - Workflows: [pi-coding-agent-graphs.md](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
+- 24 GB WSL2 Bonsai 2 (PrismML fork, ⚠️ untested): [Windows-RTX3090-Bonsai-2-27B.md](../Win-RTX3090-24GB/Windows-RTX3090-Bonsai-2-27B.md)
 
 **Last Updated:** 2026-08-20 (recipe shape; WSL2 paths unchanged)
