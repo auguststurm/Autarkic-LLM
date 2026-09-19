@@ -141,6 +141,7 @@ MTP (smaller Metal gain than CUDA), Unsloth sampling, thinking / preserve, visio
 ## See also
 
 - Twin 3.6 (tested): [M5-MacBook-Pro-Qwen3.6.md](M5-MacBook-Pro-Qwen3.6.md)
+- M1 Ultra Studio Bonsai 2 (⚠️ untested, **PrismML Metal**, 262k): [M1-Ultra-Studio-Bonsai-2-27B.md](../M1-Ultra-Studio-64GB/M1-Ultra-Studio-Bonsai-2-27B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
 **Last Updated:** 2026-08-20 (recipe overlay on tested M5 3.6 Metal; 3.8 still ⚠️ untested)

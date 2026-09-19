@@ -40,12 +40,13 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 
 ### Ternary Bonsai 2 27B (2026-09)
 
-[Ternary Bonsai 2 27B](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) is PrismML’s ternary (`{−1,0,+1}`) pack of **Qwen3.8-27B** (~5.9 GB `PTQ1_0` / ~7.2 GB `PQ2_0`, Apache 2.0, 262k). **Stock llama.cpp and llama-cpp-turboquant refuse these files.** Need [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Guides download **both** packs; PRIMARY is `PQ2_0` (7900 XTX: **HIP**, not that folder’s usual Vulkan). Dual RTX and DGX Spark pin **262k**; 24 GB boxes start at **131k**.
+[Ternary Bonsai 2 27B](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) is PrismML’s ternary (`{−1,0,+1}`) pack of **Qwen3.8-27B** (~5.9 GB `PTQ1_0` / ~7.2 GB `PQ2_0`, Apache 2.0, 262k). **Stock llama.cpp and llama-cpp-turboquant refuse these files.** Need [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Guides download **both** packs; PRIMARY is `PQ2_0` (7900 XTX: **HIP**, not that folder’s usual Vulkan). Dual RTX, DGX Spark, and M1 Ultra pin **262k**; 24 GB boxes start at **131k**.
 
 | Machine | Backend | Status | Bonsai 2 guide |
 | --- | --- | --- | --- |
 | Dual RTX 6000 Pro Max-Q (192 GB) | CUDA | ⚠️ Untested (researched 2026-09-18) | [Dual-RTX6000-Bonsai-2-27B.md](Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md) — PQ2_0 @ 262k q8/q8 (PTQ1_0 A/B) |
 | DGX Spark Founders Edition (128 GB) | CUDA (GB10) | ⚠️ Untested (researched 2026-09-18) | [DGX-Spark-Bonsai-2-27B.md](DGX-Spark-128GB/DGX-Spark-Bonsai-2-27B.md) — PQ2_0 @ 262k q8/q8 (PTQ1_0 A/B) |
+| M1 Ultra Mac Studio (64 GB) | Metal | ⚠️ Untested (researched 2026-09-18) | [M1-Ultra-Studio-Bonsai-2-27B.md](M1-Ultra-Studio-64GB/M1-Ultra-Studio-Bonsai-2-27B.md) — PQ2_0 @ 262k q8/q8 (PTQ1_0 A/B) |
 | Windows RTX 3090 (WSL2) (24 GB) | CUDA (sm_86) | ⚠️ Untested (researched 2026-09-18) | [Windows-RTX3090-Bonsai-2-27B.md](Win-RTX3090-24GB/Windows-RTX3090-Bonsai-2-27B.md) — PQ2_0 @ 131k q8/q8 (PTQ1_0 A/B) |
 | AMD 7900 XTX (24 GB) | HIP / ROCm | ⚠️ Untested (researched 2026-09-18) | [7900-XTX-Bonsai-2-27B.md](AMD-7900-XTX/7900-XTX-Bonsai-2-27B.md) — PQ2_0 @ 131k q8/q8 (Vulkan incomplete) |
 
@@ -78,6 +79,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 | Windows RTX 4090 (WSL2) | 24 GB | CUDA | [Qwen3.6-27B UD-Q4_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (96k q8/q8 Pi agent) | ✅ Tested | [guide](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) |
 | MacBook Pro M5 | 48 GB | Metal | [Qwen3.6-27B UD-Q5_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (196k ctx) | ✅ Tested | [guide](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) |
 | MacBook Pro M5 | 48 GB | Metal | [Qwen3.8-27B UD-Q5_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (196k q8/q8, ported from 3.6) | ⚠️ Untested | [guide](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) |
+| M1 Ultra Mac Studio | 64 GB | Metal | [Ternary Bonsai 2 27B PQ2_0](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/tree/main) (262k q8/q8; PTQ1_0 A/B; **PrismML fork**) | ⚠️ Untested | [guide](M1-Ultra-Studio-64GB/M1-Ultra-Studio-Bonsai-2-27B.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.6-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | ✅ Tested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.6.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.8-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/turbo4, ported from 3.6) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Ternary Bonsai 2 27B PQ2_0](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/tree/main) (262k q8/q8; PTQ1_0 A/B; **PrismML fork**) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Bonsai-2-27B.md) |
@@ -93,7 +95,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 2. If you have not built the engine yet, do prerequisites in [`local-setup.md`](local-setup.md), then use **that guide’s** cmake (backend/arch live there).
 3. Copy the guide’s `models.json` to **`~/.pi/agent/models.json`**. Match `contextWindow` to `--ctx-size` and `maxTokens` to `--n-predict`. [Agentic harnesses](agentic-harnesses.md).
 
-**How to read a hardware guide:** pin table at the top → Download → Build → PRIMARY command → Confirm → Pi JSON → this-box fallbacks. Essays (GGUF names, flag encyclopedia, Pi theory) live in `local-setup.md`, `llama-cpp-turboquant.md`, and `agentic-harnesses.md`. Qwen3.6 and Qwen3.8 are **siblings** on the same machine, not replacements. Dual RTX **Localmaxing** is the second-card recipe (one `llama-server` per GPU), not a replacement for the Q8 primary. **Ternary Bonsai 2** is a Dual RTX / DGX Spark / RTX 3090 / 7900 XTX experiment on a **second engine** (PrismML fork), not a drop-in for turboquant. On the 7900 XTX it is **HIP**, not the Qwen Vulkan build.
+**How to read a hardware guide:** pin table at the top → Download → Build → PRIMARY command → Confirm → Pi JSON → this-box fallbacks. Essays (GGUF names, flag encyclopedia, Pi theory) live in `local-setup.md`, `llama-cpp-turboquant.md`, and `agentic-harnesses.md`. Qwen3.6 and Qwen3.8 are **siblings** on the same machine, not replacements. Dual RTX **Localmaxing** is the second-card recipe (one `llama-server` per GPU), not a replacement for the Q8 primary. **Ternary Bonsai 2** is a Dual RTX / DGX Spark / M1 Ultra / RTX 3090 / 7900 XTX experiment on a **second engine** (PrismML fork), not a drop-in for turboquant. On the 7900 XTX it is **HIP**, not the Qwen Vulkan build.
 
 Your hardware is not in the table? Use [`ai-assisted-setup.md`](ai-assisted-setup.md). New to the words? [Glossary](glossary.md). Multi-agent / Tavily: [Pi Coding Agent graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
 
@@ -124,6 +126,7 @@ Autarkic-LLM/
 ├── DGX-Spark-128GB/                # 3.6 tested · 3.8 port untested · Bonsai 2 untested
 ├── Dual-RTX6000-192GB/             # 3.6 + 3.8 tested · Localmaxing · Muse / Bonsai 2 untested
 ├── M5-MacBook-Pro-48GB/            # 3.6 tested · 3.8 port untested
+├── M1-Ultra-Studio-64GB/           # Bonsai 2 Metal untested (PrismML fork)
 ├── M4-MacBook-Air-24GB/
 ├── M4-Mac-Mini-16GB/
 ├── M2-Mac-Mini-16GB/
@@ -136,6 +139,6 @@ Autarkic-LLM/
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** 2026-09-18 (DGX Spark Ternary Bonsai 2)  
+**Last Updated:** 2026-09-18 (M1 Ultra Studio Ternary Bonsai 2)  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)
