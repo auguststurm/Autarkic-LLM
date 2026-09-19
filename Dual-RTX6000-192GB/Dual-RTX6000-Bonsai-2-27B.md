@@ -295,6 +295,7 @@ Add `--mmproj ~/Documents/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. BF
 - Tested Q8 Pi primary (same backbone, Unsloth UD, turboquant): [Dual-RTX6000-Qwen3.8.md](Dual-RTX6000-Qwen3.8.md)
 - Two cards, one model each: [Dual-RTX6000-Qwen3.8-localmaxing.md](Dual-RTX6000-Qwen3.8-localmaxing.md)
 - 24 GB WSL2 Ampere twin: [Windows-RTX3090-Bonsai-2-27B.md](../Win-RTX3090-24GB/Windows-RTX3090-Bonsai-2-27B.md)
+- DGX Spark GB10 twin (262k, `"121"`): [DGX-Spark-Bonsai-2-27B.md](../DGX-Spark-128GB/DGX-Spark-Bonsai-2-27B.md)
 - 24 GB RDNA3 HIP twin: [7900-XTX-Bonsai-2-27B.md](../AMD-7900-XTX/7900-XTX-Bonsai-2-27B.md)
 - Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b) · [run llama.cpp](https://docs.prismml.com/run/llamacpp)
 - Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) · demo: [Bonsai-demo](https://github.com/PrismML-Eng/Bonsai-demo)

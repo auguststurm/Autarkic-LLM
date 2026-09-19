@@ -141,6 +141,7 @@ MTP, Unsloth sampling, thinking / preserve, vision: **[Dual RTX Qwen3.8 — opti
 ## See also
 
 - Twin 3.6 (tested): [DGX-Spark-Qwen3.6.md](DGX-Spark-Qwen3.6.md)
+- Ternary Bonsai 2 (⚠️ untested, **PrismML fork**, not this turboquant build): [DGX-Spark-Bonsai-2-27B.md](DGX-Spark-Bonsai-2-27B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
 **Last Updated:** 2026-08-20 (recipe overlay on tested DGX 3.6; 3.8 still ⚠️ untested)
