@@ -197,7 +197,7 @@ MiniCPM5’s template can emit XML-style tool tags (`<tool_call>`). Upstream lla
 
 **Thinking on:** same PRIMARY, `--reasoning on`, drop `--reasoning-budget 0`, use the think JSON. OpenBMB’s published 2B mode is Think. MiniCPM5-**1B** No-think sampling (temp **0.7**) does **not** apply to 2B. Do not add `--reasoning-format none` or `--reasoning-preserve` for Pi.
 
-**Repetition:** OpenBMB `repetition_penalty=1.05` → `--repeat-penalty 1.05`. Community RTX 3060 think-on loops: try **1.15** if 1.05 is not enough ([OpenBMB/MiniCPM#374](https://github.com/OpenBMB/MiniCPM/issues/374)).
+**Repetition:** OpenBMB `repetition_penalty=1.05` → `--repeat-penalty 1.05`. If think-on still loops, try **1.15** ([OpenBMB/MiniCPM#374](https://github.com/OpenBMB/MiniCPM/issues/374)).
 
 **Vision:** this GGUF has no `mmproj` ([files](https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/tree/main); [discussion #1](https://huggingface.co/openbmb/MiniCPM5-2B-GGUF/discussions/1) asks for vision later). A MiniCPM-V projector is a different model.
 
@@ -205,7 +205,7 @@ MiniCPM5’s template can emit XML-style tool tags (`<tool_call>`). Upstream lla
 
 ### Context budget
 
-Architecture from [config.json](https://huggingface.co/openbmb/MiniCPM5-2B/blob/main/config.json): 42 layers, GQA 16 Q / **2 KV**, `head_dim` 128, `max_position_embeddings` **131072**. f16 KV at 131072 is **5.637 GB** (matches an RTX 3060 Q8_0 @ 131k f16 report). q8_0 is ~half. Prefill scratch is extra.
+Architecture from [config.json](https://huggingface.co/openbmb/MiniCPM5-2B/blob/main/config.json): 42 layers, GQA 16 Q / **2 KV**, `head_dim` 128, `max_position_embeddings` **131072**. f16 KV at 131072 is **5.637 GB**. q8_0 is ~half. Prefill scratch is extra.
 
 | `--ctx-size` | q8/q8 KV (est.) | Role |
 | --- | --- | --- |
@@ -215,16 +215,6 @@ Architecture from [config.json](https://huggingface.co/openbmb/MiniCPM5-2B/blob/
 | 131072 | ~2.80 Gi | Native; not a daily pin on 8 GB unified |
 
 Pi compaction default `reserveTokens` is **16384**. At `contextWindow` 32768, compaction starts after ~16k of history. Do not raise `reserveTokens` when you raise the window.
-
-### Other-GPU VRAM (same GGUFs)
-
-Not this Jetson — useful for cache math; do not copy their batch or 131k pin onto 8 GB unified.
-
-- RTX **3060** 12 GB ([Dogukan](https://x.com/DogukanUrker/status/2097007347902128352)): Q8_0 @ 131k **f16/f16** ~**8.2 GB** / ~113 t/s decode; Q4_K_M ~**7.2 GB** / ~163 t/s. Prefill ~5800 t/s both.
-- RTX **3090** ([AJ](https://x.com/ItsmeAjayKV/status/2097019939509158019)): Q8_0 + f16 KV at 128k ~**7 GB**; F16 weights + f16 KV ~**10 GB**. DSpark draft +**1.8 GB**.
-- RTX **4060** 8 GB ([bwayne](https://x.com/bwmcn/status/2099235632945979564)): daily driver Q8_0 among models that fit that card.
-- Windows **CPU** Q4_K_M think off ([TeksEdge](https://x.com/TeksEdge/status/2097180629477859690)): ~36 t/s; their harness scored it far below Qwen3.5-4B. Treat Q4 as the speed/headroom swap, not a free quality match for Q8.
-- [atomic.chat](https://x.com/atomic_chat_hq/status/2097639898266116377) (Q4_K_M): MiniCPM5-2B **3/3** in 23 s vs Gemma 4 E2B **2/3** in 29.5 s. Sibling on this Jetson, not a pin to copy.
 
 ## See also
 

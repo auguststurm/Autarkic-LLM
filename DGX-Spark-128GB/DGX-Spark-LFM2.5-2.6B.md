@@ -1,14 +1,12 @@
 # DGX Spark Founders Edition (128 GB) - LFM2.5-2.6B
 
-> ⚠️ **Not yet tested** on this hardware with LFM2.5. Port of the ✅ [Jetson LFM2.5](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) pin (Q8_0, Liquid sampling, Pi JSON) onto this box’s **tested** GB10 cmake (`"121"`, FA **on**). Confirm load → first decode → Pi tools, then report via issue/PR.
->
-> Do not use the [3090 LFM](../Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md) cmake (`FA=OFF`). Do not copy this folder’s Qwen **turbo4** V or **262k** window.
+> ⚠️ **Not yet tested** on this hardware with LFM2.5. GB10 cmake (`"121"`, FA **on**), Q8_0, Liquid sampling. Confirm load → first decode → Pi tools, then report via issue/PR.
 
 CUDA CC **12.1** (GB10) · llama-cpp-turboquant. Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent).
 
 | Pin | Value |
 | --- | --- |
-| **Status** | ⚠️ Untested (Jetson ✅ 64k; cmake from tested 3.6 on this box) |
+| **Status** | ⚠️ Untested (cmake from tested 3.6 on this box) |
 | **Weights** | `LFM2.5-2.6B-Q8_0.gguf` (2.87 GB) |
 | **Catalog** | [LiquidAI/LFM2.5-2.6B-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF) · [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B) |
 | **Context** | `--ctx-size 131072` (`--fit off`) · Pi `contextWindow` **131072** |
@@ -28,7 +26,7 @@ hf download LiquidAI/LFM2.5-2.6B-GGUF \
   --local-dir ~/Documents/AIML/models
 ```
 
-Optional F16 (5.4 GB): same command, swap `--model` to `LFM2.5-2.6B-F16.gguf`. Skip Q6_K (Jetson 8 GB lever).
+Optional F16 (5.4 GB): same command, swap `--model` to `LFM2.5-2.6B-F16.gguf`. Skip Q6_K (not needed on 128 GB).
 
 ## Build
 
@@ -87,13 +85,13 @@ Omit `--reasoning off` — the [chat template](https://huggingface.co/LiquidAI/L
 
 | Flag | Why |
 | --- | --- |
-| `--ctx-size 131072` | Native train length. KV is **1,088 MiB** q8/q8 at 128k (Jetson-measured). Not this folder’s Qwen 262k |
-| `q8_0` / `q8_0` | Only 8 of 30 layers are GQA; turbo4 V is the 27B capacity lever, not this hybrid |
-| `--flash-attn on` | This folder’s tested 3.6 pin |
-| `--load-mode none` | This folder’s CUDA pin |
-| `--threads 28` | Spark host CPU pairing from the 3.6 guide |
-| Batch 1024 | Same as this folder’s Qwen. Drop to 256 if prefill OOMs, then `--ctx-size 65536` |
-| `--n-predict 16384` | Pi default. Thinking counts against the cap. Do not drop to 4096 ([Jetson truncation notes](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md#pi-truncation-on-the-first-turn)) |
+| `--ctx-size 131072` | Native train length. KV is **1,088 MiB** q8/q8 at 128k |
+| `q8_0` / `q8_0` | Only 8 of 30 layers are GQA |
+| `--flash-attn on` | This box’s CUDA pin |
+| `--load-mode none` | This box’s CUDA pin |
+| `--threads 28` | Spark host CPU pairing |
+| Batch 1024 | Drop to 256 if prefill OOMs, then `--ctx-size 65536` |
+| `--n-predict 16384` | Pi default. Thinking counts against the cap. Do not drop to 4096 |
 | Sampling | Liquid card: `temp 0.1` / `top_k 50` / `repeat-penalty 1.1` |
 
 ### Confirm
@@ -123,7 +121,7 @@ Save **one** of these to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). `id
 
 ### Skills / tools (start here)
 
-`reasoning` **false**, no `thinkingLevelMap`. Field-tested on the Jetson for skill/tool work. Does not strip `<think>` from the GGUF.
+`reasoning` **false**, no `thinkingLevelMap`. Does not strip `<think>` from the GGUF.
 
 ```json
 {
@@ -188,8 +186,6 @@ Empty `content` with `finish_reason: length` → tools JSON first, not a higher 
 
 ## See also
 
-- Jetson (✅ 64k): [Jetson-Orin-LFM2.5-2.6B.md](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md)
-- RTX 3090 WSL2 (⚠️ 128k / FA off): [Windows-RTX3090-LFM2.5-2.6B.md](../Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md)
 - This box, Qwen3.6 (✅ tested): [DGX-Spark-Qwen3.6.md](DGX-Spark-Qwen3.6.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent)
 

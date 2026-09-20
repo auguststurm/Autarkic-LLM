@@ -1,6 +1,6 @@
 # M2 Mac Mini (16 GB) - Gemma 4 E2B
 
-> ⚠️ **Not yet tested** on this hardware. ~3 GB weights on 16 GB — low risk. Base M2 bandwidth ~100 GB/s (vs ~120 on M4 Mini). Hard 35B experiment: [M2-Mac-Mini-Qwen3.6.md](M2-Mac-Mini-Qwen3.6.md).
+> ⚠️ **Not yet tested** on this hardware. ~3 GB weights on 16 GB — low risk. Base M2 bandwidth ~100 GB/s.
 
 16 GB unified · **Metal**. TurboQuant V is optional (model is tiny). Pi: [agentic harnesses](../agentic-harnesses.md). If Metal-OOM, drop `--ctx-size`, never bare `--fit on`.
 

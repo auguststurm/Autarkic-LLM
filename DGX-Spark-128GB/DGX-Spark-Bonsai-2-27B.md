@@ -2,7 +2,7 @@
 
 > ⚠️ **Not yet tested** on this hardware with Bonsai 2 (researched **2026-09-18**). Confirm load → first decode → Pi tools before relying on it. **Not** llama-cpp-turboquant.
 
-CUDA CC **12.1** (GB10) · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Paths: `~/Documents/AIML/models` · `~/Documents/GitHub/llama.cpp-prism` — same Linux layout as this folder’s [Qwen3.6](DGX-Spark-Qwen3.6.md) / [Qwen3.8](DGX-Spark-Qwen3.8.md).
+CUDA CC **12.1** (GB10) · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Paths: `~/Documents/AIML/models` · `~/Documents/GitHub/llama.cpp-prism`.
 
 Same Qwen3.8-27B hybrid backbone, packed as true ternary weights (~6–7 GB). This box already holds **262k** with Q6 27B (~22–26 GB). Bonsai 2 is a small object on 128 GB unified memory. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
@@ -36,7 +36,7 @@ hf download prism-ml/Ternary-Bonsai-2-27B-gguf \
 
 Confirm both files exist under `~/Documents/AIML/models` before building.
 
-**Why two files, and which first.** PrismML has **no GB10 / Spark row**. Closest: **Blackwell** cards (RTX PRO 6000, 5090) prefer **PQ2_0** for decode *and* prompt processing; **Ada** prefers **PTQ1_0** for decode. GB10 is Blackwell. Start with **PQ2_0**, then [bench both](#try-both-packs).
+**Why two files, and which first.** GB10 is Blackwell-class. Start with **PQ2_0**, then [bench both](#try-both-packs).
 
 | Pack | Size | Role on this box |
 | --- | --- | --- |
@@ -45,7 +45,7 @@ Confirm both files exist under `~/Documents/AIML/models` before building.
 
 ## Build
 
-Separate clone so this folder’s turboquant tree stays untouched. `prism-b10658` or newer. Spark is **GB10 + Grace (ARM)**. PrismML’s CUDA release tarballs are **x86_64** — **build from source** on this box. Pin `"121"` (this folder’s other guides); a 12.8 x64 fat binary would miss `sm_121` even if the ISA matched.
+Separate clone so a turboquant tree stays untouched. `prism-b10658` or newer. Spark is **GB10 + Grace (ARM)**. PrismML’s CUDA release tarballs are **x86_64** — **build from source** on this box. Pin `"121"`; a 12.8 x64 fat binary would miss `sm_121` even if the ISA matched.
 
 ```bash
 cd ~/Documents/GitHub
@@ -60,7 +60,7 @@ cmake --build . --config Release -j$(nproc)
 cd bin
 ```
 
-Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) branch **`prism`**. `"121"` is GPU compute capability (`sm_121` / CC 12.1), same as [Qwen3.8 on this box](DGX-Spark-Qwen3.8.md#build) — not the CUDA toolkit version. Omit `-DCMAKE_CUDA_ARCHITECTURES="121"` to autodetect.
+Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) branch **`prism`**. `"121"` is GPU compute capability (`sm_121` / CC 12.1), not the CUDA toolkit version. Omit `-DCMAKE_CUDA_ARCHITECTURES="121"` to autodetect.
 
 Confirm before debugging flags:
 
@@ -113,17 +113,17 @@ pkill -9 llama-server
 | Flag | Why |
 | --- | --- |
 | `--model …-PQ2_0.gguf` | Blackwell-leaning pack; swap the filename to try PTQ1_0 |
-| `--ctx-size 262144` | Full native window. This box already ran 262k with Q6 ~22–26 GB. Bonsai 2 weights + hybrid q8 KV is ~18–20 GB class on 128 GB unified |
-| `q8_0` / `q8_0` | This folder’s Qwen uses **turbo4 V** on turboquant. PrismML has **no** `turbo*` — keep q8 V; 128 GB does not need the capacity lever |
-| `--threads 28` | Same Spark host CPU pairing as this folder’s Qwen 3.6 / 3.8 |
-| Batch 1024 | Same as this folder’s Qwen and Dual RTX Bonsai |
+| `--ctx-size 262144` | Full native window. Bonsai 2 weights + hybrid q8 KV is ~18–20 GB class on 128 GB unified |
+| `q8_0` / `q8_0` | PrismML has **no** `turbo*` — keep q8 V; 128 GB does not need the capacity lever |
+| `--threads 28` | Spark host CPU pairing |
+| Batch 1024 | Drop to 256 on prefill OOM |
 | `--cache-ram 0` | Hybrid Qwen / DeltaNet multi-turn ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)) |
 | `--load-mode none` | Buffered read. Unified memory: the GGUF is small (~7 GB) |
 | `--reasoning off` | Pi needs `message.content` / tools. Bonsai 2 **thinks by default** if you leave this on |
-| Sampling | Dual RTX / Bonsai **Pi tools** pin — **no DRY**. This folder’s tested Qwen 3.6 is temp **0.65** / top_p **0.90** / repeat **1.10** — use that only if you want to match the Spark Qwen command, on a **new** session |
-| `--n-predict 16384` | Match Pi `maxTokens`. This folder’s Qwen uses **8192**; raise both if you keep that |
+| Sampling | Pi tools pin — **no DRY** |
+| `--n-predict 16384` | Match Pi `maxTokens` |
 | `--alias bonsai-2-27b` | Matches the Pi JSON `id` |
-| No `--main-gpu` | Single GB10, same as this folder’s Qwen |
+| No `--main-gpu` | Single GB10 |
 
 Universal flags (`--fit off`, loopback, no checkpoints): [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) still describes them; this binary is the **PrismML** fork, so ignore turbo V / TQ weight types.
 
@@ -166,7 +166,7 @@ From `build/bin`:
   -ngl 99 -fa 1 -p 512 -n 128
 ```
 
-Keep the faster pack for interactive Pi. Smoke Pi `ls`/`read` on **each**. Re-bench on this box — do not copy this folder’s Qwen 3.6 tok/s.
+Keep the faster pack for interactive Pi. Smoke Pi `ls`/`read` on **each**. Re-bench on this box.
 
 ## Pi `models.json`
 
@@ -192,29 +192,21 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 }
 ```
 
-If you settle on PTQ1_0, change `name` only. `--alias` must still match `id`. If you drop `--n-predict` to this folder’s Qwen **8192**, set `maxTokens` to 8192 too.
+If you settle on PTQ1_0, change `name` only. `--alias` must still match `id`. If you change `--n-predict`, set `maxTokens` to match.
 
 ## This box
 
-**128 GB unified.** ~7 GB weights + 262k q8/q8 hybrid KV (~9–10 GB) + scratch is an **~18–20 GB** object. Do not `--split-mode layer`. Do not load these GGUFs in the turboquant `llama-server` from the Qwen guides.
+**128 GB unified.** ~7 GB weights + 262k q8/q8 hybrid KV (~9–10 GB) + scratch is an **~18–20 GB** object. Do not `--split-mode layer`. Do not load these GGUFs in a turboquant `llama-server`.
 
-This is **not** a replacement for the [Q6 27B Qwen3.8 port](DGX-Spark-Qwen3.8.md) or the [tested 3.6](DGX-Spark-Qwen3.6.md). Those are the turboquant hosts. Bonsai 2 is the ternary Qwen3.8 compression for speed/footprint on the PrismML fork.
-
-**No turbo V.** This folder’s Qwen pin uses turbo4 V to buy 262k with Q6 weights. Bonsai 2 does not need that, and this fork cannot do it.
+**No turbo V.** This fork cannot do it.
 
 **OOM (unlikely):** drop batch to 256, then `--ctx-size 131072` + Pi 131072. Confirm you are on `llama.cpp-prism`, not turboquant.
 
-Path-heavy Pi tools: this PRIMARY already uses the Dual RTX agent profile. Do not mix this folder’s Qwen `repeat 1.10` / `temp 0.65` on the same session.
-
-Sampling, thinking on, vision: **[Dual RTX Bonsai 2 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md#bonsai-2-optionals)**.
-
 ## See also
 
-- Twin 3.6 (tested on this box): [DGX-Spark-Qwen3.6.md](DGX-Spark-Qwen3.6.md)
-- Qwen3.8 port (⚠️ untested, turboquant): [DGX-Spark-Qwen3.8.md](DGX-Spark-Qwen3.8.md)
-- LFM2.5-2.6B (⚠️ untested, turboquant `"121"`, not this PrismML binary): [DGX-Spark-LFM2.5-2.6B.md](DGX-Spark-LFM2.5-2.6B.md)
-- Dual RTX Bonsai 2 (CUDA sm_120, 262k): [Dual-RTX6000-Bonsai-2-27B.md](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md)
-- 24 GB CUDA WSL2 Bonsai 2 (131k): [Windows-RTX3090-Bonsai-2-27B.md](../Win-RTX3090-24GB/Windows-RTX3090-Bonsai-2-27B.md)
+- Qwen3.6 (tested): [DGX-Spark-Qwen3.6.md](DGX-Spark-Qwen3.6.md)
+- Qwen3.8: [DGX-Spark-Qwen3.8.md](DGX-Spark-Qwen3.8.md)
+- LFM2.5-2.6B: [DGX-Spark-LFM2.5-2.6B.md](DGX-Spark-LFM2.5-2.6B.md)
 - Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b)
 - Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp)
 - Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)

@@ -96,7 +96,7 @@ pkill -9 llama-server
 | `--load-mode none` | Buffered read (old `--no-mmap`). Confirmed: log `load_mode = none`, no mmap deprecation warning |
 | `--cache-ram 0` | Hybrid Qwen / DeltaNet multi-turn restore issues ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)) |
 | `--reasoning off` | Pi needs `message.content` / tools — not thinking traces |
-| Sampling | Dual RTX / 4090 agent profile; **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
+| Sampling | This box’s Pi tools pin; **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837))
 | `--n-predict 16384` | Report-length agent output (match Pi `maxTokens`) |
 
 Universal flags (`--fit off`, `--jinja`, `--flash-attn on`, loopback, no checkpoints): [llama-cpp-turboquant.md](../llama-cpp-turboquant.md).
@@ -219,7 +219,7 @@ Add `--mmproj ~/Documents/AIML/models/mmproj-F16.gguf` only if this `llama-serve
 
 - Two cards, one model each (two 27B, or 27B + Coder / 35B-A3B): [Dual-RTX6000-Qwen3.8-localmaxing.md](Dual-RTX6000-Qwen3.8-localmaxing.md)
 - Same backbone, ternary ~6–7 GB (⚠️ untested, **PrismML fork**): [Dual-RTX6000-Bonsai-2-27B.md](Dual-RTX6000-Bonsai-2-27B.md)
-- Twin 3.6 (tested 2026-08-08): [Dual-RTX6000-Qwen3.6.md](Dual-RTX6000-Qwen3.6.md)
+- Qwen3.6 (tested 2026-08-08): [Dual-RTX6000-Qwen3.6.md](Dual-RTX6000-Qwen3.6.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 - Unsloth: [Qwen3.8](https://unsloth.ai/docs/models/qwen3.8) · [MTP](https://unsloth.ai/docs/models/mtp)
 

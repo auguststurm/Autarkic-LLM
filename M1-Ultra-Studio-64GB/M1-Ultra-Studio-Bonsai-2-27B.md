@@ -2,15 +2,15 @@
 
 > ⚠️ **Not yet tested** on this hardware with Bonsai 2 (researched **2026-09-18**). Confirm load → **first decode** (Metal can load then OOM) → Pi tools before relying on it. **Metal, not CUDA.** **Not** llama-cpp-turboquant.
 
-64 GB unified · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**) · **Metal**. Paths: `~/Documents/AIML/models` · `~/Documents/GitHub/llama.cpp-prism` — same macOS layout as [M5 Pro](../M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md). Tighter Metal pattern: [M4 Air](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
+64 GB unified · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**) · **Metal**. Paths: `~/Documents/AIML/models` · `~/Documents/GitHub/llama.cpp-prism`.
 
-Same Qwen3.8-27B hybrid backbone as Dual RTX Bonsai 2, packed as true ternary weights (~6–7 GB). M5 Pro 48 GB holds Q5 27B (~20 GB) at **196k** q8/q8. This Studio has **64 GB** and Bonsai 2 is ~7 GB — **262k** is the research pin; Metal still has to survive **first decode**. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
+Qwen3.8-27B hybrid backbone packed as true ternary weights (~6–7 GB). **262k** is the research pin; Metal still has to survive **first decode**. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 **Stock llama.cpp and llama-cpp-turboquant will not run these files.** They refuse `PQ2_0` / `PTQ1_0` as unknown types. Do not load a Bonsai 2 `Q2_0` on a stock build either — that file can load silently and emit garbage (Hadamard runtime missing). Use the PrismML fork. **Do not paste CUDA flags** (`--n-gpu-layers`, `-DCMAKE_CUDA_ARCHITECTURES`).
 
 | Pin | Value |
 | --- | --- |
-| **Status** | ⚠️ Untested (PrismML Metal + this repo’s 48–64 GB unified pin) |
+| **Status** | ⚠️ Untested (PrismML Metal on this box) |
 | **PRIMARY weights** | `Ternary-Bonsai-2-27B-PQ2_0.gguf` (~7.2 GB, 2.13 bpw) |
 | **A/B weights** | `Ternary-Bonsai-2-27B-PTQ1_0.gguf` (~5.9 GB, 1.75 bpw) |
 | **Catalog** | [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) |
@@ -38,7 +38,7 @@ hf download prism-ml/Ternary-Bonsai-2-27B-gguf \
 
 Confirm both files exist under `~/Documents/AIML/models` before building.
 
-**Why two files, and which first.** PrismML’s Apple numbers are **PQ2_0** only (M5 Max ~47 tok/s, M5 Pro ~28, M4 Pro ~18 — **not this M1 Ultra**). **PQ2_0** has Metal kernels. Start there, then [bench PTQ1_0](#try-both-packs). Keep whichever wins *here*.
+**Why two files, and which first.** **PQ2_0** has Metal kernels. Start there, then [bench PTQ1_0](#try-both-packs). Keep whichever wins *here*.
 
 | Pack | Size | Role on this box |
 | --- | --- | --- |
@@ -62,7 +62,7 @@ cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 cd bin
 ```
 
-Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) branch **`prism`**. Same Metal cmake shape as [M5 Pro](../M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md#build), different repo. The turboquant Metal `rnorm` shader note does **not** apply here.
+Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) branch **`prism`**. The turboquant Metal `rnorm` shader note does **not** apply here.
 
 Confirm before debugging flags:
 
@@ -74,7 +74,7 @@ uname -m                  # arm64
 
 If load later fails with unknown type `PTQ1_0` / `PQ2_0`, you launched **turboquant** or stock llama.cpp. Check `pwd` is `~/Documents/GitHub/llama.cpp-prism/build/bin`.
 
-**Optional shortcut (prebuilt):** [PrismML macOS Apple Silicon](https://github.com/PrismML-Eng/llama.cpp/releases/latest) (`llama-prism-*-bin-macos-arm64.tar.gz`). This **is** a valid path on Studio (unlike DGX Spark CUDA tarballs). Prefer source if the archive lags `prism`.
+**Optional shortcut (prebuilt):** [PrismML macOS Apple Silicon](https://github.com/PrismML-Eng/llama.cpp/releases/latest) (`llama-prism-*-bin-macos-arm64.tar.gz`). Prefer source if the archive lags `prism`.
 
 ## PRIMARY command
 
@@ -115,19 +115,19 @@ pkill -9 llama-server
 | Flag | Why |
 | --- | --- |
 | `--model …-PQ2_0.gguf` | Apple-measured packing; swap the filename to try PTQ1_0 |
-| `--ctx-size 262144` | Native window. ~7 GB weights + ~9–10 GB hybrid q8 KV leaves tens of GB for macOS + Metal scratch on 64 GB. M5 Pro Q5 27B stopped at **196k** because *weights* were ~20 GB |
-| `q8_0` / `q8_0` | Same quality KV as M5 Pro 48 GB. This fork has **no** `turbo*` — if Metal-OOM, drop ctx or batch, not K |
-| Batch 512 | Same as M5 Pro Metal. Drop to 256 / 128 on first-decode OOM (Air uses 64 on 24 GB) |
-| `--threads 0` | Let the runtime pick host threads on Apple Silicon (M5 pin) |
-| No `--n-gpu-layers` | Metal unified memory — CUDA paste will not help |
-| No `--load-mode none` | Metal guides keep default **mmap** |
+| `--ctx-size 262144` | Native window. ~7 GB weights + ~9–10 GB hybrid q8 KV leaves tens of GB for macOS + Metal scratch on 64 GB |
+| `q8_0` / `q8_0` | This fork has **no** `turbo*` — if Metal-OOM, drop ctx or batch, not K |
+| Batch 512 | Drop to 256 / 128 on first-decode OOM |
+| `--threads 0` | Let the runtime pick host threads on Apple Silicon |
+| No `--n-gpu-layers` | Metal unified memory |
+| No `--load-mode none` | Default **mmap** |
 | `--cache-ram 0` | Hybrid Qwen / DeltaNet multi-turn ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)) |
 | `--reasoning off` | Pi needs `message.content` / tools. Bonsai 2 **thinks by default** if you leave this on |
-| Sampling | Dual RTX / Bonsai **Pi tools** pin — **no DRY**. M5 Qwen uses temp **0.65** / top_p **0.90** / repeat **1.10** — not this PRIMARY |
-| `--n-predict 16384` | Match Pi `maxTokens`. M5 Qwen uses **8192** |
+| Sampling | Pi tools pin — **no DRY** |
+| `--n-predict 16384` | Match Pi `maxTokens` |
 | `--alias bonsai-2-27b` | Matches the Pi JSON `id` |
 
-`--ctx-size` is a request. Trust `n_ctx_seq`. Then **decode** — Metal often dies on the first prompt, not at load ([M4 Air](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md)).
+`--ctx-size` is a request. Trust `n_ctx_seq`. Then **decode** — Metal often dies on the first prompt, not at load.
 
 Universal flags (`--fit off`, loopback, no checkpoints): [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) still describes them; this binary is the **PrismML** fork, so ignore turbo V / TQ weight types.
 
@@ -172,7 +172,7 @@ From `build/bin`:
 
 `-ngl 99` is fine on `llama-bench` here; do **not** add it to the **server** command. Keep the faster pack for interactive Pi. Smoke Pi `ls`/`read` on **each**.
 
-Vendor Apple ballpark (PQ2_0, not this SKU): M5 Max ~47 tok/s, M5 Pro ~28, M4 Pro ~18. M1 Ultra is older / wider — expect **below M5 Max**, not a Dual RTX CUDA number.
+Re-bench on this box.
 
 ## Pi `models.json`
 
@@ -204,7 +204,7 @@ If you settle on PTQ1_0, change `name` only. If you take a [fallback ctx](#this-
 
 **64 GB unified.** ~7 GB weights + 262k q8/q8 hybrid KV (~9–10 GB) + Metal scratch should fit with macOS — **if first decode succeeds**. Do not `--split-mode layer`. Do not load these GGUFs in a turboquant Metal `llama-server`.
 
-**Metal-OOM on first decode:** (1) close apps / one server only, (2) batch 256 then 128, (3) `--ctx-size 196608` + Pi 196608 (M5 Pro 27B pin), (4) `--ctx-size 131072` + Pi 131072. Never bare `--fit on`. This fork cannot turbo V.
+**Metal-OOM on first decode:** (1) close apps / one server only, (2) batch 256 then 128, (3) `--ctx-size 196608` + Pi 196608, (4) `--ctx-size 131072` + Pi 131072. Never bare `--fit on`. This fork cannot turbo V.
 
 **Half-window:** `65536` is only if 131k still OOMs — unlikely on 64 GB with 7 GB weights.
 
@@ -213,21 +213,16 @@ llama-server usually **reserves the full KV for `--ctx-size` at startup**. Estim
 | `--ctx-size` | After load (est.) | Use when |
 | --- | --- | --- |
 | **262144** (PRIMARY) | **~18–20 GB** + Metal scratch | Default if first decode lives |
-| **196608** | a bit under 262k | M5 Pro 27B window; first Metal fallback |
-| **131072** | **~13–15 GB** | Comfortable; same as 24 GB Bonsai PRIMARY |
+| **196608** | a bit under 262k | First Metal fallback |
+| **131072** | **~13–15 GB** | Comfortable |
 
-Path-heavy tools: PRIMARY already uses the Dual RTX agent profile. Do not mix M5 Qwen `repeat 1.10` on the same session.
-
-Sampling, thinking on, vision: **[Dual RTX Bonsai 2 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md#bonsai-2-optionals)**. Metal downscales large images by default (~1,024 vision tokens in PrismML’s demo).
+Metal downscales large images by default (~1,024 vision tokens in PrismML’s demo).
 
 **MLX:** [prism-ml/Ternary-Bonsai-2-27B-mlx-2bit](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-mlx-2bit) (~8.5 GB, vision included) runs on **stock MLX**. That is **not** this `llama-server` + Pi JSON primary. Demo: [Bonsai-demo](https://github.com/PrismML-Eng/Bonsai-demo) `start_mlx_server.sh`.
 
 ## See also
 
-- Dual RTX Bonsai 2 (CUDA, 262k): [Dual-RTX6000-Bonsai-2-27B.md](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md)
-- M5 Pro 48 GB Qwen (Metal, 196k, turboquant): [M5-MacBook-Pro-Qwen3.8.md](../M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md)
-- Tight Metal (24 GB, turbo2): [M4-MacBook-Air-Qwen3.6.md](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md)
-- Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b) · [run llama.cpp](https://docs.prismml.com/run/llamacpp)
+- Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b)
 - Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) · MLX pack: [Ternary-Bonsai-2-27B-mlx-2bit](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-mlx-2bit)
 - Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 

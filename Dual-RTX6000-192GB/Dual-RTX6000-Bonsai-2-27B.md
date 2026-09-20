@@ -2,7 +2,7 @@
 
 > ⚠️ **Not yet tested** on this hardware with Bonsai 2 (researched **2026-09-18**). Confirm load → first decode → Pi tools before relying on it. This is a **different engine** from the rest of this folder: **not** llama-cpp-turboquant.
 
-Blackwell **sm_120** · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**) · Ubuntu. Same Qwen3.8-27B hybrid backbone as the [Q8 primary](Dual-RTX6000-Qwen3.8.md), packed as true ternary weights (~6–7 GB). Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
+Blackwell **sm_120** · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**) · Ubuntu. Qwen3.8-27B hybrid backbone packed as true ternary weights (~6–7 GB). Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 **Stock llama.cpp and llama-cpp-turboquant will not run these files.** They refuse `PQ2_0` / `PTQ1_0` as unknown types. Do not load a Bonsai 2 `Q2_0` on a stock build either — that file can load silently and emit garbage (Hadamard runtime missing). Use the PrismML fork.
 
@@ -34,7 +34,7 @@ hf download prism-ml/Ternary-Bonsai-2-27B-gguf \
 
 Confirm both files exist under `~/Documents/AIML/models` before building.
 
-**Why two files, and which first.** PrismML’s [RTX PRO 6000 Blackwell](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) table (not this Max-Q SKU) has **PQ2_0** faster at decode *and* much faster at prompt processing. **PTQ1_0** is the smaller footprint and wins decode on Ada-generation cards. On this Blackwell box, start with **PQ2_0**, then swap to **PTQ1_0** and [bench both](#try-both-packs). Neither is uniformly faster on every GPU.
+**Why two files, and which first.** On this Blackwell box, start with **PQ2_0**, then swap to **PTQ1_0** and [bench both](#try-both-packs). Keep whichever wins here.
 
 | Pack | Size | Role on this box |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ cmake --build . --config Release -j$(nproc)
 cd bin
 ```
 
-Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) branch **`prism`**. `"120"` is GPU compute capability (`sm_120`), same as the [Q8 primary](Dual-RTX6000-Qwen3.8.md#build) — not the CUDA toolkit version. PrismML’s own fat-binary script uses `120a`; this box’s other CUDA guides pin `"120"`. Omit `-DCMAKE_CUDA_ARCHITECTURES="120"` to autodetect.
+Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) branch **`prism`**. `"120"` is GPU compute capability (`sm_120`), not the CUDA toolkit version. PrismML’s fat-binary script uses `120a`; this box pins `"120"`. Omit `-DCMAKE_CUDA_ARCHITECTURES="120"` to autodetect.
 
 Confirm before debugging flags:
 
@@ -112,13 +112,13 @@ pkill -9 llama-server
 
 | Flag | Why |
 | --- | --- |
-| `--model …-PQ2_0.gguf` | Blackwell-leaning pack on PrismML’s PRO 6000 table; swap the filename to try PTQ1_0 |
+| `--model …-PQ2_0.gguf` | Blackwell-leaning pack; swap the filename to try PTQ1_0 |
 | `--ctx-size 262144` | Native Qwen3.8 window. ~7 GB weights + hybrid KV fit one 96 GB card easily |
-| `q8_0` / `q8_0` | Same KV policy as the Dual RTX Qwen primary. This fork has **no** `turbo*` cache types |
+| `q8_0` / `q8_0` | This fork has **no** `turbo*` cache types |
 | `--cache-ram 0` | Same hybrid Qwen / DeltaNet multi-turn issue as 3.8 ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)) |
 | `--main-gpu 0` | Single-GPU primary; second 96 GB stays free (or holds the Q8 host — [below](#this-box)) |
 | `--reasoning off` | Pi needs `message.content` / tools. Bonsai 2 **thinks by default** if you leave this on |
-| Sampling | Dual RTX Qwen **Pi tools** pin — **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)). Official thinking/instruct rows: [optionals](#bonsai-2-optionals) |
+| Sampling | Pi tools pin — **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)). Official thinking/instruct rows: [optionals](#bonsai-2-optionals) |
 | `--n-predict 16384` | Match Pi `maxTokens`. Thinking tokens also count against this if you turn thinking on |
 | `--jinja` | Native OpenAI-style `tool_calls` (PrismML 27B server profile) |
 | `--alias bonsai-2-27b` | Matches the Pi JSON `id` |
@@ -168,7 +168,7 @@ From `build/bin`, numbers PrismML reports as `tg128` / `pp512`:
 
 Keep the faster pack for interactive Pi; keep the other on disk. Quality should be close (same ternary assignment; packing differs). Smoke Pi `ls`/`read` on **each** before treating a tok/s winner as the daily driver.
 
-Vendor ballpark (RTX PRO 6000 Blackwell, not this Max-Q): PQ2_0 ~125 tok/s decode / ~4020 pp; PTQ1_0 ~118 / ~1972. Expect this SKU a bit lower. Dual RTX Q8 27B on this box is ~51 tok/s — Bonsai 2 is the speed/footprint experiment, not a quality upgrade over Q8.
+Re-bench on this box. Q8 27B on this hardware is ~51 tok/s — Bonsai 2 is the speed/footprint experiment, not a quality upgrade over Q8.
 
 ## Pi `models.json`
 
@@ -259,7 +259,7 @@ Keep the pin’s Pi row for tool/coding agents. PrismML / Qwen3.8 `generation_co
 | --- | --- | --- | --- | --- |
 | Thinking | **1.0** | **0.95** | 0.0 | Bonsai 2 demo default; `--reasoning on` |
 | Instruct (non-thinking) | 0.7 | 0.80 | **1.5** | Chat only — presence 1.5 warps reused paths in Pi |
-| **This repo’s Pi tools** | **0.6** | **0.95** | **0.0** | Same Dual RTX Qwen agent pin |
+| **This repo’s Pi tools** | **0.6** | **0.95** | **0.0** | This box’s agent pin |
 
 ### Thinking on (not the Pi default)
 

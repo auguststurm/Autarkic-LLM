@@ -1,6 +1,6 @@
 # M4 Mac Mini (16 GB) - Qwen3.6-35B-A3B (experimental)
 
-> ⚠️ **Untested. Tight fit.** Daily driver: **[Gemma 4 E2B](M4-Mac-Mini-Gemma-4-E2B.md)** (~3 GB). Air IQ4_NL (~18 GB) **cannot load**.
+> ⚠️ **Untested. Tight fit.** Daily driver: **[Gemma 4 E2B](M4-Mac-Mini-Gemma-4-E2B.md)** (~3 GB). IQ4_NL (~18 GB) **cannot load**.
 
 MoE 35B total / ~3B active — **full weights must still fit**. Only IQ2/IQ1-class quants load. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
@@ -27,7 +27,7 @@ UD-IQ2_XXS   10.8 GB   marginal
 UD-IQ2_M     11.5 GB   marginal  <- recommended starting point
 UD-Q2_K_XL   12.3 GB   tight; needs raised wired limit
 UD-Q3_K_S    15.4 GB   no
-UD-IQ4_NL    ~18 GB    no (Air quant — does not fit)
+UD-IQ4_NL    ~18 GB    no (does not fit)
 UD-Q4_K_XL   22.4 GB   no
 ```
 

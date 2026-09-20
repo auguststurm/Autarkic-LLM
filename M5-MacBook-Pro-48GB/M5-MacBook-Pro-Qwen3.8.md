@@ -2,7 +2,7 @@
 
 > ⚠️ **Not yet tested** on this hardware with Qwen3.8. Port of the **tested** [Qwen3.6 M5](M5-MacBook-Pro-Qwen3.6.md) pin (Q5 @ 196k · q8/q8 Metal). Confirm load → **first decode** (Metal can load then OOM) → Pi tools, then report via issue/PR.
 >
-> **Metal, not CUDA.** Do not paste Dual RTX / DGX cmake or `--n-gpu-layers` here. Qwen3.8 extras: [Dual RTX Qwen3.8 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#qwen38-optionals).
+> **Metal, not CUDA.** Do not paste `--n-gpu-layers` here.
 
 48 GB unified · llama-cpp-turboquant **Metal**. Same box, same agent-scale pin as 3.6; only the weights file and arch tag (`qwen35`) change.
 
@@ -18,7 +18,7 @@
 | **Thinking** | `--reasoning off` (Pi tools) |
 | **Paths** | model `~/Documents/AIML/models` · engine `~/Documents/GitHub/llama-cpp-turboquant` |
 
-**Pi:** `contextWindow` = 196608, `maxTokens` = 8192. Path-heavy tools misbehaving? Agent profile temp 0.6 / top_p 0.95 / top_k 20 / presence 0 on a **new** session. [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). GGUF names: [local-setup](../local-setup.md#understanding-gguf-quants-why-so-many-files).
+**Pi:** `contextWindow` = 196608, `maxTokens` = 8192. Path-heavy tools misbehaving? Try temp 0.6 / top_p 0.95 / top_k 20 / presence 0 on a **new** session. [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 **Memory:** Q5 ~20 GB leaves room for macOS + KV at 196k. Q8 (~31.5 GB) fights the laptop budget at this pin. Close heavy apps; one long-lived `llama-server`.
 
@@ -134,15 +134,11 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 
 **Optional Q6:** `Qwen3.8-27B-UD-Q6_K_XL.gguf` (~25.9 GB), same command, swap `--model`. Confirm **decode** at 196k.
 
-No mid-size Qwen3.8 MoE twin yet — stay on dense 27B.
-
-## Qwen3.8 optionals
-
-MTP (smaller Metal gain than CUDA), Unsloth sampling, thinking / preserve, vision: **[Dual RTX Qwen3.8 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#qwen38-optionals)**.
+Stay on dense 27B.
 
 ## See also
 
-- Twin 3.6 (tested): [M5-MacBook-Pro-Qwen3.6.md](M5-MacBook-Pro-Qwen3.6.md)
+- Qwen3.6 (tested): [M5-MacBook-Pro-Qwen3.6.md](M5-MacBook-Pro-Qwen3.6.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
 **Last Updated:** 2026-09-20 (recipe density; 3.8 still ⚠️ untested)

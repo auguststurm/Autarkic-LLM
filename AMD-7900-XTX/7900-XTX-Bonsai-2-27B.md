@@ -2,11 +2,11 @@
 
 > ⚠️ **Not yet tested** on this hardware with Bonsai 2 (researched **2026-09-18**). Confirm load → first decode → Pi tools before relying on it. **Not** llama-cpp-turboquant. **Not CUDA.**
 
-24 GB · RDNA3 **gfx1100** · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Paths: `~/Documents/AIML/models` · `~/Documents/GitHub/llama.cpp-prism` — same Linux layout as this folder’s [Qwen3.6 27B](7900-XTX-Qwen3.6-27b.md).
+24 GB · RDNA3 **gfx1100** · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Paths: `~/Documents/AIML/models` · `~/Documents/GitHub/llama.cpp-prism`.
 
-This folder’s Qwen recipes are **Vulkan**. Bonsai 2 is a **different engine**, and **Vulkan is the wrong first backend today**: `PQ2_0` has **no Vulkan kernels** (CPU fallback), and `PTQ1_0` Vulkan decode is a slow generic shader until [PR #188](https://github.com/PrismML-Eng/llama.cpp/pull/188) lands. **PRIMARY is HIP / ROCm** (`-DGGML_HIP=ON`), where PrismML documents `PQ2_0` kernels. Do not pass `-DGGML_CUDA=ON` on this GPU.
+**Vulkan is the wrong first backend today**: `PQ2_0` has **no Vulkan kernels** (CPU fallback), and `PTQ1_0` Vulkan decode is a slow generic shader until [PR #188](https://github.com/PrismML-Eng/llama.cpp/pull/188) lands. **PRIMARY is HIP / ROCm** (`-DGGML_HIP=ON`), where PrismML documents `PQ2_0` kernels. Do not pass `-DGGML_CUDA=ON` on this GPU.
 
-Same Qwen3.8-27B hybrid backbone as Dual RTX / 3090 Bonsai 2, packed as true ternary weights (~6–7 GB). This folder’s tested Qwen 27B spends ~18–19 GB on IQ4_NL and pins **128k**. Bonsai 2 leaves most of the 24 GB for KV. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
+Qwen3.8-27B hybrid backbone packed as true ternary weights (~6–7 GB). Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 **Stock llama.cpp and llama-cpp-turboquant will not run these files.** They refuse `PQ2_0` / `PTQ1_0` as unknown types. Do not load a Bonsai 2 `Q2_0` on a stock build either — that file can load silently and emit garbage (Hadamard runtime missing). Use the PrismML fork.
 
@@ -39,7 +39,7 @@ hf download prism-ml/Ternary-Bonsai-2-27B-gguf \
 
 Confirm both files exist under `~/Documents/AIML/models` before building.
 
-**Why two files, and which first.** PrismML has **no 7900 XTX row**. `PQ2_0` is the demo default and the packing with **ROCm kernels**. `PTQ1_0` is smaller. Start with **PQ2_0** on HIP, then [bench both](#try-both-packs). On **Vulkan**, use **PTQ1_0 only** until PQ2_0 shaders exist — `PQ2_0` on current Vulkan falls back to CPU.
+**Why two files, and which first.** `PQ2_0` is the demo default and the packing with **ROCm kernels**. `PTQ1_0` is smaller. Start with **PQ2_0** on HIP, then [bench both](#try-both-packs). On **Vulkan**, use **PTQ1_0 only** until PQ2_0 shaders exist — `PQ2_0` on current Vulkan falls back to CPU.
 
 | Pack | Size | HIP / ROCm | Vulkan (current `prism`) |
 | --- | --- | --- | --- |
@@ -48,7 +48,7 @@ Confirm both files exist under `~/Documents/AIML/models` before building.
 
 ## Build (HIP / ROCm)
 
-Separate clone so this folder’s turboquant Vulkan tree stays untouched. `prism-b10658` or newer. Needs the ROCm toolkit (`hipcc`).
+Separate clone so a turboquant Vulkan tree stays untouched. `prism-b10658` or newer. Needs the ROCm toolkit (`hipcc`).
 
 ```bash
 cd ~/Documents/GitHub
@@ -116,15 +116,15 @@ pkill -9 llama-server
 
 | Flag | Why |
 | --- | --- |
-| HIP binary, not Vulkan turboquant | `PQ2_0` kernels are on ROCm; this folder’s Qwen Vulkan build cannot load these types |
+| HIP binary, not Vulkan | `PQ2_0` kernels are on ROCm; a Vulkan turboquant build cannot load these types |
 | `--model …-PQ2_0.gguf` | Demo default + ROCm kernels; swap the filename to try PTQ1_0 |
-| `--ctx-size 131072` | Same 24 GB Bonsai pin as the [3090](../Win-RTX3090-24GB/Windows-RTX3090-Bonsai-2-27B.md). This folder’s Qwen 27B used **128k** with ~18 GB weights; Bonsai 2 has ~7 GB. Half-window **65536**. Native **262k** is the stretch |
-| `q8_0` / `q8_0` | Same KV as this folder’s tested Qwen. This fork has **no** `turbo*` — if you OOM, drop `--ctx-size` or batch |
-| Batch 1024 | Same ubatch as this folder’s Qwen 27B (already tested on 24 GB with *larger* weights). Drop to 256 on prefill OOM |
+| `--ctx-size 131072` | ~7 GB weights on 24 GB. Half-window **65536**. Native **262k** is the stretch |
+| `q8_0` / `q8_0` | This fork has **no** `turbo*` — if you OOM, drop `--ctx-size` or batch |
+| Batch 1024 | Drop to 256 on prefill OOM |
 | `--cache-ram 0` | Hybrid Qwen / DeltaNet multi-turn ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)) |
 | `--reasoning off` | Pi needs `message.content` / tools. Bonsai 2 **thinks by default** if you leave this on |
-| Sampling | Dual RTX / this folder’s Qwen **Pi tools** pin — **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
-| `--n-predict 16384` | Match Pi `maxTokens`. This folder’s Qwen 27B uses 65536; keep that only if you want it, and raise Pi `maxTokens` together |
+| Sampling | Pi tools pin — **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
+| `--n-predict 16384` | Match Pi `maxTokens` |
 | No `--main-gpu` | Single AMD card |
 | `--alias bonsai-2-27b` | Matches the Pi JSON `id` |
 
@@ -172,7 +172,7 @@ From `build/bin`:
   -ngl 99 -fa 1 -p 512 -n 128
 ```
 
-Keep the faster pack for interactive Pi. Smoke Pi `ls`/`read` on **each**. PrismML has no 7900 XTX tok/s row; this folder’s Qwen 27B MTP is ~60–65 t/s on Vulkan — Bonsai 2 HIP will be a different number. Do not compare until the log shows GPU offload.
+Keep the faster pack for interactive Pi. Smoke Pi `ls`/`read` on **each**. Re-bench HIP; do not compare tok/s until the log shows GPU offload.
 
 ## Pi `models.json`
 
@@ -198,7 +198,7 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 }
 ```
 
-If you settle on PTQ1_0, change `name` only. If you take **64k** (`65536`) or [262k](#this-box), change **both** the server pin and `contextWindow`. `--alias` must still match `id`. This folder’s Qwen 27B JSON uses `maxTokens` 65536 to match that guide’s `--n-predict`; Bonsai 2 PRIMARY is 16384.
+If you settle on PTQ1_0, change `name` only. If you take **64k** (`65536`) or [262k](#this-box), change **both** the server pin and `contextWindow`. `--alias` must still match `id`.
 
 ## This box
 
@@ -206,13 +206,13 @@ If you settle on PTQ1_0, change `name` only. If you take **64k** (`65536`) or [2
 
 ### Context sizes (VRAM)
 
-`--ctx-size 131072` is the PRIMARY. Half of that is **`65536` (64k)**. Weights stay ~7.2 GB (`PQ2_0`); KV is what halves. Same 24 GB math as the 3090 Bonsai pin (`q8_0`/`q8_0`, `--parallel 1`, no mmproj) — estimates, not a measured 7900 XTX `rocm-smi`:
+`--ctx-size 131072` is the PRIMARY. Half of that is **`65536` (64k)**. Weights stay ~7.2 GB (`PQ2_0`); KV is what halves. Estimates, not a measured 7900 XTX `rocm-smi`:
 
 | `--ctx-size` | KV (q8) | After load (est.) | Use when |
 | --- | ---: | --- | --- |
-| **131072** (PRIMARY) | ~4–5 GB | **~13–15 GB** (~15–17 GB if the window is full) | Default. This folder’s Qwen 27B was tight at 128k because *weights* were ~18 GB |
+| **131072** (PRIMARY) | ~4–5 GB | **~13–15 GB** (~15–17 GB if the window is full) | Default |
 | **65536** (half) | ~2–2.5 GB | **~11–13 GB** | Extra headroom. Match Pi `contextWindow` |
-| **262144** (stretch) | ~9–10 GB | **~18–21 GB** | If 131k load is comfortable. This folder’s **35B-A3B** already ran 262k on 24 GB |
+| **262144** (stretch) | ~9–10 GB | **~18–21 GB** | If 131k load is comfortable |
 
 llama-server usually **reserves the full KV for `--ctx-size` at startup**. `PTQ1_0` is ~1.3 GB less on weights.
 
@@ -239,19 +239,17 @@ cmake --build build-vulkan --config Release -j$(nproc)
 cd build-vulkan/bin
 ```
 
-Use **`Ternary-Bonsai-2-27B-PTQ1_0.gguf` only**. Current `prism` Vulkan: PTQ1_0 stays on GPU but decode is a generic trit shader (~5 tok/s class on smaller RDNA; [issue #185](https://github.com/PrismML-Eng/llama.cpp/issues/185) / [#186](https://github.com/PrismML-Eng/llama.cpp/issues/186)). **`PQ2_0` falls back to CPU.** Same PRIMARY flags otherwise. After [PR #188](https://github.com/PrismML-Eng/llama.cpp/pull/188) merges, rebuild and re-bench both packs — then Vulkan can match this folder’s usual backend.
+Use **`Ternary-Bonsai-2-27B-PTQ1_0.gguf` only**. Current `prism` Vulkan: PTQ1_0 stays on GPU but decode is a generic trit shader (~5 tok/s class on smaller RDNA; [issue #185](https://github.com/PrismML-Eng/llama.cpp/issues/185) / [#186](https://github.com/PrismML-Eng/llama.cpp/issues/186)). **`PQ2_0` falls back to CPU.** Same PRIMARY flags otherwise. After [PR #188](https://github.com/PrismML-Eng/llama.cpp/pull/188) merges, rebuild and re-bench both packs.
 
 Prebuilt: `llama-prism-*-bin-ubuntu-vulkan-x64.tar.gz` from [releases](https://github.com/PrismML-Eng/llama.cpp/releases/latest).
 
-Sampling, thinking on, vision: **[Dual RTX Bonsai 2 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md#bonsai-2-optionals)**. HIP image tokens should follow PrismML’s ROCm path (uncapped); Vulkan/CPU downscale large images.
+HIP image tokens should follow PrismML’s ROCm path (uncapped); Vulkan/CPU downscale large images.
 
 ## See also
 
-- This folder’s tested Qwen 27B (Vulkan, turboquant, MTP): [7900-XTX-Qwen3.6-27b.md](7900-XTX-Qwen3.6-27b.md)
-- This folder’s tested 35B-A3B (Vulkan, 262k): [7900-XTX-Qwen3.6-35b-a3b.md](7900-XTX-Qwen3.6-35b-a3b.md)
-- Dual RTX Bonsai 2 (CUDA, 262k): [Dual-RTX6000-Bonsai-2-27B.md](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md)
-- 24 GB CUDA WSL2 Bonsai 2: [Windows-RTX3090-Bonsai-2-27B.md](../Win-RTX3090-24GB/Windows-RTX3090-Bonsai-2-27B.md)
-- Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b) · [run llama.cpp](https://docs.prismml.com/run/llamacpp)
+- Qwen 27B MTP (Vulkan): [7900-XTX-Qwen3.6-27b.md](7900-XTX-Qwen3.6-27b.md)
+- 35B-A3B MTP (Vulkan): [7900-XTX-Qwen3.6-35b-a3b.md](7900-XTX-Qwen3.6-35b-a3b.md)
+- Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b)
 - Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) · Vulkan kernel PR: [#188](https://github.com/PrismML-Eng/llama.cpp/pull/188)
 - Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 

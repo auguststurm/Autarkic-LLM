@@ -1,6 +1,6 @@
 # M2 Mac Mini (16 GB) - Qwen3.6-35B-A3B (experimental)
 
-> ⚠️ **Untested. Tight fit.** Daily driver: **[Gemma 4 E2B](M2-Mac-Mini-Gemma-4-E2B.md)** (~3 GB). Air IQ4_NL (~18 GB) **cannot load**. M4 Mini twin: [M4-Mac-Mini-Qwen3.6.md](../M4-Mac-Mini-16GB/M4-Mac-Mini-Qwen3.6.md). Base M2 ~100 GB/s (vs ~120 on M4 Mini).
+> ⚠️ **Untested. Tight fit.** Daily driver: **[Gemma 4 E2B](M2-Mac-Mini-Gemma-4-E2B.md)** (~3 GB). IQ4_NL (~18 GB) **cannot load**. Base M2 ~100 GB/s.
 
 MoE 35B total / ~3B active — **full weights must still fit**. Only IQ2/IQ1-class quants load. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
@@ -13,7 +13,7 @@ MoE 35B total / ~3B active — **full weights must still fit**. Only IQ2/IQ1-cla
 | **KV** | `q8_0` K / **turbo2** V |
 | **Wired GPU** | `sudo sysctl iogpu.wired_limit_mb=13000` (not persistent) |
 
-On 16 GB the weights already consume most of usable memory. **Any useful context only fits if V is compressed** (`q8_0` K / **turbo2** V, `--flash-attn on`). Do not use bare `--fit on` for Pi. Tiers: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md#2-turboquant-kv-cache). Base M2 ~100 GB/s (vs ~120 on M4 Mini).
+On 16 GB the weights already consume most of usable memory. **Any useful context only fits if V is compressed** (`q8_0` K / **turbo2** V, `--flash-attn on`). Do not use bare `--fit on` for Pi. Tiers: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md#2-turboquant-kv-cache). Base M2 ~100 GB/s.
 
 ## Memory reality (this box)
 
@@ -27,7 +27,7 @@ UD-IQ2_XXS   10.8 GB   marginal
 UD-IQ2_M     11.5 GB   marginal  <- recommended starting point
 UD-Q2_K_XL   12.3 GB   tight; needs raised wired limit
 UD-Q3_K_S    15.4 GB   no
-UD-IQ4_NL    ~18 GB    no (Air quant — does not fit)
+UD-IQ4_NL    ~18 GB    no (does not fit)
 UD-Q4_K_XL   22.4 GB   no
 ```
 

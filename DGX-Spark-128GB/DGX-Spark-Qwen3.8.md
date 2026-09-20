@@ -1,8 +1,6 @@
 # DGX Spark Founders Edition (128 GB) - Qwen3.8-27B
 
-> ⚠️ **Not yet tested** on this hardware with Qwen3.8. Port of the **tested** [Qwen3.6 DGX Spark](DGX-Spark-Qwen3.6.md) pin (Q6 @ 262k · q8/turbo4). Confirm load → first decode → Pi tools, then report via issue/PR.
->
-> CUDA Qwen3.8 twin (✅ tested): [Dual RTX 6000 Qwen3.8](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) — MTP, sampling, thinking, vision live there.
+> ⚠️ **Not yet tested** on this hardware with Qwen3.8. Port of the **tested** [Qwen3.6](DGX-Spark-Qwen3.6.md) pin on this box (Q6 @ 262k · q8/turbo4). Confirm load → first decode → Pi tools, then report via issue/PR.
 
 CUDA CC **12.1** (GB10) · llama-cpp-turboquant. Same box, same agent-scale pin as 3.6; only the weights file and arch tag (`qwen35`) change.
 
@@ -18,7 +16,7 @@ CUDA CC **12.1** (GB10) · llama-cpp-turboquant. Same box, same agent-scale pin 
 | **Thinking** | `--reasoning off` (Pi tools) |
 | **Paths** | model `~/Documents/AIML/models` · engine `~/Documents/GitHub/llama-cpp-turboquant` |
 
-**Pi:** `contextWindow` = 262144, `maxTokens` = 8192. Path-heavy tools misbehaving? Switch to the Dual RTX / 4090 agent profile (temp 0.6 / top_p 0.95 / top_k 20 / presence 0) on a **new** session. [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). GGUF names: [local-setup](../local-setup.md#understanding-gguf-quants-why-so-many-files).
+**Pi:** `contextWindow` = 262144, `maxTokens` = 8192. Path-heavy tools misbehaving? Try temp 0.6 / top_p 0.95 / top_k 20 / presence 0 on a **new** session. [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 Need the engine built first? [local-setup.md](../local-setup.md).
 
@@ -88,9 +86,9 @@ pkill -9 llama-server
 | Flag | Why |
 | --- | --- |
 | `--ctx-size 262144` | Full native window; stable on this box with turbo V on 3.6 |
-| `q8_0` K / **turbo4** V | CUDA quality-leaning turbo V (not Metal turbo2); keep K precise |
+| `q8_0` K / **turbo4** V | CUDA quality-leaning turbo V; keep K precise |
 | `--load-mode none` | Buffered read; needs enough **system RAM** for the GGUF during load |
-| `--threads 28` | Spark host CPU pairing from the 3.6 guide |
+| `--threads 28` | Spark host CPU pairing |
 | Sampling | Matches tested 3.6 on this box — not Unsloth’s table |
 | `--n-predict 8192` | Matches tested DGX 3.6 + Pi. Thin if you later turn thinking **on** — raise with `maxTokens` |
 
@@ -132,19 +130,17 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 
 ## This box
 
-**Optional q8/q8** if tools feel soft and memory allows (Dual RTX primary): `--cache-type-v q8_0` instead of turbo4. Need more capacity: keep K at `q8_0`, step V turbo4 → turbo3 → turbo2.
+**Optional q8/q8** if tools feel soft and memory allows: `--cache-type-v q8_0` instead of turbo4. Need more capacity: keep K at `q8_0`, step V turbo4 → turbo3 → turbo2.
 
 **Optional Q8 weights:** `Qwen3.8-27B-UD-Q8_K_XL.gguf` (~31.5 GB), same command, swap `--model` and Pi `name`.
 
-## Qwen3.8 optionals
-
-MTP, Unsloth sampling, thinking / preserve, vision: **[Dual RTX Qwen3.8 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#qwen38-optionals)**. On CUDA, MTP is the first speed lever (`--spec-type draft-mtp --spec-draft-n-max 2`); smoke-test Pi tools after.
+MTP on CUDA: `--spec-type draft-mtp --spec-draft-n-max 2`; smoke-test Pi tools after.
 
 ## See also
 
-- Twin 3.6 (tested): [DGX-Spark-Qwen3.6.md](DGX-Spark-Qwen3.6.md)
-- LFM2.5-2.6B (⚠️ untested, same turboquant `"121"` cmake, **q8/q8** not this page’s turbo4 V): [DGX-Spark-LFM2.5-2.6B.md](DGX-Spark-LFM2.5-2.6B.md)
-- Ternary Bonsai 2 (⚠️ untested, **PrismML fork**, not this turboquant build): [DGX-Spark-Bonsai-2-27B.md](DGX-Spark-Bonsai-2-27B.md)
+- Qwen3.6 (tested): [DGX-Spark-Qwen3.6.md](DGX-Spark-Qwen3.6.md)
+- LFM2.5-2.6B: [DGX-Spark-LFM2.5-2.6B.md](DGX-Spark-LFM2.5-2.6B.md)
+- Ternary Bonsai 2 (PrismML fork): [DGX-Spark-Bonsai-2-27B.md](DGX-Spark-Bonsai-2-27B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
 **Last Updated:** 2026-09-20 (recipe density; 3.8 still ⚠️ untested)

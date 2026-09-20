@@ -1,14 +1,12 @@
 # Windows RTX 3090 (24 GB) - LFM2.5-2.6B
 
-> ⚠️ **Not yet tested** as a Pi daily driver on this SKU. Port of the ✅ [Jetson LFM2.5](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) pin (Q8_0, Liquid sampling, Pi JSON) onto this box’s Ampere cmake (`FA=OFF`, `86-real`). Confirm load → first decode → Pi tools, then report via issue/PR.
->
-> Do not paste the [4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) or Jetson cmake (`FA_ALL_QUANTS`, `"89"` / `"87"`). Do not launch the [Bonsai PrismML](Windows-RTX3090-Bonsai-2-27B.md) binary for this GGUF.
+> ⚠️ **Not yet tested** as a Pi daily driver on this SKU. Ampere cmake (`FA=OFF`, `86-real`), Q8_0, Liquid sampling. Confirm load → first decode → Pi tools, then report via issue/PR.
 
 **WSL2** (not native Windows) · CUDA sm_**86** (Ampere GA102) · llama-cpp-turboquant. Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent).
 
 | Pin | Value |
 | --- | --- |
-| **Status** | ⚠️ Untested decode (Jetson ✅ 64k). CMake: `FA_ALL_QUANTS` **fails** on this SKU — PRIMARY is FA **off** |
+| **Status** | ⚠️ Untested decode. CMake: `FA_ALL_QUANTS` **fails** on this SKU — PRIMARY is FA **off** |
 | **Weights** | `LFM2.5-2.6B-Q8_0.gguf` (2.87 GB) |
 | **Catalog** | [LiquidAI/LFM2.5-2.6B-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF) · [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B) |
 | **Context** | `--ctx-size 131072` (`--fit off`) · Pi `contextWindow` **131072** |
@@ -80,7 +78,7 @@ hf download LiquidAI/LFM2.5-2.6B-GGUF \
   --local-dir ~/AIML/models
 ```
 
-Q8_0 (2.87 GB) is the quality pin tested on the Jetson. Skip Q6_K (Jetson 8 GB lever). Optional F16 (5.4 GB): same command, swap `--model` to `LFM2.5-2.6B-F16.gguf`.
+Q8_0 (2.87 GB) is the quality pin. Skip Q6_K on 24 GB. Optional F16 (5.4 GB): same command, swap `--model` to `LFM2.5-2.6B-F16.gguf`.
 
 ## Build (Ampere / sm_86)
 
@@ -116,7 +114,7 @@ mkdir -p build/bin/kv-cache
 
 | Flag | Why on this box |
 | --- | --- |
-| `86-real` | Ampere GA102 only. Not `"86"` (can keep `61-virtual`). Not the 4090’s `"89"` |
+| `86-real` | Ampere GA102 only. Not `"86"` (can keep `61-virtual`) |
 | `GGML_NATIVE=OFF` | Stop the host from adding extra virtual archs |
 | `GGML_CUDA_FA=OFF` | Skip FA kernels, including the D=512 turbo vec `ptxas` rejects. PRIMARY then uses `--flash-attn off` |
 | `GGML_CUDA_GRAPHS=OFF` + `GGML_CUDA_NO_VMM=ON` | WSL CUDA graphs / VMM are a likely segfault source. Do not re-enable until a small GPU run is clean |
@@ -179,19 +177,19 @@ cd ~/GitHub/llama-cpp-turboquant/build/bin
   --log-verbosity 1
 ```
 
-Omit `--reasoning off` — the [chat template](https://huggingface.co/LiquidAI/LFM2.5-2.6B/blob/main/chat_template.jinja) always opens `<think>`. Omit `--cache-ram 0`. Omit `--load-mode none` — mmap is the Jetson-tested path and this GGUF is 2.87 GB. Add `--load-mode none` only if WSL mmap of the file is slow.
+Omit `--reasoning off` — the [chat template](https://huggingface.co/LiquidAI/LFM2.5-2.6B/blob/main/chat_template.jinja) always opens `<think>`. Omit `--cache-ram 0`. Omit `--load-mode none` — mmap is the default for this 2.87 GB GGUF. Add `--load-mode none` only if WSL mmap of the file is slow.
 
 ### Why these values (this box)
 
 | Flag | Why |
 | --- | --- |
-| `--ctx-size 131072` | Native train length. KV is **1,088 MiB** q8/q8 at 128k (Jetson-measured). **128k prefill on sm_86 is unmeasured** — if first decode OOMs, drop batch before ctx |
+| `--ctx-size 131072` | Native train length. KV is **1,088 MiB** q8/q8 at 128k. **128k prefill on sm_86 is unmeasured** — if first decode OOMs, drop batch before ctx |
 | `q8_0` / `q8_0` | Only 8 of 30 layers are GQA; turbo KV needs FA, which this build does not have |
 | `--flash-attn off` | Matches `-DGGML_CUDA_FA=OFF`. `auto` may still try FA |
-| mmap (no `--load-mode`) | Jetson-tested for this file. `--load-mode none` is the 4090 ~18 GB WSL lever |
+| mmap (no `--load-mode`) | Default for this 2.87 GB file. Add `--load-mode none` only if WSL mmap is slow |
 | `--main-gpu 0` | Discrete card (WSL2 CUDA convention) |
-| Batch 256 | Copied from this box’s 27B pin, not measured on LFM. Drop to **128** if 128k prefill OOMs, then `--ctx-size 65536` |
-| `--n-predict 16384` | Pi default. Thinking counts against the cap. Do not drop to 4096 ([Jetson truncation notes](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md#pi-truncation-on-the-first-turn)) |
+| Batch 256 | Drop to **128** if 128k prefill OOMs, then `--ctx-size 65536` |
+| `--n-predict 16384` | Pi default. Thinking counts against the cap. Do not drop to 4096 |
 | `--threads 0` | Auto CPU threads (this box’s WSL2 pin) |
 | Sampling | Liquid card: `temp 0.1` / `top_k 50` / `repeat-penalty 1.1` |
 
@@ -222,7 +220,7 @@ Save **one** of these to `~/.pi/agent/models.json` **inside WSL** (`mkdir -p ~/.
 
 ### Skills / tools (start here)
 
-`reasoning` **false**, no `thinkingLevelMap`. Field-tested on the Jetson for skill/tool work. Does not strip `<think>` from the GGUF.
+`reasoning` **false**, no `thinkingLevelMap`. Does not strip `<think>` from the GGUF.
 
 ```json
 {
@@ -291,9 +289,7 @@ Loopback `--host 127.0.0.1` is reachable from Windows clients on the same machin
 
 ## See also
 
-- Jetson (✅ 64k): [Jetson-Orin-LFM2.5-2.6B.md](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md)
-- DGX Spark (⚠️ 128k / FA on): [DGX-Spark-LFM2.5-2.6B.md](../DGX-Spark-128GB/DGX-Spark-LFM2.5-2.6B.md)
-- This box, 27B ternary (PrismML fork, ⚠️ untested): [Windows-RTX3090-Bonsai-2-27B.md](Windows-RTX3090-Bonsai-2-27B.md)
+- This box, 27B ternary (PrismML fork): [Windows-RTX3090-Bonsai-2-27B.md](Windows-RTX3090-Bonsai-2-27B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent)
 
 **Last Updated:** 2026-09-20 (recipe density; FA off, 86-real, 128k q8/q8, ⚠️ decode untested)

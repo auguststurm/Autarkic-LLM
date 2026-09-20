@@ -2,7 +2,7 @@
 
 > ⚠️ **Not yet tested** on this hardware with Bonsai 2 (researched **2026-09-18**). Confirm load → first decode → Pi tools before relying on it. **Not** llama-cpp-turboquant.
 
-**WSL2** (not native Windows) · CUDA sm_**86** (Ampere) · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Paths: **`~/AIML`** · **`~/GitHub`** — not `~/Documents/AIML`. Do not copy this box’s LFM turboquant cmake here.
+**WSL2** (not native Windows) · CUDA sm_**86** (Ampere) · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Paths: **`~/AIML`** · **`~/GitHub`**. Do not use the turboquant cmake on this page.
 
 Same Qwen3.8-27B hybrid backbone, packed as true ternary weights (~6–7 GB). Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
@@ -36,12 +36,12 @@ hf download prism-ml/Ternary-Bonsai-2-27B-gguf \
 
 Confirm both files exist under `~/AIML/models` before building.
 
-**Why two files, and which first.** PrismML did **not** publish a 3090 row. Closest numbers on the [model card](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf): **A100 (Ampere)** prefers **PQ2_0** for decode *and* prompt processing; **RTX 4090 (Ada)** prefers **PTQ1_0** for decode and **PQ2_0** for PP. This card is Ampere + GDDR6X. Start with **PQ2_0** (demo default), then swap to **PTQ1_0** and [bench both](#try-both-packs). Keep whichever wins *here*.
+**Why two files, and which first.** This card is Ampere + GDDR6X. Start with **PQ2_0** (demo default), then swap to **PTQ1_0** and [bench both](#try-both-packs). Keep whichever wins *here*.
 
 | Pack | Size | Role on this box |
 | --- | --- | --- |
-| **PQ2_0** | ~7.2 GB | **PRIMARY** — Ampere A100-leaning; cheaper unpack; faster PP everywhere in PrismML’s table |
-| **PTQ1_0** | ~5.9 GB | **A/B** — smaller; Ada 4090 decode winner — try second on this 3090 |
+| **PQ2_0** | ~7.2 GB | **PRIMARY** — demo default; cheaper unpack |
+| **PTQ1_0** | ~5.9 GB | **A/B** — smaller; try second |
 
 ## Build (Ampere / sm_86)
 
@@ -60,7 +60,7 @@ cmake --build . --config Release -j$(nproc)
 cd bin
 ```
 
-Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) branch **`prism`**. `"86"` is GPU compute capability (`sm_86`), not the CUDA toolkit version. The [4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) uses `"89"` (Ada). Omit `-DCMAKE_CUDA_ARCHITECTURES="86"` to autodetect.
+Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) branch **`prism`**. `"86"` is GPU compute capability (`sm_86`), not the CUDA toolkit version. Omit `-DCMAKE_CUDA_ARCHITECTURES="86"` to autodetect.
 
 Confirm before debugging flags:
 
@@ -117,18 +117,18 @@ cd ~/GitHub/llama.cpp-prism/build/bin
 | Flag | Why |
 | --- | --- |
 | `--model …-PQ2_0.gguf` | Ampere-leaning start; swap the filename to try PTQ1_0 |
-| `--ctx-size 131072` | Native-class window with margin on 24 GB + WSL desktop VRAM. Dual RTX pins **262k** on 96 GB; try that [below](#this-box--only-if-primary-loads) if `nvidia-smi` has headroom. Half-window is **65536** ([VRAM](#context-sizes-vram)) |
-| `q8_0` / `q8_0` | Same 24 GB CUDA agent KV policy as the 4090. This fork has **no** `turbo*` — if you OOM, drop `--ctx-size` or batch, not K |
-| Batch 256 | Same prefill-vs-peak as the 4090; Dual RTX uses 1024 on 96 GB. Drop to 128 on OOM |
+| `--ctx-size 131072` | Native-class window with margin on 24 GB + WSL desktop VRAM. Half-window is **65536**. Try **262k** if `nvidia-smi` has headroom |
+| `q8_0` / `q8_0` | This fork has **no** `turbo*` — if you OOM, drop `--ctx-size` or batch, not K |
+| Batch 256 | Drop to 128 on OOM |
 | `--cache-ram 0` | Hybrid Qwen / DeltaNet multi-turn ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)) |
-| `--threads 0` | Auto CPU threads (4090 WSL2 pin). Dual RTX uses 32 on a 24-core Linux box |
+| `--threads 0` | Auto CPU threads (this box’s WSL2 pin) |
 | `--reasoning off` | Pi needs `message.content` / tools. Bonsai 2 **thinks by default** if you leave this on |
-| Sampling | Dual RTX / 4090 Qwen **Pi tools** pin — **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
+| Sampling | Pi tools pin — **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
 | `--n-predict 16384` | Match Pi `maxTokens`. Thinking tokens also count against this if you turn thinking on |
-| `--load-mode none` | Buffered read. Weights are ~7 GB (easier host RAM than the 4090’s ~18 GB Q4) |
+| `--load-mode none` | Buffered read. Weights are ~7 GB |
 | `--alias bonsai-2-27b` | Matches the Pi JSON `id` |
 
-`--ctx-size` is a request. Trust `n_ctx_seq`. Hybrid Qwen3.8 KV is only the full-attention layers (~9–10 GB at **262k** q8/q8 in Dual RTX notes) — weights are ~7 GB, so 131k should be comfortable; 262k is the tight stretch on 24 GB.
+`--ctx-size` is a request. Trust `n_ctx_seq`. Weights are ~7 GB; 131k should be comfortable; 262k is the tight stretch on 24 GB.
 
 Universal flags (`--fit off`, loopback, no checkpoints): [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) still describes them; this binary is the **PrismML** fork, so ignore turbo V / TQ weight types.
 
@@ -175,7 +175,7 @@ From `build/bin`, numbers PrismML reports as `tg128` / `pp512`:
 
 Keep the faster pack for interactive Pi; keep the other on disk. Quality should be close (same ternary assignment; packing differs). Smoke Pi `ls`/`read` on **each** before treating a tok/s winner as the daily driver.
 
-Vendor ballpark (not this SKU): RTX 4090 PQ2_0 ~81 tok/s decode / ~3124 pp; PTQ1_0 ~91 / ~1645. Expect the 3090 a bit under the 4090. Dual RTX Q8 27B is a different quality/speed class (~51 tok/s on that box).
+Re-bench on this box.
 
 ## Pi `models.json`
 
@@ -216,7 +216,7 @@ If you settle on PTQ1_0, change `name` only. If you take **64k** (`65536`) or [2
 | **131072** (PRIMARY) | ~4–5 GB | **~13–15 GB** (~15–17 GB if the window is full) | Default. Plenty of 24 GB left |
 | **65536** (half) | ~2–2.5 GB | **~11–13 GB** | Extra headroom (desktop/WSL VRAM, mmproj, or a second process). Match Pi `contextWindow` |
 
-llama-server usually **reserves the full KV for `--ctx-size` at startup**, so load already shows most of that number. `PTQ1_0` is ~1.3 GB less on weights. 262k roughly **doubles** the 131k KV (~9–10 GB) → **~18–21 GB** total — tight on 24 GB WSL; that stretch is **B)** below.
+llama-server usually **reserves the full KV for `--ctx-size` at startup**, so load already shows most of that number. `PTQ1_0` is ~1.3 GB less on weights. 262k roughly **doubles** the 131k KV (~9–10 GB) → **~18–21 GB** total — tight on 24 GB WSL.
 
 ```bash
 # Half-window — same PRIMARY, only:
@@ -230,16 +230,13 @@ llama-server usually **reserves the full KV for `--ctx-size` at startup**, so lo
 
 `nvidia-smi` **inside** WSL. Loopback `--host 127.0.0.1` is reachable from Windows clients on the same machine.
 
-Sampling, thinking on, vision: **[Dual RTX Bonsai 2 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md#bonsai-2-optionals)**. mmproj path on this box is `~/AIML/models`.
+mmproj path on this box is `~/AIML/models`.
 
 ## See also
 
-- Dual RTX Bonsai 2 (96 GB, 262k PRIMARY): [Dual-RTX6000-Bonsai-2-27B.md](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md)
-- 24 GB RDNA3 HIP twin: [7900-XTX-Bonsai-2-27B.md](../AMD-7900-XTX/7900-XTX-Bonsai-2-27B.md)
-- This box, LFM2.5-2.6B (turboquant, ⚠️ untested @ 128k / FA off): [Windows-RTX3090-LFM2.5-2.6B.md](Windows-RTX3090-LFM2.5-2.6B.md)
-- 24 GB CUDA WSL2 twin (Qwen3.6 Q4, turboquant): [Windows-RTX4090-Qwen3.6.md](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md)
-- Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b) · [run llama.cpp](https://docs.prismml.com/run/llamacpp)
-- Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) · demo: [Bonsai-demo](https://github.com/PrismML-Eng/Bonsai-demo)
+- This box, LFM2.5-2.6B: [Windows-RTX3090-LFM2.5-2.6B.md](Windows-RTX3090-LFM2.5-2.6B.md)
+- Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b)
+- Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp)
 - Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
 **Last Updated:** 2026-09-20 (recipe density; ⚠️ untested on this box)

@@ -279,8 +279,6 @@ Run in **MAXN SUPER**; monitor with `jtop`. Enable zram if `free -h` shows swap 
 ## See also
 
 - This box: [Gemma 4 E2B](Jetson-Orin-Gemma4-E2B.md) · [MiniCPM5-2B](Jetson-Orin-MiniCPM5-2B.md)
-- RTX 3090 WSL2 (⚠️ 128k / FA off): [Windows-RTX3090-LFM2.5-2.6B.md](../Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md)
-- DGX Spark (⚠️ 128k / FA on): [DGX-Spark-LFM2.5-2.6B.md](../DGX-Spark-128GB/DGX-Spark-LFM2.5-2.6B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent)
 
 **Last Updated:** 2026-09-20 (recipe density; ✅ Tested Pi @ 64k q8/q8)

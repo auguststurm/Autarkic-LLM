@@ -1,6 +1,6 @@
 # M4 Mac Mini (16 GB) - Gemma 4 E2B
 
-> ⚠️ **Not yet tested** on this hardware. ~3 GB weights on 16 GB — low risk. Hard 35B experiment: [M4-Mac-Mini-Qwen3.6.md](M4-Mac-Mini-Qwen3.6.md).
+> ⚠️ **Not yet tested** on this hardware. ~3 GB weights on 16 GB — low risk.
 
 16 GB unified · **Metal**. TurboQuant V is optional. Pi: [agentic harnesses](../agentic-harnesses.md). If Metal-OOM, drop `--ctx-size`, never bare `--fit on`.
 

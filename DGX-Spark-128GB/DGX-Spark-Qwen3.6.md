@@ -82,7 +82,7 @@ pkill -9 llama-server
 | Flag / value | Why |
 | --- | --- |
 | `--ctx-size 262144` | Full train window tested stable on this box with TurboQuant V |
-| `--cache-type-k q8_0 --cache-type-v turbo4` | CUDA quality-leaning turbo (not the more aggressive turbo2 used on memory-bound Metal) |
+| `--cache-type-k q8_0 --cache-type-v turbo4` | CUDA quality-leaning turbo V; keep K precise |
 | `--n-gpu-layers 99` | Full GPU offload on discrete/CUDA-class devices |
 | `--fit off` | Keep the pinned context agent-visible |
 | Thinking off | Agent-friendly non-thinking Qwen3.6 |
