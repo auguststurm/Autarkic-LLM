@@ -1,30 +1,82 @@
 # Windows RTX 3090 (24 GB) - LFM2.5-2.6B
 
-> ⚠️ **Not yet tested** on this hardware with LFM2.5 (ported **2026-09-20** from the ✅ Jetson 64k pin). Confirm load → first decode → Pi tools before relying on it. Twin: [Jetson Orin LFM2.5](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) (✅ Tested 2026-09-08 @ **64k**). Sibling on this box: [Ternary Bonsai 2 27B](Windows-RTX3090-Bonsai-2-27B.md) (⚠️ untested, **PrismML fork**) — do not copy those pins here.
+> ⚠️ **Not yet tested** as a Pi daily driver on this SKU. Ported **2026-09-20** from the ✅ Jetson 64k pin. **Build on a fresh Win11 + WSL Ubuntu RTX 3090 (OMEN 30L) does *not* take the 4090 / Jetson cmake** — `FA_ALL_QUANTS` + `"86"` fails `ptxas` (D=512 turbo FA vec, 64KB shared vs 48KB cap). Use the 3090 cmake in **Build** below (`FA=OFF`, `86-real`, no VMM/graphs). Confirm load → first decode → Pi tools before relying on it. Twin: [Jetson Orin LFM2.5](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) (✅ Tested 2026-09-08 @ **64k**). Sibling on this box: [Ternary Bonsai 2 27B](Windows-RTX3090-Bonsai-2-27B.md) (⚠️ untested, **PrismML fork**) — do not copy those pins here.
 
-**WSL2** (not native Windows) · CUDA sm_**86** (Ampere) · llama-cpp-turboquant. Paths on this box: **`~/AIML`** (models) · **`~/GitHub`** (engine) — same WSL2 convention as the [RTX 4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md), not `~/Documents/AIML`.
+**WSL2** (not native Windows) · CUDA sm_**86** (Ampere GA102) · llama-cpp-turboquant. Paths: **`~/AIML`** (models) · **`~/GitHub`** (engine) — WSL ext4, **not** `/mnt/c/...`. Same path convention as the [RTX 4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md); **not** that guide’s cmake (`"89"` + `FA_ALL_QUANTS`). 24 GB VRAM does not make Ada flash-attn kernels compile on Ampere.
 
 24 GB discrete GDDR6X vs the Jetson’s 8 GB unified. Weights are **2.87 GB**; q8/q8 KV at native **131072** is **1,088 MiB** (measured on the Jetson — KV geometry, not this SKU’s `nvidia-smi`). Native train length is the PRIMARY here because that KV is cheap, **not** because 128k was run on a 3090. The Jetson’s 2026-09-08 test stopped at 64k; 128k was a stretch there too. Confirm **load → first decode → a long prefill**, then Pi tools. Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent). If you OOM, drop **batch** first, then `--ctx-size`; never bare `--fit on`. Do **not** drop `--n-predict` / `maxTokens` to 4096 — that is the first-turn Pi `length` stop ([below](#pi-truncation-on-the-first-turn)).
 
-The [model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B) does **not** recommend this model for agentic coding. On the Jetson it is a strong Pi daily driver anyway; this 24 GB pin is the same recipe with a native window. The GGUF template always opens `<think>`; for Pi **skills / tool calls** start with `reasoning` **false** ([below](#pi-coding-agent-modelsjson)).
+The [model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B) does **not** recommend this model for agentic coding. On the Jetson it is a strong Pi daily driver anyway. This 24 GB pin keeps that **model, sampling, and Pi JSON shape**, with a native 128k window — **not** the Jetson/4090 cmake or `--flash-attn on`. The GGUF template always opens `<think>`; for Pi **skills / tool calls** start with `reasoning` **false** ([below](#pi-coding-agent-modelsjson)).
 
 | Pin | Value |
 | --- | --- |
-| **Status** | ⚠️ Untested (ported from Jetson ✅ 2026-09-08 **64k** q8/q8; 128k was untested there too) |
+| **Status** | ⚠️ Untested decode (Jetson ✅ 64k). CMake: FA_ALL_QUANTS **fails** on this SKU — PRIMARY is FA **off** |
 | **Weights** | `LFM2.5-2.6B-Q8_0.gguf` (2.87 GB) |
 | **Catalog** | [LiquidAI/LFM2.5-2.6B-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF) · [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B) |
 | **Context** | `--ctx-size 131072` (`--fit off`) · Pi `contextWindow` **131072** · half-window **65536** |
-| **KV** | `q8_0` / `q8_0` (do **not** turbo V — KV ~1.1 Gi at 128k) |
+| **KV** | `q8_0` / `q8_0` (do **not** turbo V — FA is **off**; turbo KV needs flash-attn) |
+| **Flash-attn** | **off** (`-DGGML_CUDA_FA=OFF`; Jetson/4090 stay `on`) |
+| **CMake** | `86-real` · `FA=OFF` · `NO_VMM` · graphs off · **no** `FA_ALL_QUANTS` |
 | **Output** | `--n-predict 16384` · Pi `maxTokens` **16384** (thinking counts against this) |
 | **Sampling** | temp **0.1** · top_k **50** · repeat **1.1** (Liquid card) |
 | **Thinking** | Template always opens `<think>` (omit server `--reasoning off`). **Pi skills/tools:** `reasoning` **false**, no `thinkingLevelMap`. **Pi traces:** `reasoning` **true**, `thinkingLevelMap.off` **null** |
 | **Paths** | `~/AIML/models` · `~/GitHub/llama-cpp-turboquant` (WSL2) |
 
-Need CUDA in WSL first? [local-setup.md](../local-setup.md) (WSL2 + Ubuntu). That file’s clone path is `~/Documents/GitHub` — **this box uses `~/GitHub`** (clone command in Build below). Hardware not in the table? [ai-assisted-setup.md](../ai-assisted-setup.md).
+Need CUDA in WSL first? Do **not** skip **First-time WSL** below on a machine that has never had WSL. [local-setup.md](../local-setup.md) clone path is `~/Documents/GitHub` — **this box uses `~/GitHub`**. Hardware not in the table? [ai-assisted-setup.md](../ai-assisted-setup.md).
+
+## First-time WSL (Win11 + Ubuntu)
+
+Field notes from an HP OMEN 30L (Win11, RTX 3090) that had **never** had WSL. Driver stays on **Windows**. Toolkit + compiler live in Ubuntu.
+
+**Windows (PowerShell, Admin once):** `wsl --install` (Ubuntu), reboot, confirm the Game Ready / Studio NVIDIA driver is current. Then everything below is **inside** the Ubuntu distro.
+
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake git curl ninja-build \
+  python3-full python3-pip python3-pip-whl python3-venv python3-dev
+```
+
+System Python has no usable `pip` module until those packages land. **Do not** `pip install` into `/usr` (PEP 668). Hugging Face’s installer (`curl … hf.co/cli/install.sh`) makes `~/.hf-cli/venv` and then runs `$venv/bin/python -m pip` — if that venv was created *before* `python3-venv` worked, you get `No module named pip`. Wipe and recreate:
+
+```bash
+rm -rf ~/.hf-cli
+python3 -m venv ~/.hf-cli
+~/.hf-cli/bin/python -m pip install -U pip huggingface_hub
+mkdir -p ~/.local/bin
+ln -sf ~/.hf-cli/bin/hf ~/.local/bin/hf
+export PATH="$HOME/.local/bin:$PATH"
+# add the PATH line to ~/.bashrc
+hf --help    # command is `hf`, not `huggingface-cli`
+```
+
+**CUDA toolkit (WSL-Ubuntu repo only):**
+
+```bash
+# Do NOT: apt install cuda, cuda-drivers, nvidia-driver-*, or nvidia-cuda-toolkit
+# Those pull a Linux NVIDIA driver and break the Windows↔WSL libcuda stub.
+
+wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update
+apt-cache search '^cuda-toolkit-'   # pick the latest cuda-toolkit-XX-Y
+sudo apt-get -y install cuda-toolkit-13-2   # example; use what search listed
+```
+
+```bash
+export PATH="/usr/local/cuda/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/local/cuda/lib64:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
+# add both to ~/.bashrc
+nvcc --version
+nvidia-smi                  # inside WSL; uses the Windows driver
+# nvidia-smi --query-gpu=compute_cap often prints nothing under WSL. 3090 is still 86.
+```
+
+Keep clones and GGUFs under **`~/` on the WSL filesystem**. mmap / CUDA of files on `/mnt/c/...` is a known segfault source.
 
 ## Download
 
 ```bash
+mkdir -p ~/AIML/models
 hf download LiquidAI/LFM2.5-2.6B-GGUF \
   LFM2.5-2.6B-Q8_0.gguf \
   --local-dir ~/AIML/models
@@ -34,7 +86,9 @@ Q8_0 (2.87 GB) is the quality pin tested on the Jetson. **Q6_K** (2.22 GB) is th
 
 ## Build (Ampere / sm_86)
 
-First time only (WSL2 path — not `~/Documents/GitHub` from [local-setup.md](../local-setup.md)):
+Do **not** paste the [4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) or [Jetson](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) cmake. Those set `-DGGML_CUDA_FA_ALL_QUANTS=ON` and `"89"` / `"87"`. On this card that compiles `flash_attn_ext_vec<512, …>` TurboQuant types (`fattn-vec-instance-turbo4_0-f16.cu.o`, `q8_0-turbo{2,3,4}_0.cu.o`). `ptxas` then dies: `uses too much shared data (0x10100 bytes, 0xc000 max)` — 64KB static shared vs a 48KB cap. Wiping `build/` and setting `"86"` is **not** enough: the fork’s default arch list can still emit `61-virtual`, and D=512 turbo FA vec fails even as `86-real`. LFM’s `head_dim` is **64**; this box does not need those kernels.
+
+First time only (WSL2 path — not `~/Documents/GitHub`):
 
 ```bash
 mkdir -p ~/GitHub && cd ~/GitHub
@@ -48,29 +102,59 @@ If this box already has the [Bonsai PrismML](Windows-RTX3090-Bonsai-2-27B.md) tr
 cd ~/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
-rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release \
+rm -rf build
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Release \
   -DGGML_CUDA=ON \
-  -DCMAKE_CUDA_ARCHITECTURES="86" \
-  -DGGML_CUDA_F16=ON \
-  -DLLAMA_CURL=ON \
-  -DGGML_CUDA_FA_ALL_QUANTS=ON
-cmake --build . --config Release -j$(nproc)
-cd bin && mkdir -p ./kv-cache
+  -DGGML_CUDA_FA=OFF \
+  -DGGML_CUDA_GRAPHS=OFF \
+  -DGGML_CUDA_NO_VMM=ON \
+  -DGGML_NATIVE=OFF \
+  -DCMAKE_CUDA_ARCHITECTURES=86-real
+grep CMAKE_CUDA_ARCHITECTURES build/CMakeCache.txt   # must be only 86-real
+cmake --build build --config Release -j$(nproc)
+mkdir -p build/bin/kv-cache
 ```
 
-Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant). `"86"` is GPU compute capability (`sm_86`), not the CUDA toolkit version. The [4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) uses `"89"` (Ada); the [Jetson](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md) uses `"87"`. Omit `-DCMAKE_CUDA_ARCHITECTURES="86"` to autodetect. `FA_ALL_QUANTS` lengthens compile but covers quantized KV + flash-attn.
+| Flag | Why on this box |
+| --- | --- |
+| `86-real` | Ampere GA102 only. Not `"86"` (can keep Pascal `61-virtual` from a dirty cache / fork default list). Not the 4090’s `"89"` |
+| `GGML_NATIVE=OFF` | Stop the host from adding extra virtual archs |
+| `GGML_CUDA_FA=OFF` | Skip all FA kernels, including the D=512 turbo vec that `ptxas` rejects. PRIMARY then uses `--flash-attn off` |
+| `GGML_CUDA_GRAPHS=OFF` + `GGML_CUDA_NO_VMM=ON` | WSL CUDA graphs / VMM are a likely segfault source (incomplete FA binary or WSL VMM). Do not re-enable until a small GPU run is clean |
+| No `FA_ALL_QUANTS` | Jetson/4090 extra. Instantiates turbo×head-dim combos this card cannot compile |
+| No `GGML_CUDA_F16` | Not in the OMEN 30L recipe. Add `-DGGML_CUDA_F16=ON` only after FA=OFF already links |
 
-`-DLLAMA_CURL=ON` needs `libcurl4-openssl-dev` (`sudo apt install libcurl4-openssl-dev`). Not required for a local `--model` path — drop the flag if cmake fails on curl.
+Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant) (`feature/turboquant-kv-cache`). TheTom is Metal-leaning; CUDA FA+turbo on 3090 is the painful path. This LFM pin does **not** need turbo V (KV ~1.1 Gi at 128k) — FA off + q8/q8 is the compile that matches the card. A CUDA-first fork ([spiritbuun/llama-cpp-turboquant-cuda](https://github.com/spiritbuun/llama-cpp-turboquant-cuda)) is only worth switching if you later want FA+turbo on this SKU; it is **not** this repo’s engine.
 
-This is the **turboquant** tree (`~/GitHub/llama-cpp-turboquant`). Do not launch the [Bonsai PrismML](Windows-RTX3090-Bonsai-2-27B.md) binary for this GGUF. Confirm `nvidia-smi` **inside** WSL before debugging flags.
+Do not launch the [Bonsai PrismML](Windows-RTX3090-Bonsai-2-27B.md) binary for this GGUF.
+
+**If `ptxas` still mentions `flash_attn_ext_vec` / `0xc000`:** `build/` was not wiped, or `CMakeCache.txt` still lists `61-virtual` / `FA_ALL_QUANTS`. Delete `build/` and rerun the cmake above. Do not “fix” it by copying the 4090 flags.
+
+**If `llama-server` segfaults** after a failed FA compile, treat the binary as bad — rebuild with `FA=OFF` as above. From the **repo root** (`~/GitHub/llama-cpp-turboquant`):
+
+```bash
+export LD_LIBRARY_PATH="/usr/local/cuda/lib64:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
+# CPU first (proves the GGUF / binary)
+./build/bin/llama-server -m ~/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
+  -ngl 0 -c 2048 --flash-attn off --port 8080
+# then GPU, small window
+./build/bin/llama-server -m ~/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
+  -ngl 99 -c 4096 --flash-attn off \
+  --cache-type-k q8_0 --cache-type-v q8_0 --port 8080
+# gdb -q -ex run -ex bt -ex quit --args ./build/bin/llama-server ...
+```
+
+GGUF must be under `~/AIML`, not `/mnt/c`. `ldd build/bin/llama-server` should see `libcuda` from `/usr/lib/wsl/lib`. Do not “fix” a segfault by turning `--flash-attn on` — this binary has no FA kernels.
 
 ## PRIMARY command
 
-Run from `~/GitHub/llama-cpp-turboquant/build/bin`.
+Run from `~/GitHub/llama-cpp-turboquant/build/bin`. FA is **off** because this binary was built with `-DGGML_CUDA_FA=OFF`. Values are `on|off|auto` (default `auto`) — use **`--flash-attn off`**, not `-fa 1`. Do **not** pass `--cache-type-v turbo4` (or turbo2/3) with FA off; this fork’s turbo KV path expects flash-attn.
 
 ```bash
 pkill -9 llama-server
+
+export LD_LIBRARY_PATH="/usr/local/cuda/lib64:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
 
 cd ~/GitHub/llama-cpp-turboquant/build/bin
 
@@ -84,7 +168,7 @@ cd ~/GitHub/llama-cpp-turboquant/build/bin
   --main-gpu 0 \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
-  --flash-attn on \
+  --flash-attn off \
   --no-context-shift \
   --parallel 1 \
   --ubatch-size 256 \
@@ -109,7 +193,8 @@ Omit `--reasoning off` / `--reasoning-budget 0` — the chat template always sta
 | `--ctx-size 131072` | Native train length ([model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B); Liquid’s OpenClaw/Hermes examples also use 131072). Jetson PRIMARY is **64k** because 8 GB unified is tight; KV here is **1,088 MiB** at 128k ([budget](#context-budget), Jetson measurement). Liquid’s 32k is the *memory-constrained* example. Only **8 of 30** layers are GQA, so KV is cheap. **128k prefill on sm_86 is unmeasured** — if first decode OOMs, drop batch before ctx. Half-window **65536** if you share the GPU ([below](#this-box--only-if-primary-loads)) |
 | `--n-predict 16384` | Pi’s published default (24 GB CUDA convention). Liquid’s OpenClaw example and the Jetson test use **8192**. Thinking counts against the cap — a higher budget can also let `<think>` run longer before the answer, not only give more room for tools. Start at 16384; if traces eat the turn, use the [tools JSON](#skills--tools-start-here) before raising further. Do not drop to 4096 |
 | `--ubatch-size` / `--batch-size` **256 / 256** | Copied from the 4090 / this box’s Bonsai **27B** pin, not measured on LFM. Jetson used 64/128 because unified-memory prefill spikes SIGKILL; 256 was that board’s first OOM lever. On 24 GB discrete, 256 should be comfortable — still drop to **128** if 128k prefill OOMs, before cutting ctx |
-| `--cache-type-k/v q8_0` | Quality default. Turbo V is the wrong lever (KV ~1.1 Gi at 128k); keep q8/q8 |
+| `--flash-attn off` | Matches `-DGGML_CUDA_FA=OFF`. Jetson/4090 use `on`. `auto` may still try FA |
+| `--cache-type-k/v q8_0` | Quality default. **No turbo\*** — turbo KV needs FA, which this build does not have. KV ~1.1 Gi at 128k anyway |
 | `--n-gpu-layers 99` | Full GPU offload |
 | `--main-gpu 0` | Discrete card (WSL2 CUDA convention; Jetson omits) |
 | mmap (no `--load-mode`) | Jetson-tested for this file. `--load-mode none` is the 4090’s ~18 GB WSL lever — add it only if mmap is slow |
@@ -143,14 +228,14 @@ nvidia-smi   # inside WSL; MiB after load and after a short decode
 
 Architecture from the card / `config.json`: 30 layers (22 short-conv + **8 GQA**), 8 KV heads, `head_dim` 64, `max_position_embeddings` **131072**. Conv state is ~0.3 MB and does **not** grow with context. llama.cpp q8_0 KV for this geometry is **1,088 MiB at 128k** (measured on the Jetson; scales linearly).
 
-Weights **2.87 GB** + KV **~1.1 GB** is ~4 GB of *known* tensors. CUDA graphs, compute buffer, and **128k prefill scratch** are **not** measured on this SKU — the 6–8 GB row below is a guess, not `nvidia-smi`. WSL + Windows desktop also steal VRAM. llama.cpp pre-allocates the full KV at start; prefill can still spike above that.
+Weights **2.87 GB** + KV **~1.1 GB** is ~4 GB of *known* tensors. Compute buffer and **128k prefill scratch** are **not** measured on this SKU — the 6–8 GB row below is a guess, not `nvidia-smi`. This build has **CUDA graphs off**, so do not budget for graphs. WSL + Windows desktop still steal VRAM. llama.cpp pre-allocates the full KV at start; prefill can still spike above that.
 
 | `--ctx-size` | q8/q8 KV (Jetson) | After load (est., unmeasured here) | Role |
 | --- | --- | --- | --- |
 | 65536 | ~544 MiB | **~5–7 GB** | Half-window — Jetson PRIMARY; use if sharing the GPU |
 | **131072** | **1,088 MiB** | **~6–8 GB** (prefill may be higher) | **PRIMARY** — native train length |
 
-f16 KV at 128k is ~2 Gi (still fine on 24 GB). turbo V saves little here and costs decode speed. Do not raise past **131072**.
+f16 KV at 128k is ~2 Gi (still fine on 24 GB) if q8 misbehaves with FA off (untested). Do **not** use `turbo*` on this binary. Do not raise past **131072**.
 
 Pi compaction default `reserveTokens` is **16384**. Compaction threshold is `contextWindow - 16384`:
 
@@ -187,9 +272,9 @@ Confirm in the llama-server log: `tokens_predicted` / eval token count equal to 
 # Pi contextWindow: 65536
 ```
 
-**A) OOM on load / first decode:** (1) free desktop GPU apps / check WSL VRAM, (2) **batch 128** (128k prefill is the likely spike), (3) `--ctx-size 65536` + Pi 65536. Status bar must match. Do **not** swap to Q6_K first — that is the Jetson 8 GB lever.
+**A) OOM on load / first decode:** (1) free desktop GPU apps / check WSL VRAM, (2) **batch 128** (128k prefill is the likely spike), (3) `--ctx-size 65536` + Pi 65536. Status bar must match. Do **not** swap to Q6_K first — that is the Jetson 8 GB lever. Do **not** turn `--flash-attn on` or `turbo*` to “save VRAM” — this binary has no FA kernels.
 
-**B) `n_ctx_seq` matches and VRAM has headroom:** you are already at native **131072**. Do not raise past train length. Optional: [F16](#f16-optional) or [DSpark](#dspark-optional) at the same pin.
+**B) `n_ctx_seq` matches and VRAM has headroom:** you are already at native **131072**. Do not raise past train length. Optional: [F16](#f16-optional) at the same pin. [DSpark](#dspark-optional) is **not** a VRAM stretch here (needs FA + a flag this build may lack).
 
 **C) Turn-1 garbage / flaky tools:** not fixed by more context. New Pi session; use the [tools JSON](#skills--tools-start-here) (`reasoning` false); confirm PRIMARY is still q8/q8 and Liquid sampling; no DRY / no client sampling override. Pi tools were field-tested on the **Jetson**, not this SKU. Liquid’s native tool markup is Pythonic `<|tool_call_start|>` — Pi’s OpenAI tool loop is a different shape that happened to work on that board.
 
@@ -201,10 +286,12 @@ Confirm in the llama-server log: `tokens_predicted` / eval token count equal to 
 | PRIMARY pin | **64k q8/q8** (128k stretch) | **128k q8/q8** | **96k q8/q8** |
 | `--n-predict` | **8192** | **16384** | **16384** |
 | Batch | 64 / 128 | **256 / 256** | 256 / 256 |
+| Flash-attn | **on** (`FA_ALL_QUANTS`) | **off** (`GGML_CUDA_FA=OFF`) | **on** (`FA_ALL_QUANTS`) |
+| CMake arch | `"87"` | **`86-real`** | `"89"` |
 | Engine | turboquant sm_87 | turboquant sm_**86** | turboquant sm_89 |
 | Paths | `~/Documents/AIML` | **`~/AIML`** (WSL2) | `~/AIML` (WSL2) |
 
-Same LFM2.5 Q8_0 file as the Jetson. Different **KV budget**, **batch**, and **WSL2 paths**. Same mmap load as the Jetson (not the 4090’s `--load-mode none`).
+Same LFM2.5 Q8_0 file as the Jetson. Different **KV budget**, **batch**, **FA**, and **WSL2 paths**. Do **not** copy the 4090 cmake because VRAM is also 24 GB — Ada compiles D=512 FA vec; Ampere on this fork does not.
 
 ## F16 optional
 
@@ -224,7 +311,7 @@ Change the Pi `name` suffix if you settle on F16. Smoke load → decode → Pi `
 
 ## DSpark optional
 
-Liquid’s speculative-decoding sidecar for this model ([LFM2.5-2.6B-DSpark-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-DSpark-GGUF); llama.cpp `#25173`). **Not part of PRIMARY.** Needs `--spec-type draft-dspark` on the **running binary** — confirm `./llama-server --help | grep -i dspark` on this turboquant build before downloading. The Muse Glimmer guides use `draft-dflash`; that is a different spec type. Untested on this 3090 / this fork.
+Liquid’s speculative-decoding sidecar ([LFM2.5-2.6B-DSpark-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-DSpark-GGUF); llama.cpp `#25173`). **Not part of PRIMARY.** Liquid’s sample uses **`-fa on`**. This 3090 binary is **`FA=OFF`**, so skip DSpark until a different build has flash-attn. Confirm `./llama-server --help | grep -i dspark` first — TheTom turboquant may not have `--spec-type draft-dspark` yet. Muse Glimmer’s `draft-dflash` is a different spec type.
 
 ```bash
 hf download LiquidAI/LFM2.5-2.6B-DSpark-GGUF \
@@ -232,7 +319,7 @@ hf download LiquidAI/LFM2.5-2.6B-DSpark-GGUF \
   --local-dir ~/AIML/models
 ```
 
-Add to the PRIMARY command (Q8_0 target + Q8_0 draft; Liquid’s example uses F16/F16):
+Only if `--help` shows `draft-dspark` **and** you rebuilt with FA on (not this guide’s cmake):
 
 ```bash
   --model-draft ~/AIML/models/LFM2.5-2.6B-DSpark-Q8_0.gguf \
@@ -241,7 +328,7 @@ Add to the PRIMARY command (Q8_0 target + Q8_0 draft; Liquid’s example uses F1
   --spec-draft-n-min 0 \
 ```
 
-Draft file is ~349 MB (Q8_0) / ~664 MB (F16). Speculative decode is exact under greedy verify — sampling still applies on the target. If the flag is missing, stay on PRIMARY without it.
+Draft is ~349 MB (Q8_0) / ~664 MB (F16). Speculative decode is exact under greedy verify. If the flag is missing or FA is off, stay on PRIMARY.
 
 ## Pi Coding Agent `models.json`
 
@@ -314,17 +401,19 @@ If you take the [half-window](#this-box--only-if-primary-loads), only change `co
 
 ## WSL2
 
-- `nvidia-smi` **inside** WSL. One long-lived server; don’t share the GPU heavily with Windows games / browsers. WSL may not see all 24 GB if the Windows desktop is using the card.
+- First install: **First-time WSL** above. Driver on Windows; toolkit from the **wsl-ubuntu** repo; `LD_LIBRARY_PATH` includes `/usr/lib/wsl/lib`.
+- `nvidia-smi` **inside** WSL. Compute-cap query is often empty; 3090 is still **86**. One long-lived server; don’t share the GPU heavily with Windows games / browsers. WSL may not see all 24 GB if the Windows desktop is using the card.
+- GGUFs and the build tree under `~/` (ext4). Not `/mnt/c`.
 - Loopback `--host 127.0.0.1` is reachable from Windows browsers/clients on the same machine (WSL2 localhost forwarding).
 - This guide’s Pi JSON path is **`~/.pi/agent/models.json` inside WSL** (Pi running in the Ubuntu distro). If Pi is installed on Windows itself, that file is `%USERPROFILE%\.pi\agent\models.json` — still point `baseUrl` at `http://127.0.0.1:8080/v1`.
 - Workflows: [pi-coding-agent-graphs.md](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
 
 ## Performance notes
 
-- ⚠️ **Untested** on this SKU. Ported from the Jetson ✅ **64k / 8192** pin (128k was a stretch there, never recorded). This box’s daily pin is **128k / 16384** by VRAM math. For **skills / specific tool calls**, use the [tools JSON](#skills--tools-start-here) (`reasoning` false, no `thinkingLevelMap`). Keep the [think JSON](#thinking-on) when you want traces. Not Gemma’s 16k / 2048 and not Liquid’s 32k memory-constrained example. A 16k `contextWindow` plus `maxTokens` 4096 produces Pi’s **“Response was truncated before completion.”** on the first turn ([above](#pi-truncation-on-the-first-turn)).
+- ⚠️ **Untested** as a Pi daily driver. Ported from the Jetson ✅ **64k / 8192** pin (128k was a stretch there). Fresh Win11 WSL on a 3090: **do not use the 4090/Jetson cmake**. PRIMARY is **128k / 16384 / FA off / q8/q8**. For **skills / specific tool calls**, use the [tools JSON](#skills--tools-start-here) (`reasoning` false, no `thinkingLevelMap`). Keep the [think JSON](#thinking-on) when you want traces.
 - `n_ctx_seq (131072) == n_ctx_train (131072)` is expected on the daily pin.
-- Q8_0 is the quality pin (tested on the Jetson). F16 is the optional bump, not the first download. Q6_K is the 8 GB headroom swap — skip it here. DSpark is a speed sidecar, not a quality lever.
-- No tok/s number for this SKU — do not copy Jetson or H100 figures. Record `timings` from a real decode after `nvidia-smi` is stable.
+- Q8_0 is the quality pin (tested on the Jetson). F16 is the optional bump, not the first download. Q6_K is the 8 GB headroom swap — skip it here. DSpark needs FA + `draft-dspark`; skip it on this FA-off binary.
+- No tok/s number for this SKU — FA off will be slower than the Jetson’s FA-on pin; do not copy Jetson or H100 figures. Record `timings` after `nvidia-smi` is stable.
 - After pin changes, restart **llama-server and Pi** so the status bar matches `131072` / `16384` (or `65536` / `16384` on the half-window).
 - Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
 
@@ -332,8 +421,8 @@ If you take the [half-window](#this-box--only-if-primary-loads), only change `co
 
 - Jetson Orin Nano Super (8 GB, ✅ 64k): [Jetson-Orin-LFM2.5-2.6B.md](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md)
 - This box, 27B ternary (PrismML fork, ⚠️ untested): [Windows-RTX3090-Bonsai-2-27B.md](Windows-RTX3090-Bonsai-2-27B.md)
-- 24 GB CUDA WSL2 twin (Qwen3.6 Q4, turboquant): [Windows-RTX4090-Qwen3.6.md](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md)
+- 24 GB CUDA WSL2 twin (Qwen3.6 Q4, turboquant, **Ada cmake — do not paste here**): [Windows-RTX4090-Qwen3.6.md](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md)
 - Model card: [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B) · GGUF: [LiquidAI/LFM2.5-2.6B-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF)
 - Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent)
 
-**Last Updated:** 2026-09-20 (128k / 16384 WSL2 pin; estimates labeled; ⚠️ untested on this box)
+**Last Updated:** 2026-09-20 (OMEN 30L WSL: FA off, 86-real, no VMM/graphs; DSpark skipped; ⚠️ decode untested)

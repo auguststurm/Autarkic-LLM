@@ -2,7 +2,7 @@
 
 > ⚠️ **Not yet tested** on this hardware with Bonsai 2 (researched **2026-09-18**). Confirm load → first decode → Pi tools before relying on it. **Not** llama-cpp-turboquant.
 
-**WSL2** (not native Windows) · CUDA sm_**86** (Ampere) · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Paths on this box: **`~/AIML`** (models) · **`~/GitHub`** (engine) — same WSL2 convention as the [RTX 4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md), not `~/Documents/AIML`. Sibling on this box (turboquant, not this fork): [LFM2.5-2.6B](Windows-RTX3090-LFM2.5-2.6B.md) (⚠️ untested @ 128k) — do not copy those pins here.
+**WSL2** (not native Windows) · CUDA sm_**86** (Ampere) · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Paths on this box: **`~/AIML`** (models) · **`~/GitHub`** (engine) — same WSL2 convention as the [RTX 4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md), not `~/Documents/AIML`. Sibling on this box (turboquant, not this fork): [LFM2.5-2.6B](Windows-RTX3090-LFM2.5-2.6B.md) (⚠️ untested @ 128k / **FA off**) — do not copy those pins or that cmake here.
 
 Same Qwen3.8-27B hybrid backbone as Dual RTX Bonsai 2, packed as true ternary weights (~6–7 GB). That is why a **27B-class** model can take a long pin on **24 GB** — the [4090 Q4 27B](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) spends ~18 GB on weights and stops at **96k**. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Twin Dual RTX recipe: [Dual-RTX6000-Bonsai-2-27B.md](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md).
 
@@ -300,7 +300,7 @@ Add `--mmproj ~/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. BF16 referen
 
 - Dual RTX Bonsai 2 (96 GB, 262k PRIMARY): [Dual-RTX6000-Bonsai-2-27B.md](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md)
 - 24 GB RDNA3 HIP twin: [7900-XTX-Bonsai-2-27B.md](../AMD-7900-XTX/7900-XTX-Bonsai-2-27B.md)
-- This box, LFM2.5-2.6B (turboquant, ⚠️ untested @ 128k): [Windows-RTX3090-LFM2.5-2.6B.md](Windows-RTX3090-LFM2.5-2.6B.md)
+- This box, LFM2.5-2.6B (turboquant, ⚠️ untested @ 128k / FA off): [Windows-RTX3090-LFM2.5-2.6B.md](Windows-RTX3090-LFM2.5-2.6B.md)
 - 24 GB CUDA WSL2 twin (Qwen3.6 Q4, turboquant): [Windows-RTX4090-Qwen3.6.md](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md)
 - Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b) · [run llama.cpp](https://docs.prismml.com/run/llamacpp)
 - Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) · demo: [Bonsai-demo](https://github.com/PrismML-Eng/Bonsai-demo)
