@@ -85,6 +85,12 @@ The rest is judgment:
   sampling is temp 1.0 / top_p 0.95 / top_k 64. Need llama.cpp/turboquant b10353+ (arch
   muse-glimmer). Optional DFlash: --spec-type draft-dflash + dflash-kquant.gguf. Dual RTX
   starting point: Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md (⚠️ untested).
+- (LFM2.5-2.6B only) Do **not** pass `--reasoning off` — the chat template always opens
+  `<think>`. Official sampling is temp 0.1 / top_k 50 / repeat-penalty 1.1. Pi skills/tools:
+  reasoning false, no thinkingLevelMap. Keep q8/q8. Jetson Orin: 64k / 8192 (✅ tested).
+  RTX 3090 WSL2: 128k / 16384 (⚠️ untested; ~/AIML, ~/GitHub, sm_86). Guides:
+  Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md ·
+  Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md.
 - (always for hybrid Qwen 3.5/3.6/3.8) omit context-checkpoint flags unless I ask; they often don't
   help on hybrid attention (see llama-cpp-turboquant.md). For Pi + dense Qwen 27B tool stability
   (no DRY, sampling, contextWindow vs maxTokens, K/V), follow agentic-harnesses.md and the hardware

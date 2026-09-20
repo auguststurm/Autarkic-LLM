@@ -1,6 +1,6 @@
 # Nvidia Jetson Orin Nano Super - LFM2.5-2.6B
 
-> ✅ **Tested** on this hardware (**2026-09-08**) with **Pi Coding Agent**. Q8_0 @ **64k q8/q8**, `--n-predict` / Pi `maxTokens` **8192**. Native stretch **128k** after 64k is clean ([below](#native-128k-stretch)). Siblings on this box: [Gemma 4 E2B](Jetson-Orin-Gemma4-E2B.md) (thinking **off** @ 16k) · [MiniCPM5-2B](Jetson-Orin-MiniCPM5-2B.md) (⚠️ untested @ 32k, PRIMARY think **off**) — do not copy those pins here.
+> ✅ **Tested** on this hardware (**2026-09-08**) with **Pi Coding Agent**. Q8_0 @ **64k q8/q8**, `--n-predict` / Pi `maxTokens` **8192**. Native stretch **128k** after 64k is clean ([below](#native-128k-stretch)). Siblings on this box: [Gemma 4 E2B](Jetson-Orin-Gemma4-E2B.md) (thinking **off** @ 16k) · [MiniCPM5-2B](Jetson-Orin-MiniCPM5-2B.md) (⚠️ untested @ 32k, PRIMARY think **off**) — do not copy those pins here. 24 GB CUDA twin: [Windows RTX 3090 LFM2.5](../Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md) (⚠️ untested @ **128k** / 16384).
 
 8 GB LPDDR5 (~7.3 Gi usable) · Ampere sm_**87** · llama-cpp-turboquant. **Paths:** `~/Documents/AIML/models` · `~/Documents/GitHub/llama-cpp-turboquant`. Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent). If you OOM, drop `--ctx-size`, never bare `--fit on`. Do **not** drop `--n-predict` / `maxTokens` to 4096 — that is the first-turn Pi `length` stop ([below](#pi-truncation-on-the-first-turn)).
 
