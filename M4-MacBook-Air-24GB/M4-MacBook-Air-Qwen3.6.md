@@ -30,9 +30,7 @@
 | 61440 | `q8_0` / `turbo2` | 128 | Metal OOM (batch too large) |
 | 65536 | any turbo tier tried | ≤16 | Metal OOM on **first decode** (process may still report `n_ctx=65536` after load) |
 
-So TurboQuant is what gets you from “tiny fit context” to **~61k** (~23% of train length) — not 262k, but the max this box has proven stable. Clean reboot does **not** unlock 65k; the wall is peak Metal working set at graph compute (weights + hybrid/compute scratch + KV), not “forgot to use turbo.”
-
-Close heavy apps before launch. Prefer **one** long-lived `llama-server` process — avoid rapid stop/start cycles on 24 GB unified memory (each load spikes Metal residency and can thrash the whole machine).
+TurboQuant is what gets you to **~61k** (~23% of train length) — not 262k. Clean reboot does **not** unlock 65k; the wall is peak Metal working set. Close heavy apps; one long-lived `llama-server`.
 
 Need the engine? [local-setup.md](../local-setup.md).
 
@@ -51,7 +49,9 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_METAL=ON \
+  -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 cd bin && mkdir -p ./kv-cache
 ```
@@ -128,13 +128,7 @@ Confirm **`n_ctx` / `n_ctx_seq (61440)`** in the log or `GET /v1/models`.
 
 Older “it worked if only two terminals were open” runs were oversubscribed and thrashy; that is not a supported config on this guide.
 
-## Performance notes
-
-- MoE keeps active compute modest; **turbo2 V costs some decode speed** vs `q8_0`/`turbo4` — that is the trade for ~61k context.
-- `n_ctx_seq (61440) < n_ctx_train (262144)` is expected.
-- Watch logs for `kIOGPUCommandBufferCallbackErrorOutOfMemory` and `recommended max working set`.
-- After rebuilds, re-check actual `n_ctx` and keep Pi’s `contextWindow` in sync.
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
+`n_ctx_seq (61440) < n_ctx_train (262144)` is expected. Watch logs for `kIOGPUCommandBufferCallbackErrorOutOfMemory`.
 
 ## Pi `models.json`
 
@@ -183,4 +177,4 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 ```
 
 
-**Last Updated:** July 2026
+**Last Updated:** 2026-09-20 (recipe density; ✅ Tested IQ4_NL turbo2 @ 61k)

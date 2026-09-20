@@ -39,7 +39,9 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="121"
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_CUDA=ON \
+  -DCMAKE_CUDA_ARCHITECTURES="121"
 cmake --build . --config Release -j$(nproc)
 cd bin && mkdir -p ./kv-cache
 ```
@@ -145,4 +147,4 @@ MTP, Unsloth sampling, thinking / preserve, vision: **[Dual RTX Qwen3.8 — opti
 - Ternary Bonsai 2 (⚠️ untested, **PrismML fork**, not this turboquant build): [DGX-Spark-Bonsai-2-27B.md](DGX-Spark-Bonsai-2-27B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
-**Last Updated:** 2026-08-20 (recipe overlay on tested DGX 3.6; 3.8 still ⚠️ untested)
+**Last Updated:** 2026-09-20 (recipe density; 3.8 still ⚠️ untested)

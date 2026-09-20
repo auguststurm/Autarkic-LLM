@@ -32,7 +32,8 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_VULKAN=ON
 cmake --build . --config Release -j$(nproc)
 cd bin && mkdir -p ./kv-cache
 ```
@@ -84,13 +85,7 @@ pkill -9 llama-server
 | `--fit off` + thinking off + `127.0.0.1` | Repo agent/autarky defaults |
 | No checkpoint flags | Qwen3.6 hybrid caveat — see [checkpointing](../llama-cpp-turboquant.md#prompt-cache--checkpointing) |
 
-## MTP performance notes
-
-- **MTP throughput is workload dependent.** Code completion, structured output, and repetitive content benefit most; highly creative generation benefits less.
-- IQ4_XS-4.19bpw at ~18.6 GB leaves ~5.4 GB for KV and compute on 24 GB — stable at 262k with `q8_0` V-cache per tester report.
-- Expected generation: ~120–140 t/s on this hardware (varies with MTP acceptance).
-- Vulkan on AMD is well-supported; MTP often ~1.2–2× vs non-MTP (less for MoE).
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
+IQ4_XS (~18.6 GB) leaves ~5.4 GB for KV/compute — tester-stable at 262k with `q8_0` V. ~120–140 t/s (varies with MTP acceptance; more for code/structured than creative).
 
 ## Pi Coding Agent `models.json`
 
@@ -119,4 +114,9 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 > Note: `maxTokens` matches this guide’s high `--n-predict`; for typical agent turns you may prefer a lower `maxTokens` (e.g. 8192).
 
 
-**Last Updated:** July 2026
+## See also
+
+- 27B MTP (tested): [7900-XTX-Qwen3.6-27b.md](7900-XTX-Qwen3.6-27b.md)
+- Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
+
+**Last Updated:** 2026-09-20 (recipe density; ✅ community-tested IQ4_XS MTP @ 262k)

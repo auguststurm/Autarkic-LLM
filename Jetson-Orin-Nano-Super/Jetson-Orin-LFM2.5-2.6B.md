@@ -1,10 +1,10 @@
 # Nvidia Jetson Orin Nano Super - LFM2.5-2.6B
 
-> ✅ **Tested** on this hardware (**2026-09-08**) with **Pi Coding Agent**. Q8_0 @ **64k q8/q8**, `--n-predict` / Pi `maxTokens` **8192**. Native stretch **128k** after 64k is clean ([below](#native-128k-stretch)). Siblings on this box: [Gemma 4 E2B](Jetson-Orin-Gemma4-E2B.md) (thinking **off** @ 16k) · [MiniCPM5-2B](Jetson-Orin-MiniCPM5-2B.md) (⚠️ untested @ 32k, PRIMARY think **off**) — do not copy those pins here. 24 GB CUDA twin: [Windows RTX 3090 LFM2.5](../Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md) (⚠️ untested @ **128k** / 16384 / **FA off** — do not paste this Jetson cmake onto Ampere). 128 GB GB10 twin: [DGX Spark LFM2.5](../DGX-Spark-128GB/DGX-Spark-LFM2.5-2.6B.md) (⚠️ untested @ **128k** / 16384 / **FA on** — this folder’s `"121"` cmake, not this Jetson `"87"` + `FA_ALL_QUANTS`).
+> ✅ **Tested** on this hardware (**2026-09-08**) with **Pi Coding Agent**. Q8_0 @ **64k q8/q8**, `--n-predict` / Pi `maxTokens` **8192**. Native stretch **128k** after 64k is clean ([below](#native-128k-stretch)).
 
-8 GB LPDDR5 (~7.3 Gi usable) · Ampere sm_**87** · llama-cpp-turboquant. **Paths:** `~/Documents/AIML/models` · `~/Documents/GitHub/llama-cpp-turboquant`. Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent). If you OOM, drop `--ctx-size`, never bare `--fit on`. Do **not** drop `--n-predict` / `maxTokens` to 4096 — that is the first-turn Pi `length` stop ([below](#pi-truncation-on-the-first-turn)).
+8 GB LPDDR5 (~7.3 Gi usable) · Ampere sm_**87** · llama-cpp-turboquant. Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent). If you OOM, drop `--ctx-size`, never bare `--fit on`. Do **not** drop `--n-predict` / `maxTokens` to 4096 ([below](#pi-truncation-on-the-first-turn)).
 
-The [model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B) does **not** recommend this model for agentic coding. On this box it is a strong Pi daily driver anyway (64k). The GGUF template always opens `<think>`; for Pi **skills / tool calls** start with `reasoning` **false** ([below](#pi-coding-agent-modelsjson)).
+The [model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B) does **not** recommend this model for agentic coding. On this box it is a strong Pi daily driver anyway (64k). The GGUF template always opens `<think>`; for Pi **skills / tool calls** start with `reasoning` **false**.
 
 | Pin | Value |
 | --- | --- |
@@ -87,7 +87,7 @@ Omit `--load-mode none` on this 8 GB box (default **mmap** so the OS can page th
 
 | Flag / value | Why |
 | --- | --- |
-| `--ctx-size 65536` | Daily Pi window. Native train length is **131072** ([model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B)). Liquid’s 32k is the *memory-constrained* example ([agent harnesses](https://docs.liquid.ai/examples/agent-harnesses): raise context if you hit truncation). Only **8 of 30** layers are GQA, so KV is cheap — [budget](#context-budget). Gemma’s tested 16k pin on this box is thinking-off and too small for this template (see [truncation](#pi-truncation-on-the-first-turn)) |
+| `--ctx-size 65536` | Daily Pi window. Native train length is **131072** ([model card](https://huggingface.co/LiquidAI/LFM2.5-2.6B)). Liquid’s 32k is the *memory-constrained* example. Only **8 of 30** layers are GQA, so KV is cheap — [budget](#context-budget) |
 | `--n-predict 8192` | Liquid’s OpenClaw `maxTokens` for this model. Thinking counts against the cap. Raise **both** this and Pi `maxTokens` to **16384** (Pi’s published default) if you still get `length` |
 | `--ubatch-size` / `--batch-size` **64 / 128** | Prefill vs peak on 8 GB; 256 is the first OOM lever |
 | `--cache-type-k/v q8_0` | Quality default. Turbo V is the wrong lever at 64k (KV ~0.5 Gi); keep q8/q8 |
@@ -272,16 +272,15 @@ Pi’s documented shape for a model that cannot disable thinking ([models.md](ht
 
 If 8192 still ends with `finish_reason: length`, set **both** `--n-predict` and `maxTokens` to **16384** (Pi’s default `maxTokens`). For the 128k stretch, only change `contextWindow` to **131072** and the `name` suffix. `/new` after switching between the two JSON shapes.
 
-## Performance notes
+Empty `content` with `finish_reason: length` → raise **both** `--n-predict` and Pi `maxTokens` (next step **16384**). Do not add server `--reasoning off`. Flaky skill/tool calls → tools JSON, then `/new`.
 
-- ✅ **Tested** Pi daily pin is **64k / 8192**. For **skills / specific tool calls**, use the [tools JSON](#skills--tools-start-here) (`reasoning` false, no `thinkingLevelMap`). Keep the [think JSON](#thinking-on) when you want traces. Not Gemma’s 16k / 2048 and not Liquid’s 32k memory-constrained example. A 16k `contextWindow` plus `maxTokens` 4096 produces Pi’s **“Response was truncated before completion.”** on the first turn ([above](#pi-truncation-on-the-first-turn)).
-- 128k remains a [stretch](#native-128k-stretch), not part of the 2026-09-08 test.
-- `n_ctx_seq (65536) < n_ctx_train (131072)` is expected on the daily pin.
-- Q8_0 is the quality pin (2.87 GB vs tested Gemma ~3 GB on this box). Q6_K is the headroom swap, not the first download.
-- Run in **MAXN SUPER** power mode; monitor with `jtop`.
-- Enable zram if `free -h` shows swap 0 — required before the 128k stretch; unified memory spikes on prefill will otherwise SIGKILL the server.
-- Empty `content` with `finish_reason: length` → raise **both** `--n-predict` and Pi `maxTokens` (next step **16384**). Do not add server `--reasoning off` to “fix” truncation (the template still opens `<think>`). Flaky skill/tool calls → tools JSON, then `/new`.
-- After pin changes, restart **llama-server and Pi** so the status bar matches `65536` / `8192` (or `131072` / `8192` on the stretch).
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
+Run in **MAXN SUPER**; monitor with `jtop`. Enable zram if `free -h` shows swap 0 before the 128k stretch.
 
-**Last Updated:** 2026-09-08 (✅ Tested Pi @ 64k q8/q8; skills JSON `reasoning` false)
+## See also
+
+- This box: [Gemma 4 E2B](Jetson-Orin-Gemma4-E2B.md) · [MiniCPM5-2B](Jetson-Orin-MiniCPM5-2B.md)
+- RTX 3090 WSL2 (⚠️ 128k / FA off): [Windows-RTX3090-LFM2.5-2.6B.md](../Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md)
+- DGX Spark (⚠️ 128k / FA on): [DGX-Spark-LFM2.5-2.6B.md](../DGX-Spark-128GB/DGX-Spark-LFM2.5-2.6B.md)
+- Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent)
+
+**Last Updated:** 2026-09-20 (recipe density; ✅ Tested Pi @ 64k q8/q8)

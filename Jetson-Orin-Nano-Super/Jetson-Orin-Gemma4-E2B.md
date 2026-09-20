@@ -1,8 +1,8 @@
 # Nvidia Jetson Orin Nano Super - Gemma 4 E2B
 
-> ✅ **Tested** on this hardware (**2026-09-07**) with **Pi Coding Agent**. Q4_K_S @ 16k q8/q8 on 8 GB unified; drop `--ctx-size` if you OOM. Siblings on this box: [LFM2.5-2.6B](Jetson-Orin-LFM2.5-2.6B.md) (✅ tested @ 64k, always-on `<think>`) · [MiniCPM5-2B](Jetson-Orin-MiniCPM5-2B.md) (⚠️ untested @ 32k, PRIMARY think **off**) — do not copy those pins here.
+> ✅ **Tested** on this hardware (**2026-09-07**) with **Pi Coding Agent**. Q4_K_S @ 16k q8/q8 on 8 GB unified; drop `--ctx-size` if you OOM.
 
-8 GB LPDDR5 (~7.3 Gi usable) · Ampere sm_**87** · llama-cpp-turboquant. **Paths:** `~/Documents/AIML/models` · `~/Documents/GitHub/llama-cpp-turboquant`. Pi: [agentic harnesses](../agentic-harnesses.md). If you OOM, drop `--ctx-size`, never bare `--fit on`.
+8 GB LPDDR5 (~7.3 Gi usable) · Ampere sm_**87** · llama-cpp-turboquant. Pi: [agentic harnesses](../agentic-harnesses.md). If you OOM, drop `--ctx-size`, never bare `--fit on`.
 
 | Pin | Value |
 | --- | --- |
@@ -129,12 +129,11 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 }
 ```
 
-## Performance notes
+Run in **MAXN SUPER**; monitor with `jtop`. Enable zram if `free -h` shows swap 0.
 
-- Q4_K_S is the sweet spot for the 8 GB memory limit.
-- Run in **MAXN SUPER** power mode; monitor with `jtop`.
-- Enable zram if `free -h` shows swap 0 — unified memory spikes on prefill will otherwise SIGKILL the server.
-- After rebuilds, re-check actual `n_ctx` and keep Pi’s `contextWindow` in sync.
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
+## See also
 
-**Last Updated:** 2026-09-07
+- This box: [LFM2.5-2.6B](Jetson-Orin-LFM2.5-2.6B.md) · [MiniCPM5-2B](Jetson-Orin-MiniCPM5-2B.md)
+- Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md)
+
+**Last Updated:** 2026-09-20 (recipe density; ✅ Tested Pi @ 16k q8/q8)

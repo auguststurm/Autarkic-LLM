@@ -1,6 +1,6 @@
 # M5 MacBook Pro (48 GB) - Qwen3.6-27B
 
-> ✅ **Tested** on this hardware. Qwen3.8 port (same Metal knobs, ⚠️ untested): [M5-MacBook-Pro-Qwen3.8.md](M5-MacBook-Pro-Qwen3.8.md). **Metal, not CUDA.** Tighter Metal: [M4 Air](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
+> ✅ **Tested** on this hardware. Qwen3.8 port (same Metal knobs, ⚠️ untested): [M5-MacBook-Pro-Qwen3.8.md](M5-MacBook-Pro-Qwen3.8.md). **Metal, not CUDA.**
 
 48 GB unified · llama-cpp-turboquant. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
@@ -10,7 +10,7 @@
 | **Weights** | `Qwen3.6-27B-UD-Q5_K_XL.gguf` (~20 GB) |
 | **Catalog** | [unsloth/Qwen3.6-27B-GGUF](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF) |
 | **Context** | `--ctx-size 196608` (`--fit off`) — not full 262k |
-| **KV** | `q8_0` / `q8_0` (Air needs turbo2 on 24 GB; here q8/q8 fits) |
+| **KV** | `q8_0` / `q8_0` |
 | **Output** | `--n-predict 8192` |
 | **Sampling** | temp **0.65** · top_p **0.90** · repeat **1.10** |
 | **Thinking** | `--reasoning off` |
@@ -33,7 +33,9 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_METAL=ON \
+  -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 cd bin && mkdir -p ./kv-cache
 ```
@@ -108,14 +110,7 @@ If you want headroom beyond 196k (or a heavier quant) and accept some decode cos
 
 Verify output quality after enabling turbo on Metal (see [TurboQuant notes](../llama-cpp-turboquant.md#2-turboquant-kv-cache)).
 
-## Performance notes
-
-- Excellent quality/speed balance on 48 GB unified memory for dense Q5.
-- Strong agentic performance with Pi / Hermes and MCP workflows.
-- Metal backend is efficient on Apple Silicon; thermals on sustained load still matter on a laptop.
-- `n_ctx_seq (196608) < n_ctx_train (262144)` is expected.
-- After rebuilds, re-check actual `n_ctx` and keep Pi’s `contextWindow` in sync.
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Pattern reference: [M4 Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
+`n_ctx_seq (196608) < n_ctx_train (262144)` is expected.
 
 ## Pi `models.json`
 
@@ -184,7 +179,7 @@ pkill -9 llama-server
   --log-verbosity 1
 ```
 
-On 48 GB you can likely push MoE context well past 65k (the Air reaches ~61k with turbo2 on **24 GB**). Start at 65k with `q8_0`/`q8_0`, then raise `--ctx-size` or switch V to `turbo4`/`turbo2` if you need more. Confirm **decode**, not only load.
+On 48 GB you can likely push MoE context well past 65k. Start at 65k with `q8_0`/`q8_0`, then raise `--ctx-size` or switch V to `turbo4`/`turbo2` if you need more. Confirm **decode**, not only load.
 
 ```json
 {
@@ -206,4 +201,4 @@ On 48 GB you can likely push MoE context well past 65k (the Air reaches ~61k wit
 }
 ```
 
-**Last Updated:** July 2026
+**Last Updated:** 2026-09-20 (recipe density; ✅ Tested Q5 @ 196k)

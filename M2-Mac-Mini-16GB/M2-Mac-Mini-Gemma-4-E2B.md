@@ -30,7 +30,9 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_METAL=ON \
+  -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 cd bin && mkdir -p ./kv-cache
 ```
@@ -116,26 +118,7 @@ Add to the `llama-server` command:
 
 Without `--mmproj` the server runs text-only.
 
-## Performance notes
-
-- Extremely lightweight (~3 GB loaded): the recommended daily driver on 16 GB Minis.
-- Multimodal once you pass `--mmproj`; text-only otherwise.
-- On base M2 bandwidth this small dense model stays responsive; prefer it over the tight [Qwen3.6-35B-A3B experiment](M2-Mac-Mini-Qwen3.6.md).
-- After rebuilds, re-check actual `n_ctx` and keep Pi’s `contextWindow` in sync.
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Pattern reference: [M4 Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
-
-## Measured results
-
-> 📝 **Placeholder — pending a real run on a 16 GB M2 Mac Mini.** Replace each *TBD* once measured.
-
-| Metric | Value |
-| --- | --- |
-| Largest `--ctx-size` that loaded + decoded | *TBD* |
-| Peak memory (startup log + Activity Monitor) | *TBD* |
-| Prefill / prompt-eval (tok/s) | *TBD* |
-| Decode / generation (tok/s) | *TBD* |
-| Multimodal tested (`--mmproj`)? | *TBD* |
-| llama-cpp-turboquant commit built | *TBD* |
+Recommended daily driver on 16 GB (~3 GB loaded). Text-only unless you pass `--mmproj`. Prefer this over the tight [Qwen3.6-35B-A3B experiment](M2-Mac-Mini-Qwen3.6.md).
 
 ## Pi Coding Agent `models.json`
 
@@ -164,4 +147,4 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 ```
 
 
-**Last Updated:** July 2026
+**Last Updated:** 2026-09-20 (recipe density; ⚠️ untested)

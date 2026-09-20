@@ -51,7 +51,9 @@ git clone -b prism https://github.com/PrismML-Eng/llama.cpp.git llama.cpp-prism
 cd llama.cpp-prism
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="120"
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_CUDA=ON \
+  -DCMAKE_CUDA_ARCHITECTURES="120"
 cmake --build . --config Release -j$(nproc)
 cd bin
 ```
@@ -198,7 +200,7 @@ If you settle on PTQ1_0, change `name` only. `--alias` must still match `id`.
 
 **Single GPU on purpose.** ~6–7 GB weights + 262k q8/q8 hybrid KV is a ~16–20 GB object on a 96 GB card. Do not `--split-mode layer` this model.
 
-This is **not** a replacement for the [Q8 27B Pi primary](Dual-RTX6000-Qwen3.8.md). Q8 is the tested host (~31.5 GB, field-tested 2026-08-14). Bonsai 2 is the same architecture at ~9× smaller language weights (PrismML: 98.2% of Qwen3.8-27B FP16 on their thinking suite). Use it to try ternary throughput; go back to Q8 if tool quality drops.
+This is **not** a replacement for the [Q8 27B Pi primary](Dual-RTX6000-Qwen3.8.md) (tested 2026-08-14). Bonsai 2 is the same architecture at ~9× smaller language weights (PrismML: 98.2% of Qwen3.8-27B FP16 on their thinking suite). Go back to Q8 if tool quality drops.
 
 **Two cards.** You can park Bonsai 2 on GPU 0 while the Q8 primary stays on GPU 1 — two **different** `llama-server` binaries (`llama.cpp-prism` vs `llama-cpp-turboquant`), `CUDA_VISIBLE_DEVICES`, different ports. Isolation pattern: [Localmaxing](Dual-RTX6000-Qwen3.8-localmaxing.md). Do not load these GGUFs in turboquant.
 
@@ -292,14 +294,9 @@ Add `--mmproj ~/Documents/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. BF
 
 ## See also
 
-- Tested Q8 Pi primary (same backbone, Unsloth UD, turboquant): [Dual-RTX6000-Qwen3.8.md](Dual-RTX6000-Qwen3.8.md)
+- Tested Q8 Pi primary: [Dual-RTX6000-Qwen3.8.md](Dual-RTX6000-Qwen3.8.md)
 - Two cards, one model each: [Dual-RTX6000-Qwen3.8-localmaxing.md](Dual-RTX6000-Qwen3.8-localmaxing.md)
-- 24 GB WSL2 Ampere twin: [Windows-RTX3090-Bonsai-2-27B.md](../Win-RTX3090-24GB/Windows-RTX3090-Bonsai-2-27B.md)
-- DGX Spark GB10 twin (262k, `"121"`): [DGX-Spark-Bonsai-2-27B.md](../DGX-Spark-128GB/DGX-Spark-Bonsai-2-27B.md)
-- M1 Ultra Studio Metal twin (262k): [M1-Ultra-Studio-Bonsai-2-27B.md](../M1-Ultra-Studio-64GB/M1-Ultra-Studio-Bonsai-2-27B.md)
-- 24 GB RDNA3 HIP twin: [7900-XTX-Bonsai-2-27B.md](../AMD-7900-XTX/7900-XTX-Bonsai-2-27B.md)
-- Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b) · [run llama.cpp](https://docs.prismml.com/run/llamacpp)
-- Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) · demo: [Bonsai-demo](https://github.com/PrismML-Eng/Bonsai-demo)
-- Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
+- Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b)
+- Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
-**Last Updated:** 2026-09-18 (researched; ⚠️ untested on this box)
+**Last Updated:** 2026-09-20 (recipe density; ⚠️ untested on this box)

@@ -2,7 +2,7 @@
 
 > ⚠️ **Not yet tested** on this hardware with Qwen3.8. Port of the **tested** [Qwen3.6 M5](M5-MacBook-Pro-Qwen3.6.md) pin (Q5 @ 196k · q8/q8 Metal). Confirm load → **first decode** (Metal can load then OOM) → Pi tools, then report via issue/PR.
 >
-> **Metal, not CUDA.** Do not paste Dual RTX / DGX cmake or `--n-gpu-layers` here. Qwen3.8 extras (MTP, sampling, thinking, vision): [Dual RTX Qwen3.8](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md). Tighter Metal pattern: [M4 Air](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
+> **Metal, not CUDA.** Do not paste Dual RTX / DGX cmake or `--n-gpu-layers` here. Qwen3.8 extras: [Dual RTX Qwen3.8 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md#qwen38-optionals).
 
 48 GB unified · llama-cpp-turboquant **Metal**. Same box, same agent-scale pin as 3.6; only the weights file and arch tag (`qwen35`) change.
 
@@ -20,7 +20,7 @@
 
 **Pi:** `contextWindow` = 196608, `maxTokens` = 8192. Path-heavy tools misbehaving? Agent profile temp 0.6 / top_p 0.95 / top_k 20 / presence 0 on a **new** session. [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). GGUF names: [local-setup](../local-setup.md#understanding-gguf-quants-why-so-many-files).
 
-**Memory:** Q5 ~20 GB leaves room for macOS + KV at 196k. Q8 (~31.5 GB) fights the laptop budget at this pin. Air *needs* turbo2 V on 24 GB; here q8/q8 was the tested 3.6 quality baseline. Close heavy apps; one long-lived `llama-server`.
+**Memory:** Q5 ~20 GB leaves room for macOS + KV at 196k. Q8 (~31.5 GB) fights the laptop budget at this pin. Close heavy apps; one long-lived `llama-server`.
 
 Need the engine built first? [local-setup.md](../local-setup.md).
 
@@ -41,7 +41,9 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_METAL=ON \
+  -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 cd bin && mkdir -p ./kv-cache
 ```
@@ -141,7 +143,6 @@ MTP (smaller Metal gain than CUDA), Unsloth sampling, thinking / preserve, visio
 ## See also
 
 - Twin 3.6 (tested): [M5-MacBook-Pro-Qwen3.6.md](M5-MacBook-Pro-Qwen3.6.md)
-- M1 Ultra Studio Bonsai 2 (⚠️ untested, **PrismML Metal**, 262k): [M1-Ultra-Studio-Bonsai-2-27B.md](../M1-Ultra-Studio-64GB/M1-Ultra-Studio-Bonsai-2-27B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
-**Last Updated:** 2026-08-20 (recipe overlay on tested M5 3.6 Metal; 3.8 still ⚠️ untested)
+**Last Updated:** 2026-09-20 (recipe density; 3.8 still ⚠️ untested)

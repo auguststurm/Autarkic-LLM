@@ -33,7 +33,9 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="121"
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_CUDA=ON \
+  -DCMAKE_CUDA_ARCHITECTURES="121"
 cmake --build . --config Release -j$(nproc)
 cd bin && mkdir -p ./kv-cache
 ```
@@ -89,12 +91,7 @@ pkill -9 llama-server
 
 Confirm **`n_ctx` / `n_ctx_seq (262144)`** in the log or `GET /v1/models`.
 
-## Performance notes
-
-- Expected tokens/sec: ~45–65 t/s (prefill), 90–120+ t/s (decode) on this hardware.
-- Full 262k context is stable with TurboQuant KV cache.
-- Excellent for long agentic tasks with Hermes / Pi Coding Agent.
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
+Ballpark on this box: ~45–65 t/s prefill, 90–120+ t/s decode. Full 262k is stable with turbo V.
 
 ## Pi `models.json`
 
@@ -155,4 +152,9 @@ hf download unsloth/Qwen3.6-27B-GGUF \
 }
 ```
 
-**Last Updated:** July 2026
+## See also
+
+- Qwen3.8 port (⚠️ untested): [DGX-Spark-Qwen3.8.md](DGX-Spark-Qwen3.8.md)
+- Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
+
+**Last Updated:** 2026-09-20 (recipe density; ✅ Tested Q6 @ 262k q8/turbo4)

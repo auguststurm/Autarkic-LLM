@@ -4,7 +4,7 @@
 
 CUDA CC **12.1** (GB10) · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Paths: `~/Documents/AIML/models` · `~/Documents/GitHub/llama.cpp-prism` — same Linux layout as this folder’s [Qwen3.6](DGX-Spark-Qwen3.6.md) / [Qwen3.8](DGX-Spark-Qwen3.8.md).
 
-Same Qwen3.8-27B hybrid backbone as Dual RTX Bonsai 2, packed as true ternary weights (~6–7 GB). This box already holds **262k** with Q6 27B (~22–26 GB). Bonsai 2 is a small object on 128 GB unified memory. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Twin Dual RTX recipe: [Dual-RTX6000-Bonsai-2-27B.md](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md).
+Same Qwen3.8-27B hybrid backbone, packed as true ternary weights (~6–7 GB). This box already holds **262k** with Q6 27B (~22–26 GB). Bonsai 2 is a small object on 128 GB unified memory. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 **Stock llama.cpp and llama-cpp-turboquant will not run these files.** They refuse `PQ2_0` / `PTQ1_0` as unknown types. Do not load a Bonsai 2 `Q2_0` on a stock build either — that file can load silently and emit garbage (Hadamard runtime missing). Use the PrismML fork.
 
@@ -166,7 +166,7 @@ From `build/bin`:
   -ngl 99 -fa 1 -p 512 -n 128
 ```
 
-Keep the faster pack for interactive Pi. Smoke Pi `ls`/`read` on **each**. This folder’s Qwen 3.6 ballpark is ~45–65 t/s prefill / 90–120+ decode — Bonsai 2 will be a different number; re-bench. Dual RTX Q8 27B (~51 tok/s on that box) is a different quality/speed class.
+Keep the faster pack for interactive Pi. Smoke Pi `ls`/`read` on **each**. Re-bench on this box — do not copy this folder’s Qwen 3.6 tok/s.
 
 ## Pi `models.json`
 
@@ -202,51 +202,11 @@ This is **not** a replacement for the [Q6 27B Qwen3.8 port](DGX-Spark-Qwen3.8.md
 
 **No turbo V.** This folder’s Qwen pin uses turbo4 V to buy 262k with Q6 weights. Bonsai 2 does not need that, and this fork cannot do it.
 
-**A) OOM (unlikely):** drop batch to 256, then `--ctx-size 131072` + Pi 131072. Confirm you are on `llama.cpp-prism`, not turboquant.
+**OOM (unlikely):** drop batch to 256, then `--ctx-size 131072` + Pi 131072. Confirm you are on `llama.cpp-prism`, not turboquant.
 
-**B) Path-heavy Pi tools feel off:** this PRIMARY already uses the Dual RTX agent profile. Do not mix in this folder’s Qwen `repeat 1.10` / `temp 0.65` on the same session.
+Path-heavy Pi tools: this PRIMARY already uses the Dual RTX agent profile. Do not mix this folder’s Qwen `repeat 1.10` / `temp 0.65` on the same session.
 
-| | This folder Qwen 3.6 (tested) | This Bonsai 2 pin | Dual RTX Bonsai |
-| --- | --- | --- | --- |
-| Weights | Q6 ~22 GB | **~7 GB** | ~7 GB |
-| PRIMARY pin | **262k** q8/**turbo4** | **262k** q8/**q8** | **262k** q8/q8 |
-| Engine | turboquant `"121"` | PrismML `"121"` | PrismML `"120"` |
-| `--threads` | 28 | **28** | 32 |
-| `--n-predict` | 8192 | **16384** | 16384 |
-
-## Bonsai 2 optionals
-
-### Sampling (leave Pi for these)
-
-| Mode | temp | top_p | presence | Notes |
-| --- | --- | --- | --- | --- |
-| Thinking | **1.0** | **0.95** | 0.0 | Bonsai 2 demo default; `--reasoning on` |
-| Instruct (non-thinking) | 0.7 | 0.80 | **1.5** | Chat only |
-| This folder’s tested Qwen 3.6 | 0.65 | 0.90 | 0.0 | repeat **1.10** — Spark Qwen command, not the Bonsai Pi default |
-| **This repo’s Pi tools** | **0.6** | **0.95** | **0.0** | Dual RTX / Bonsai agent pin |
-
-### Thinking on (not the Pi default)
-
-Primary stays `--reasoning off`. Default effort is **`xhigh`**. Use **`medium`** for shorter traces. PrismML: **`low` is not supported**. Thinking tokens count against `--n-predict` — this folder’s Qwen 8192 cap is easy to blow; PRIMARY is already 16384. Leave `--reasoning-preserve` off for Pi.
-
-```bash
-# Deltas only — not the Pi primary:
-#   --reasoning on
-#   --temp 1.0 --top-p 0.95 --top-k 20 --presence-penalty 0.0
-#   --chat-template-kwargs '{"reasoning_effort":"medium"}'
-```
-
-### Vision (`mmproj`)
-
-Not required for Pi text/agent work.
-
-```bash
-hf download prism-ml/Ternary-Bonsai-2-27B-gguf \
-  Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf \
-  --local-dir ~/Documents/AIML/models
-```
-
-Add `--mmproj ~/Documents/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. CUDA/ROCm image token cap is uncapped in PrismML’s demo; images still bill as prompt tokens.
+Sampling, thinking on, vision: **[Dual RTX Bonsai 2 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md#bonsai-2-optionals)**.
 
 ## See also
 
@@ -259,4 +219,4 @@ Add `--mmproj ~/Documents/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. CU
 - Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp)
 - Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
-**Last Updated:** 2026-09-18 (researched; ⚠️ untested on this box)
+**Last Updated:** 2026-09-20 (recipe density; ⚠️ untested on this box)

@@ -2,9 +2,9 @@
 
 > ⚠️ **Not yet tested** on this hardware with Bonsai 2 (researched **2026-09-18**). Confirm load → first decode → Pi tools before relying on it. **Not** llama-cpp-turboquant.
 
-**WSL2** (not native Windows) · CUDA sm_**86** (Ampere) · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Paths on this box: **`~/AIML`** (models) · **`~/GitHub`** (engine) — same WSL2 convention as the [RTX 4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md), not `~/Documents/AIML`. Sibling on this box (turboquant, not this fork): [LFM2.5-2.6B](Windows-RTX3090-LFM2.5-2.6B.md) (⚠️ untested @ 128k / **FA off**) — do not copy those pins or that cmake here.
+**WSL2** (not native Windows) · CUDA sm_**86** (Ampere) · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) (`prism` branch, **prism-b10658+**). Paths: **`~/AIML`** · **`~/GitHub`** — not `~/Documents/AIML`. Do not copy this box’s LFM turboquant cmake here.
 
-Same Qwen3.8-27B hybrid backbone as Dual RTX Bonsai 2, packed as true ternary weights (~6–7 GB). That is why a **27B-class** model can take a long pin on **24 GB** — the [4090 Q4 27B](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) spends ~18 GB on weights and stops at **96k**. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Twin Dual RTX recipe: [Dual-RTX6000-Bonsai-2-27B.md](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md).
+Same Qwen3.8-27B hybrid backbone, packed as true ternary weights (~6–7 GB). Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 **Stock llama.cpp and llama-cpp-turboquant will not run these files.** They refuse `PQ2_0` / `PTQ1_0` as unknown types. Do not load a Bonsai 2 `Q2_0` on a stock build either — that file can load silently and emit garbage (Hadamard runtime missing). Use the PrismML fork.
 
@@ -224,77 +224,13 @@ llama-server usually **reserves the full KV for `--ctx-size` at startup**, so lo
 # Pi contextWindow: 65536
 ```
 
-**A) OOM on load / first decode:** (1) batch 128, (2) `--ctx-size 98304` + Pi 98304, (3) `--ctx-size 65536` + Pi 65536, (4) free desktop GPU apps / check WSL VRAM. Last resort on this fork (no turbo V): `--cache-type-k q4_0 --cache-type-v q4_0` at the same ctx — re-smoke Pi tools; this is PrismML’s tight-KV lever, not the quality default.
+**OOM on load / first decode:** (1) batch 128, (2) `--ctx-size 98304` + Pi 98304, (3) `--ctx-size 65536` + Pi 65536, (4) free desktop GPU apps / check `nvidia-smi` **inside** WSL. Last resort on this fork (no turbo V): `--cache-type-k q4_0 --cache-type-v q4_0` at the same ctx — re-smoke Pi tools.
 
-**B) `n_ctx_seq` matches and VRAM has headroom:** try native window. Same PRIMARY, only:
+**262k stretch** if `n_ctx_seq` matches and VRAM has headroom: `--ctx-size 262144` and Pi `contextWindow` 262144. If prefill OOMs, keep 262k and drop batch to 128.
 
-```bash
-#   --ctx-size 262144
-```
+`nvidia-smi` **inside** WSL. Loopback `--host 127.0.0.1` is reachable from Windows clients on the same machine.
 
-Then Pi `contextWindow` **262144**. Dual RTX Bonsai pins this on 96 GB. On 24 GB it is the stretch, not the untested-safe start. If prefill OOMs, keep 262k and drop batch to 128 before giving up the window.
-
-**C) Turn-1 garbage (fake paths, STAMP loops):** not fixed by more context. New Pi session; confirm PRIMARY is still q8/q8; no DRY / no client sampling override.
-
-**D) Max output token limit:** primary is already 16384. Confirm Pi restarted. Prefer writing `reports/*.md` and a short chat summary. If thinking is on, traces count against this cap.
-
-| | Dual RTX 6000 96 GB | This RTX 3090 24 GB | RTX 4090 Q4 27B |
-| --- | --- | --- | --- |
-| Weights | Bonsai ~7 GB | Bonsai ~7 GB | Qwen3.6 Q4 ~17.6 GB |
-| PRIMARY pin | **262k q8/q8** | **131k q8/q8** (64k / try 262k) | **96k q8/q8** |
-| Engine | PrismML `prism` | PrismML `prism` | turboquant |
-| Batch | 1024 | **256** | 256 |
-
-Same Bonsai 2 files as Dual RTX. Different **KV budget** and **WSL2 paths**.
-
-## WSL2
-
-- `nvidia-smi` **inside** WSL. One long-lived server; don’t share the GPU heavily with Windows games / browsers.
-- Loopback `--host 127.0.0.1` is reachable from Windows browsers/clients on the same machine (WSL2 localhost forwarding).
-- Workflows: [pi-coding-agent-graphs.md](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
-
-## Bonsai 2 optionals
-
-### Sampling (leave Pi for these)
-
-Keep the pin’s Pi row for tool/coding agents. PrismML / Qwen3.8 `generation_config` when you are **not** in path-heavy tool loops:
-
-| Mode | temp | top_p | presence | Notes |
-| --- | --- | --- | --- | --- |
-| Thinking | **1.0** | **0.95** | 0.0 | Bonsai 2 demo default; `--reasoning on` |
-| Instruct (non-thinking) | 0.7 | 0.80 | **1.5** | Chat only — presence 1.5 warps reused paths in Pi |
-| **This repo’s Pi tools** | **0.6** | **0.95** | **0.0** | Same Dual RTX / 4090 Qwen agent pin |
-
-### Thinking on (not the Pi default)
-
-Primary stays `--reasoning off`. The model **reasons by default** if you omit that. If you turn thinking **on**:
-
-- Default effort is **`xhigh`**. Use **`medium`** for shorter traces. PrismML: **`low` is not supported** and behaves close to `xhigh` — do not use `low` as a speed knob. Bound length with `--reasoning-budget N`.
-- **Thinking tokens count against `--n-predict`.**
-- **Leave `--reasoning-preserve` off** for Pi and long sessions.
-
-```bash
-# Deltas only — not the Pi primary:
-#   --reasoning on
-#   --temp 1.0 --top-p 0.95 --top-k 20 --presence-penalty 0.0
-#   --chat-template-kwargs '{"reasoning_effort":"medium"}'
-```
-
-### Vision (`mmproj`)
-
-Not required for Pi text/agent work. Demo uses the Q8_0 pack (~0.63 GB extra).
-
-```bash
-hf download prism-ml/Ternary-Bonsai-2-27B-gguf \
-  Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf \
-  --local-dir ~/AIML/models
-```
-
-Add `--mmproj ~/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. BF16 reference: `Ternary-Bonsai-2-27B-mmproj-BF16.gguf` (~0.93 GB). Images bill as prompt tokens — keep them off the 131k/262k pin until text/agent is stable.
-
-### Other stacks
-
-[prism-ml/Ternary-Bonsai-2-27B-mlx-2bit](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-mlx-2bit) is Apple Silicon MLX, not this CUDA box. Demo wrapper: [PrismML-Eng/Bonsai-demo](https://github.com/PrismML-Eng/Bonsai-demo) (source of truth if this page and their docs disagree). Hadamard runtime is [not upstream yet](https://github.com/ggml-org/llama.cpp/pull/27779).
+Sampling, thinking on, vision: **[Dual RTX Bonsai 2 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md#bonsai-2-optionals)**. mmproj path on this box is `~/AIML/models`.
 
 ## See also
 
@@ -306,4 +242,4 @@ Add `--mmproj ~/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. BF16 referen
 - Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) · demo: [Bonsai-demo](https://github.com/PrismML-Eng/Bonsai-demo)
 - Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
-**Last Updated:** 2026-09-18 (131k / 64k VRAM note; ⚠️ untested on this box)
+**Last Updated:** 2026-09-20 (recipe density; ⚠️ untested on this box)

@@ -222,18 +222,9 @@ llama-server usually **reserves the full KV for `--ctx-size` at startup**. `PTQ1
 # Pi contextWindow: 65536
 ```
 
-**A) OOM on load / first decode:** (1) batch 256, (2) `--ctx-size 65536` + Pi 65536, (3) confirm HIP not Vulkan-CPU. Last resort on this fork (no turbo V): `--cache-type-k q4_0 --cache-type-v q4_0`.
+**OOM on load / first decode:** (1) batch 256, (2) `--ctx-size 65536` + Pi 65536, (3) confirm HIP not Vulkan-CPU. Last resort on this fork (no turbo V): `--cache-type-k q4_0 --cache-type-v q4_0`.
 
-**B) Headroom after 131k:** try `--ctx-size 262144` + Pi `contextWindow` 262144. If prefill OOMs, keep 262k and drop batch to 256.
-
-**C) Turn-1 garbage:** new Pi session; q8/q8; no DRY.
-
-| | This folder Qwen 27B MTP | This Bonsai 2 pin | Dual RTX Bonsai |
-| --- | --- | --- | --- |
-| Weights | IQ4_NL ~18–19 GB | **~7 GB** | ~7 GB |
-| PRIMARY pin | **128k** q8/q8 | **131k** q8/q8 | **262k** q8/q8 |
-| Engine | turboquant **Vulkan** | PrismML **HIP** | PrismML CUDA |
-| Batch | 2048 / 1024 | **1024 / 1024** | 1024 / 1024 |
+**262k stretch** if 131k load is comfortable: `--ctx-size 262144` + Pi `contextWindow` 262144. If prefill OOMs, keep 262k and drop batch to 256.
 
 ## Alternate: Vulkan — expect slow
 
@@ -241,7 +232,9 @@ Only if HIP is unavailable. Build a **second** tree or `build-vulkan/` — do no
 
 ```bash
 cd ~/Documents/GitHub/llama.cpp-prism
-cmake -B build-vulkan -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
+cmake -B build-vulkan \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_VULKAN=ON
 cmake --build build-vulkan --config Release -j$(nproc)
 cd build-vulkan/bin
 ```
@@ -250,38 +243,7 @@ Use **`Ternary-Bonsai-2-27B-PTQ1_0.gguf` only**. Current `prism` Vulkan: PTQ1_0 
 
 Prebuilt: `llama-prism-*-bin-ubuntu-vulkan-x64.tar.gz` from [releases](https://github.com/PrismML-Eng/llama.cpp/releases/latest).
 
-## Bonsai 2 optionals
-
-### Sampling (leave Pi for these)
-
-| Mode | temp | top_p | presence | Notes |
-| --- | --- | --- | --- | --- |
-| Thinking | **1.0** | **0.95** | 0.0 | Bonsai 2 demo default; `--reasoning on` |
-| Instruct (non-thinking) | 0.7 | 0.80 | **1.5** | Chat only — presence 1.5 warps reused paths in Pi |
-| **This repo’s Pi tools** | **0.6** | **0.95** | **0.0** | Same pin as this folder’s Qwen 27B |
-
-### Thinking on (not the Pi default)
-
-Primary stays `--reasoning off`. Default effort is **`xhigh`**. Use **`medium`** for shorter traces. PrismML: **`low` is not supported**. Thinking tokens count against `--n-predict`. Leave `--reasoning-preserve` off for Pi.
-
-```bash
-# Deltas only — not the Pi primary:
-#   --reasoning on
-#   --temp 1.0 --top-p 0.95 --top-k 20 --presence-penalty 0.0
-#   --chat-template-kwargs '{"reasoning_effort":"medium"}'
-```
-
-### Vision (`mmproj`)
-
-Not required for Pi text/agent. This folder’s Qwen 27B passes `--no-mmproj`; Bonsai 2 simply omits `--mmproj` unless you add it.
-
-```bash
-hf download prism-ml/Ternary-Bonsai-2-27B-gguf \
-  Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf \
-  --local-dir ~/Documents/AIML/models
-```
-
-Add `--mmproj ~/Documents/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. Images bill as prompt tokens. Large images are downscaled on Vulkan/CPU; CUDA/ROCm run uncapped — HIP should follow the ROCm path.
+Sampling, thinking on, vision: **[Dual RTX Bonsai 2 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md#bonsai-2-optionals)**. HIP image tokens should follow PrismML’s ROCm path (uncapped); Vulkan/CPU downscale large images.
 
 ## See also
 
@@ -293,4 +255,4 @@ Add `--mmproj ~/Documents/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. Im
 - Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) · Vulkan kernel PR: [#188](https://github.com/PrismML-Eng/llama.cpp/pull/188)
 - Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
-**Last Updated:** 2026-09-18 (researched; HIP PRIMARY; Vulkan incomplete; ⚠️ untested on this box)
+**Last Updated:** 2026-09-20 (recipe density; HIP PRIMARY; Vulkan incomplete; ⚠️ untested)

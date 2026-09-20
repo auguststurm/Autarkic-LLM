@@ -13,21 +13,9 @@ MoE 35B total / ~3B active — **full weights must still fit**. Only IQ2/IQ1-cla
 | **KV** | `q8_0` K / **turbo2** V |
 | **Wired GPU** | `sudo sysctl iogpu.wired_limit_mb=13000` (not persistent) |
 
-## Why TurboQuant matters here
+On 16 GB the weights already consume most of usable memory. **Any useful context only fits if V is compressed** (`q8_0` K / **turbo2** V, `--flash-attn on`). Do not use bare `--fit on` for Pi. Tiers: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md#2-turboquant-kv-cache). Base M2 ~100 GB/s (vs ~120 on M4 Mini).
 
-On 16 GB the weights already consume most of usable memory. **Any useful context only fits if the KV cache is compressed.** The Air guide proved that on 24 GB with IQ4; here the same idea applies with a smaller quant and smaller window.
-
-| Tier | ~bits / value | Role on this Mini |
-| --- | --- | --- |
-| `turbo4` | ~4.25 | Milder; less context |
-| `turbo3` | ~3.25 | Middle ground |
-| **`turbo2`** | ~2.0 | **Starting V-cache** — max context under extreme pressure |
-
-Asymmetric config below: **K = `q8_0`**, **V = `turbo2`**. **Requires** `--flash-attn on` and this fork (upstream rejects `turbo*`).
-
-**Do not use bare `--fit on` for Pi.** The Air lesson: default fit can crush context toward ~4096. Pin `--ctx-size` and set `--fit off`; if you OOM, lower the pin.
-
-## Memory reality (read this)
+## Memory reality (this box)
 
 Usable budget after macOS overhead (~3–4 GB) and the default GPU wired-memory cap (~⅔ of RAM ≈ 10.7 GB) is small. Actual GGUF sizes for `unsloth/Qwen3.6-35B-A3B-GGUF`:
 
@@ -81,7 +69,9 @@ git pull
 rm -rf build
 mkdir build && cd build
 
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_METAL=ON \
+  -DGGML_METAL_EMBED_LIBRARY=ON
 cmake --build . --config Release -j$(sysctl -n hw.logicalcpu)
 
 cd bin
@@ -162,30 +152,7 @@ Confirm **`n_ctx` / `n_ctx_seq`** in the log or `GET /v1/models`, then **run a s
 # Stop at the first Metal OOM; report the max that worked.
 ```
 
-## Performance notes
-
-- 16 GB is the binding constraint, not compute. Quant choice is driven entirely by the memory budget above.
-- Base M2 bandwidth (~100 GB/s) is lower than M4 Mini (~120 GB/s); expect somewhat slower decode on this memory-bound MoE.
-- Expect IQ2-level quality (noticeably below Q5/Q6 or Air IQ4). For everyday use, prefer [Gemma 4 E2B](M2-Mac-Mini-Gemma-4-E2B.md).
-- turbo2 V costs some decode speed vs `q8_0`/`turbo4` — that is the trade for any usable context.
-- Watch logs for `kIOGPUCommandBufferCallbackErrorOutOfMemory` and Memory Pressure.
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Pattern reference: [M4 Air guide](../M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md).
-
-## Measured results
-
-> 📝 **Placeholder — pending a real run on a 16 GB M2 Mac Mini.** Replace each *TBD* once measured.
-
-| Metric | Value |
-| --- | --- |
-| Quant used | *TBD* |
-| Largest `--ctx-size` that decoded | *TBD* |
-| KV types / batch | *TBD* |
-| `iogpu.wired_limit_mb` needed | *TBD* |
-| Peak memory (startup log + Activity Monitor) | *TBD* |
-| Prefill / prompt-eval (tok/s) | *TBD* |
-| Decode / generation (tok/s) | *TBD* |
-| Subjective quality at IQ2 | *TBD* |
-| llama-cpp-turboquant commit built | *TBD* |
+Watch logs for `kIOGPUCommandBufferCallbackErrorOutOfMemory` and Memory Pressure. Everyday Pi: prefer [Gemma 4 E2B](M2-Mac-Mini-Gemma-4-E2B.md).
 
 ## Pi Coding Agent `models.json`
 
@@ -213,19 +180,6 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 }
 ```
 
-> **Provisional until measured.** After your first stable run, set `contextWindow` to the effective `n_ctx_seq` from the log.
+> **Provisional until measured.** After your first stable run, set `contextWindow` to the effective `n_ctx_seq` from the log. Report results via issue/PR.
 
-
-## Report your results
-
-This config is untested on real hardware. If you run it on a 16 GB M2 Mac Mini, please open an issue with:
-
-- **Quant used** and whether it loaded or OOM’d
-- **Largest `--ctx-size` that decoded** (not just loaded), with KV types and batch
-- **`iogpu.wired_limit_mb`** value needed
-- **Peak memory** (startup log + Activity Monitor)
-- **Speed** (prefill / decode tok/s)
-- **Subjective quality** at IQ2 vs Gemma for your tasks
-- **llama-cpp-turboquant commit** built
-
-**Last Updated:** July 2026
+**Last Updated:** 2026-09-20 (recipe density; ⚠️ untested)

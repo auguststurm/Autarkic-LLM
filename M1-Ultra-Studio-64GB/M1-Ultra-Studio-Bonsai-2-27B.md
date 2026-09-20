@@ -216,55 +216,11 @@ llama-server usually **reserves the full KV for `--ctx-size` at startup**. Estim
 | **196608** | a bit under 262k | M5 Pro 27B window; first Metal fallback |
 | **131072** | **~13–15 GB** | Comfortable; same as 24 GB Bonsai PRIMARY |
 
-**A) Turn-1 garbage:** new Pi session; q8/q8; no DRY.
+Path-heavy tools: PRIMARY already uses the Dual RTX agent profile. Do not mix M5 Qwen `repeat 1.10` on the same session.
 
-**B) Path-heavy tools:** PRIMARY already uses the Dual RTX agent profile. Do not mix M5 Qwen `repeat 1.10` on the same session.
+Sampling, thinking on, vision: **[Dual RTX Bonsai 2 — optionals](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md#bonsai-2-optionals)**. Metal downscales large images by default (~1,024 vision tokens in PrismML’s demo).
 
-| | M5 Pro Q5 27B (tested 3.6) | This Bonsai 2 pin | Dual RTX Bonsai |
-| --- | --- | --- | --- |
-| RAM | 48 GB unified | **64 GB unified** | 96 GB discrete |
-| Weights | Q5 ~20 GB | **~7 GB** | ~7 GB |
-| PRIMARY pin | **196k** q8/q8 | **262k** q8/q8 | **262k** q8/q8 |
-| Engine | turboquant Metal | PrismML Metal | PrismML CUDA |
-| Batch | 512 | **512** | 1024 |
-
-## Bonsai 2 optionals
-
-### Sampling (leave Pi for these)
-
-| Mode | temp | top_p | presence | Notes |
-| --- | --- | --- | --- | --- |
-| Thinking | **1.0** | **0.95** | 0.0 | Bonsai 2 demo default; `--reasoning on` |
-| Instruct (non-thinking) | 0.7 | 0.80 | **1.5** | Chat only |
-| M5 Qwen (this repo) | 0.65 | 0.90 | 0.0 | repeat **1.10** — not the Bonsai Pi default |
-| **This repo’s Pi tools** | **0.6** | **0.95** | **0.0** | Dual RTX / Bonsai agent pin |
-
-### Thinking on (not the Pi default)
-
-Primary stays `--reasoning off`. Default effort is **`xhigh`**. Use **`medium`** for shorter traces. PrismML: **`low` is not supported**. Thinking tokens count against `--n-predict`. Leave `--reasoning-preserve` off for Pi.
-
-```bash
-# Deltas only — not the Pi primary:
-#   --reasoning on
-#   --temp 1.0 --top-p 0.95 --top-k 20 --presence-penalty 0.0
-#   --chat-template-kwargs '{"reasoning_effort":"medium"}'
-```
-
-### Vision (`mmproj`)
-
-Not required for Pi text/agent work. Large images are downscaled on Metal by default (~1,024 vision tokens in PrismML’s demo).
-
-```bash
-hf download prism-ml/Ternary-Bonsai-2-27B-gguf \
-  Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf \
-  --local-dir ~/Documents/AIML/models
-```
-
-Add `--mmproj ~/Documents/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. Images bill as prompt tokens.
-
-### Other stack (MLX)
-
-[prism-ml/Ternary-Bonsai-2-27B-mlx-2bit](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-mlx-2bit) (~8.5 GB, vision included) is the Apple-native pack. PrismML: Bonsai 2 MLX runs on **stock MLX**. That is **not** this `llama-server` + Pi JSON primary. Demo: [Bonsai-demo](https://github.com/PrismML-Eng/Bonsai-demo) `start_mlx_server.sh`. Stay on GGUF + PrismML Metal if you want the same OpenAI endpoint as the other Bonsai guides.
+**MLX:** [prism-ml/Ternary-Bonsai-2-27B-mlx-2bit](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-mlx-2bit) (~8.5 GB, vision included) runs on **stock MLX**. That is **not** this `llama-server` + Pi JSON primary. Demo: [Bonsai-demo](https://github.com/PrismML-Eng/Bonsai-demo) `start_mlx_server.sh`.
 
 ## See also
 
@@ -275,4 +231,4 @@ Add `--mmproj ~/Documents/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. Im
 - Fork: [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp) · MLX pack: [Ternary-Bonsai-2-27B-mlx-2bit](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-mlx-2bit)
 - Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
-**Last Updated:** 2026-09-18 (researched; ⚠️ untested on this box)
+**Last Updated:** 2026-09-20 (recipe density; ⚠️ untested on this box)

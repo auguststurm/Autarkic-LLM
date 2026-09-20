@@ -39,7 +39,9 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="121"
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_CUDA=ON \
+  -DCMAKE_CUDA_ARCHITECTURES="121"
 cmake --build . --config Release -j$(nproc)
 cd bin && mkdir -p ./kv-cache
 ```

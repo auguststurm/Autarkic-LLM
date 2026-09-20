@@ -16,13 +16,7 @@ Blackwell **sm_120** · llama-cpp-turboquant · Ubuntu. Paths: model `~/Document
 
 Build: [Q8 primary](Dual-RTX6000-Qwen3.8.md#build). Pi: `contextWindow` = that process’s `--ctx-size`; `maxTokens` = 16384.
 
-## What this page is for
-
-Every guide in this repo is a per-machine recipe: download, cmake, `llama-server`, Pi `models.json`. On a 24 GB card that means **one** model. On this box the Q8 27B primary leaves ~96 GB idle.
-
-Localmaxing is the second recipe for the same hardware: **two (or more) GGUFs loaded at once**, each on its own `llama-server`, so a local harness can use more than one endpoint without swapping weights.
-
-Pi Coding Agent, `pi-dynamic-workflows`, and `pi-subagents` are why multiple endpoints matter — they can `/model` hop and route `small` / `medium` / `big` at different `baseUrl`s. Package install, Tavily, and skills are **not** this page: [Pi graphs](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
+Two isolated `llama-server` processes (one GGUF per card). Pi can `/model` hop across `baseUrl`s. Package install, Tavily, and skills: [Pi graphs](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md).
 
 ## Combinations that use both cards
 
@@ -76,21 +70,9 @@ What *is* maxed: **decode**. One 27B already holds a card at ~99% / ~300 W / ~51
 
 So the Remaining column is large because **this Qwen 27B does not need 96 GB**, and stuffing the rest with more copies does not make Pi faster. Two cards → two streams. That is the maximum that still feels like a coding agent. Occupancy is a different knob: bigger model on a card, or extra GGUFs you accept will queue.
 
-### Qwen that belong on this box
+**3B active is speed, not a VRAM discount** — every expert still loads, and it is not a free second lane on the same GPU. Do not park Qwen3.5-9B next to the 27B host. Do not load Qwen3.8-2.4T-A95B. Skip older 3.5/3.6 dense 27B copies. Coder-Next (~52 GB) / Flash-Next Q2 (~79 GB) replace a *card*; they are not a fourth pack beside a 262k 27B on the same GPU.
 
-| Model | Job on a 96 GB card | Skip if |
-| --- | --- | --- |
-| [Qwen3.8-27B](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF) | **The** local Pi/coding host. Dense VLM, 262k hybrid KV is cheap. ✅ Tested on this hardware | You need the card for a specialist *and* you already have a 27B on the other GPU |
-| [Qwen3-Coder-30B-A3B](https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF) | Fast code specialist (3B active). Second card next to 27B | You want two 27Bs instead |
-| [Qwen3.6-35B-A3B](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF) | Fast general specialist (3B active). Second card next to 27B | You want two 27Bs, or the second job is code (use Coder-30B) |
-| [Qwen3-Coder-Next](https://huggingface.co/unsloth/Qwen3-Coder-Next-GGUF) 80B-A3B | Larger coding MoE on **one** card (Q4 ~50 GB, ⚠️ untested here) | You need it beside a 262k 27B on the **same** GPU |
-| [Qwen3.8-Flash-Next](https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF) | 125B on **one** card (Q2 ~79 GB). Arch `qwen4exp`. Not a Pi host | You want it *and* 27B on the same card (Q4 is 111 GB) |
-
-**3B active is speed, not a VRAM discount** — every expert still loads. It is also **not a free second lane.** While 35B-A3B or Coder-30B is generating, that GPU belongs to that process; a second `llama-server` on the same card still queues. Each token only *reads* ~3B of weights, so that one stream is faster and may not peg bandwidth the way 27B dense does. Spare silicon shows up as **more tok/s for this model**, not as a 27B running beside it at full speed.
-
-Do not park [Qwen3.5-9B](https://huggingface.co/unsloth/Qwen3.5-9B-GGUF) next to the 27B host (it queues the session you care about). Do not load Qwen3.8-2.4T-A95B. Skip older 3.5/3.6 **dense** 27B copies; 3.8-27B replaces them as the host. Extra Qwen3-VL is unnecessary — 27B is already a VLM ([mmproj](Dual-RTX6000-Qwen3.8.md#vision-mmproj)).
-
-A third process only makes sense on GPU 0, and only if you accept that it **queues** with the specialist already there. That is leftover **storage**, not a fourth concurrent generator — [VRAM remaining](#vram-remaining-is-not-idle-gpu).
+A third process only makes sense on GPU 0, and only if you accept that it **queues** with the specialist already there.
 
 ## 1. Download
 
@@ -627,4 +609,4 @@ Both GPUs must generate at once. Do not put the whole fleet on medium.
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md)
 - Unsloth: [Qwen3.8](https://unsloth.ai/docs/models/qwen3.8) · [Qwen3.6](https://unsloth.ai/docs/models/qwen3.6) · [Coder-30B](https://unsloth.ai/docs/models/tutorials/qwen3-coder-how-to-run-locally) · [Coder-Next](https://unsloth.ai/docs/models/qwen3-coder-next) · [Flash-Next](https://unsloth.ai/docs/models/qwen3.8-next)
 
-**Last Updated:** 2026-09-04
+**Last Updated:** 2026-09-20 (recipe density; two Q6 27B still ✅ 2026-09-03)

@@ -43,7 +43,9 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="120"
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_CUDA=ON \
+  -DCMAKE_CUDA_ARCHITECTURES="120"
 cmake --build . --config Release -j$(nproc)
 cd bin && mkdir -p ./kv-cache
 ```
@@ -155,7 +157,7 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 
 ## This box
 
-**Single GPU on purpose.** Q8 + 131k/262k KV + optional DFlash + mmproj fit one 96 GB card. Multi-GPU (`--split-mode layer --tensor-split 96,96`) is unused for this 30B pin. Two-card **Qwen** packs (one `llama-server` per GPU): [Localmaxing](Dual-RTX6000-Qwen3.8-localmaxing.md).
+**Single GPU on purpose.** Q8 + 131k/262k KV + optional DFlash + mmproj fit one 96 GB card. Multi-GPU (`--split-mode layer --tensor-split 96,96`) is unused for this 30B pin.
 
 **Reasoning strength:** `high` (primary) · `xhigh` for hardest problems (raise `--n-predict` if you still hit `length`) · `medium` / `low` for snappier tools. Per request: `"chat_template_kwargs": {"reasoning_strength":"low"}`. The OpenAI spelling `reasoning_effort` is **not** what this template reads.
 
@@ -212,8 +214,6 @@ vLLM / SGLang (BF16 / FP8 / NVFP4 + native DFlash) are viable on this Blackwell 
 ## See also
 
 - [Meta llama.cpp](https://dev.meta.ai/docs/muse-glimmer/llama-cpp/) · [Unsloth Muse](https://unsloth.ai/docs/models/muse-glimmer) · [prompting](https://dev.meta.ai/docs/muse-glimmer/prompting)
-- Two-card Qwen: [Dual-RTX6000-Qwen3.8-localmaxing.md](Dual-RTX6000-Qwen3.8-localmaxing.md)
-- Ternary Qwen3.8 pack (⚠️ untested, PrismML fork): [Dual-RTX6000-Bonsai-2-27B.md](Dual-RTX6000-Bonsai-2-27B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses — Muse](../agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent)
 
-**Last Updated:** 2026-09-04 (sm_120 wording; Localmaxing pointer; still ⚠️ untested on this box)
+**Last Updated:** 2026-09-20 (recipe density; still ⚠️ untested on this box)

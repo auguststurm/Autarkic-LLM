@@ -18,9 +18,9 @@ K vs V, two token limits, no DRY: [agentic harnesses](../agentic-harnesses.md#qw
 | **Thinking** | `--reasoning off` |
 | **Paths** | `~/AIML/models` · `~/GitHub/llama-cpp-turboquant` (WSL2) |
 
-**This 24 GB box:** weights ~17.6 GB fixed; KV grows with the pin; compute scratch peaks on prefill. Field VRAM often ~19–21 GB at modest pins — room exists, not M5-class 48 GB. Prompt overflows seen **>32k, >64k, ~70k** one request → primary **96k** with margin. Reports need **16k** out. Raise `--ctx-size` and Pi `contextWindow` together; raising one limit does not fix the other.
+**This 24 GB box:** weights ~17.6 GB fixed; KV grows with the pin; compute scratch peaks on prefill. Field VRAM often ~19–21 GB at modest pins. Prompt overflows seen **>32k, >64k, ~70k** one request → primary **96k** with margin. Reports need **16k** out. Raise `--ctx-size` and Pi `contextWindow` together.
 
-Need the engine built first? [local-setup.md](../local-setup.md) (WSL2 + Ubuntu). Hardware not in the table? [ai-assisted-setup.md](../ai-assisted-setup.md).
+Need the engine built first? [local-setup.md](../local-setup.md) (WSL2 + Ubuntu).
 
 ## Download
 
@@ -132,29 +132,17 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 }
 ```
 
-## This box — only if primary fails (one axis at a time)
+## This box
 
-**A) OOM on load / first decode:** (1) batch 128, (2) `--ctx-size 65536` + Pi 65536, (3) free desktop GPU apps / check WSL VRAM.
+**OOM on load / first decode:** (1) batch 128, (2) `--ctx-size 65536` + Pi 65536, (3) free desktop GPU apps / check `nvidia-smi` **inside** WSL.
 
-**B) `request (N) exceeds … (98304)`:** keep q8/q8 first if VRAM allows — `--ctx-size 131072` + Pi 131072. If that OOMs: same ctx, `--cache-type-v turbo4`, batch 128, **new** session + real `ls`/`read`. Further: 196608 turbo4 batch 128, then 262144 only if stable.
+**Prompt exceeds 98304:** keep q8/q8 first if VRAM allows — `--ctx-size 131072` + Pi 131072. If that OOMs: same ctx, `--cache-type-v turbo4`, batch 128, **new** session + real `ls`/`read`. Further: 196608 turbo4 batch 128, then 262144 only if stable. If tools go garbage after turbo V, stay q8 V.
 
-**C) Turn-1 garbage (fake paths, STAMP loops):** not fixed by more context. New Pi session; confirm PRIMARY is still q8/q8; no DRY / no client sampling override. A/B only V → turbo4; if garbage returns, stay q8 V.
+`--n-predict` is already 16384. `nvidia-smi` **inside** WSL.
 
-**D) Max output token limit:** primary is already 16384. Confirm Pi restarted. Prefer writing `reports/*.md` and a short chat summary.
+## See also
 
-| | M5 MBP 48 GB | This RTX 4090 24 GB |
-| --- | --- | --- |
-| Weights | Q5 ~20 GB | Q4 ~17.6 GB |
-| Tested large pin | **196k q8/q8** | **96k q8/q8** primary |
-| Turbo V | Optional | **Only when raising past what q8 V fits** |
-
-Same model family. Different **KV budget**.
-
-## WSL2
-
-- `nvidia-smi` **inside** WSL. One long-lived server; don’t share the GPU heavily.
+- Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 - Workflows: [pi-coding-agent-graphs.md](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
-- 24 GB WSL2 LFM2.5 (turboquant, ⚠️ untested @ 128k; **Ampere cmake is not this page’s `"89"` + `FA_ALL_QUANTS`**): [Windows-RTX3090-LFM2.5-2.6B.md](../Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md)
-- 24 GB WSL2 Bonsai 2 (PrismML fork, ⚠️ untested): [Windows-RTX3090-Bonsai-2-27B.md](../Win-RTX3090-24GB/Windows-RTX3090-Bonsai-2-27B.md)
 
-**Last Updated:** 2026-08-20 (recipe shape; WSL2 paths unchanged)
+**Last Updated:** 2026-09-20 (recipe density; WSL2 paths unchanged)

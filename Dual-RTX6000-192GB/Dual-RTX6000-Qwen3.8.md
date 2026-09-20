@@ -16,9 +16,9 @@ Blackwell **sm_120** · llama-cpp-turboquant · Ubuntu. This file is also the **
 | **Thinking** | `--reasoning off` (Pi tools) |
 | **Paths** | model `~/Documents/AIML/models` · engine `~/Documents/GitHub/llama-cpp-turboquant` |
 
-**Pi:** pin `contextWindow` = 262144 and `maxTokens` = 16384. Two limits, no DRY, no `--reasoning-preserve`. Cross-hardware: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). GGUF names (`UD-`, `_K_XL`): [local-setup](../local-setup.md#understanding-gguf-quants-why-so-many-files).
+**Pi:** `contextWindow` = 262144, `maxTokens` = 16384. Two limits, no DRY, no `--reasoning-preserve`. [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
-Need the engine built first? [local-setup.md](../local-setup.md). Hardware not in the README table? [ai-assisted-setup.md](../ai-assisted-setup.md).
+Need the engine built first? [local-setup.md](../local-setup.md).
 
 ## Download
 
@@ -39,7 +39,9 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="120"
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_CUDA=ON \
+  -DCMAKE_CUDA_ARCHITECTURES="120"
 cmake --build . --config Release -j$(nproc)
 cd bin && mkdir -p ./kv-cache
 ```
@@ -221,4 +223,4 @@ Add `--mmproj ~/Documents/AIML/models/mmproj-F16.gguf` only if this `llama-serve
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 - Unsloth: [Qwen3.8](https://unsloth.ai/docs/models/qwen3.8) · [MTP](https://unsloth.ai/docs/models/mtp)
 
-**Last Updated:** 2026-09-04 (Localmaxing is the second-card guide; primary still the 2026-08-14 tested command)
+**Last Updated:** 2026-09-20 (recipe density; primary still the 2026-08-14 tested command)

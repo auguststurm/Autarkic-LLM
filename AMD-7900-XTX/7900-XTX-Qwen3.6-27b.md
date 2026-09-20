@@ -32,7 +32,8 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_VULKAN=ON
 cmake --build . --config Release -j$(nproc)
 cd bin && mkdir -p ./kv-cache
 ```
@@ -84,13 +85,7 @@ pkill -9 llama-server
 | `--fit off` + thinking off + `127.0.0.1` | Repo agent/autarky defaults |
 | No checkpoint flags | Qwen3.6 hybrid caveat — see [checkpointing](../llama-cpp-turboquant.md#prompt-cache--checkpointing) |
 
-## Performance notes
-
-- IQ4_NL for 27B is ~18–19 GB, leaving ~5 GB for KV and compute on 24 GB — stable but tight at 128k with `q8_0` V-cache.
-- Expected generation: ~60–65 t/s on this hardware (varies with MTP acceptance).
-- Vulkan on RDNA3 is well-supported; MTP speculative decoding often ~1.2–2× vs non-MTP (more for dense models).
-- Predicting **2–4** tokens ahead is a good quality/throughput tradeoff; start with `--spec-draft-n-max 2`.
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md).
+IQ4_NL is ~18–19 GB, leaving ~5 GB for KV/compute — tight at 128k with `q8_0` V. ~60–65 t/s (varies with MTP acceptance). `--spec-draft-n-max 2` is the quality/throughput start.
 
 ## Pi Coding Agent `models.json`
 
@@ -119,6 +114,10 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 > Note: `maxTokens` is high to match this guide’s `--n-predict`; for typical agent turns you may prefer a lower `maxTokens` (e.g. 8192) while leaving server `--n-predict` high.
 
 
-Bonsai 2 on this card is a **different engine** (PrismML HIP, not this Vulkan turboquant build): [7900-XTX-Bonsai-2-27B.md](7900-XTX-Bonsai-2-27B.md).
+## See also
 
-**Last Updated:** July 2026 (Bonsai 2 pointer 2026-09-18)
+- 35B-A3B MTP (tested): [7900-XTX-Qwen3.6-35b-a3b.md](7900-XTX-Qwen3.6-35b-a3b.md)
+- Bonsai 2 (PrismML **HIP**, not this Vulkan build): [7900-XTX-Bonsai-2-27B.md](7900-XTX-Bonsai-2-27B.md)
+- Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
+
+**Last Updated:** 2026-09-20 (recipe density; ✅ community-tested IQ4_NL MTP @ 128k)

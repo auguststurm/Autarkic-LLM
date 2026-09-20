@@ -2,7 +2,7 @@
 
 > ✅ **Tested** on this hardware (**2026-08-08**) with **Pi Coding Agent**. Qwen3.8 (same knobs, new weights, ✅ 2026-08-14): [Dual-RTX6000-Qwen3.8.md](Dual-RTX6000-Qwen3.8.md).
 
-Blackwell **sm_120** · llama-cpp-turboquant · Ubuntu. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware) · 24 GB CUDA twin: [RTX 4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md).
+Blackwell **sm_120** · llama-cpp-turboquant · Ubuntu. Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
 | Pin | Value |
 | --- | --- |
@@ -33,7 +33,9 @@ cd ~/Documents/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="120"
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_CUDA=ON \
+  -DCMAKE_CUDA_ARCHITECTURES="120"
 cmake --build . --config Release -j$(nproc)
 cd bin && mkdir -p ./kv-cache
 ```
@@ -107,14 +109,7 @@ Primary already has enormous headroom. If you later raise load (heavier quant, m
 # Keep K at q8_0. Smoke-test real ls/read on a new Pi session first.
 ```
 
-## Performance notes
-
-- **Validated 2026-08-08:** primary single-GPU **Q8_K_XL @ 262k · q8/q8 · 16k out** worked very well with Pi Coding Agent (tools, long agent sessions, full train window).
-- Primary uses **one GPU** by default — simple and fast for a ~35 GB model. The other 96 GB card stays idle unless you run a second `llama-server` ([Qwen3.8 Localmaxing](Dual-RTX6000-Qwen3.8-localmaxing.md), one model per card) or the layer-split alternate below (still **one** model). Large VRAM on GPU 0 covers weights + full-window KV at **q8/q8** without TurboQuant V.
-- TurboQuant **fork** ≠ must use turbo **types**. This box is the roomiest CUDA profile in the repo: keep `q8_0`/`q8_0`; turbo V is a capacity lever for later experiments, not the quality default.
-- For heavier models or deliberate multi-card **spread of one GGUF**, see the multi-GPU section below (still untested on this hardware). Two live endpoints: [Localmaxing](Dual-RTX6000-Qwen3.8-localmaxing.md).
-- Ideal for heavy agentic workloads and long-context development.
-- Flag deep-dive: [`llama-cpp-turboquant.md`](../llama-cpp-turboquant.md). Cross-hardware Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
+Primary uses **one GPU**. The other 96 GB card stays idle unless you run a second `llama-server` ([Localmaxing](Dual-RTX6000-Qwen3.8-localmaxing.md)) or the layer-split alternate below (still **one** model). Keep `q8_0`/`q8_0`; turbo V is a later capacity lever.
 
 ## Pi `models.json`
 
@@ -215,4 +210,4 @@ pkill -9 llama-server
 - Qwen3.8 single-GPU primary (✅ 2026-08-14): [Dual-RTX6000-Qwen3.8.md](Dual-RTX6000-Qwen3.8.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
-**Last Updated:** 2026-09-04 (Localmaxing pointer; primary still the 2026-08-08 tested command)
+**Last Updated:** 2026-09-20 (recipe density; primary still the 2026-08-08 tested command)
