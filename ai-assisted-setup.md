@@ -90,8 +90,11 @@ The rest is judgment:
   reasoning false, no thinkingLevelMap. Keep q8/q8. Jetson Orin: 64k / 8192 (✅ tested).
   RTX 3090 WSL2: 128k / 16384 / FA off (⚠️ untested; ~/AIML, ~/GitHub,
   cmake 86-real + GGML_CUDA_FA=OFF — do not copy the 4090 FA_ALL_QUANTS cmake).
+  DGX Spark: 128k / 16384 / FA on (⚠️ untested; this folder’s GB10 `"121"` cmake —
+  do not copy Jetson FA_ALL_QUANTS or 3090 FA=OFF).
   Guides: Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md ·
-  Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md.
+  Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md ·
+  DGX-Spark-128GB/DGX-Spark-LFM2.5-2.6B.md.
 - (always for hybrid Qwen 3.5/3.6/3.8) omit context-checkpoint flags unless I ask; they often don't
   help on hybrid attention (see llama-cpp-turboquant.md). For Pi + dense Qwen 27B tool stability
   (no DRY, sampling, contextWindow vs maxTokens, K/V), follow agentic-harnesses.md and the hardware

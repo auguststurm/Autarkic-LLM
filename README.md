@@ -21,7 +21,7 @@ Grok is the assistant this repo is written to pair with. The setup prompt still 
 ## Current Focus
 
 - Primary engine: **llama-cpp-turboquant** (the TurboQuant fork of llama.cpp); build it via [`local-setup.md`](local-setup.md)
-- Preferred models: **Qwen3.8-27B** (dense VLM, Unsloth UD quants) on roomier boxes — **✅ tested** on Dual RTX 6000 day-of-release; **Ternary Bonsai 2 27B** (PrismML ternary pack of the same Qwen3.8 backbone; ⚠️ Dual RTX untested, **PrismML llama.cpp fork** — not turboquant); **Muse Glimmer 30B** (Meta, Apache 2.0, Unsloth UD) as a Dual RTX starting point (⚠️ untested); **Qwen3.6** dense + MoE where still the tested path; **Gemma 4 E2B** for edge devices — **✅ tested** on Jetson Orin Nano Super; **LFM2.5-2.6B** — **✅ tested** on the same Jetson (official Liquid GGUF, always-on thinking, 64k q8/q8); **⚠️ untested** 24 GB CUDA port on Windows RTX 3090 WSL2 (native **128k** q8/q8); **MiniCPM5-2B** on the same Jetson — ⚠️ untested (official OpenBMB GGUF, PRIMARY think **off**, 32k q8/q8)
+- Preferred models: **Qwen3.8-27B** (dense VLM, Unsloth UD quants) on roomier boxes — **✅ tested** on Dual RTX 6000 day-of-release; **Ternary Bonsai 2 27B** (PrismML ternary pack of the same Qwen3.8 backbone; ⚠️ Dual RTX untested, **PrismML llama.cpp fork** — not turboquant); **Muse Glimmer 30B** (Meta, Apache 2.0, Unsloth UD) as a Dual RTX starting point (⚠️ untested); **Qwen3.6** dense + MoE where still the tested path; **Gemma 4 E2B** for edge devices — **✅ tested** on Jetson Orin Nano Super; **LFM2.5-2.6B** — **✅ tested** on the same Jetson (official Liquid GGUF, always-on thinking, 64k q8/q8); **⚠️ untested** ports on Windows RTX 3090 WSL2 (native **128k** q8/q8, **FA off**) and DGX Spark (native **128k** q8/q8, **FA on**, GB10 `"121"`); **MiniCPM5-2B** on the same Jetson — ⚠️ untested (official OpenBMB GGUF, PRIMARY think **off**, 32k q8/q8)
 - Emphasis on KV-cache optimization (TurboQuant), flash attention, agent-friendly Qwen settings (thinking off, pinned context), Muse Glimmer / LFM2.5 settings (template thinking **cannot** be switched off — LFM Pi skills path uses `reasoning` false; traces JSON keeps clean `reasoning_content`), MiniCPM5-2B (OpenBMB documents a Think/No-think **toggle**; Jetson PRIMARY **forces off**, ⚠️ untested), and stable sampling (details in the [deep dive](llama-cpp-turboquant.md))
 - **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Dual RTX second card: [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) (one model per GPU). **Muse Glimmer + Pi** is a different row: [Muse Glimmer 30B + Pi](agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent). **LFM2.5-2.6B + Pi** (always-on `<think>`): [LFM2.5-2.6B + Pi](agentic-harnesses.md#lfm25-26b--pi-coding-agent). **MiniCPM5-2B + Pi** (PRIMARY think **off**; OpenBMB toggle ⚠️ untested): [MiniCPM5-2B + Pi](agentic-harnesses.md#minicpm5-2b--pi-coding-agent). Multi-agent research in [Pi graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
 
@@ -83,6 +83,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 | M1 Ultra Mac Studio | 64 GB | Metal | [Ternary Bonsai 2 27B PQ2_0](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/tree/main) (262k q8/q8; PTQ1_0 A/B; **PrismML fork**) | ⚠️ Untested | [guide](M1-Ultra-Studio-64GB/M1-Ultra-Studio-Bonsai-2-27B.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.6-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | ✅ Tested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.6.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.8-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/turbo4, ported from 3.6) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) |
+| DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [LFM2.5-2.6B Q8_0](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/tree/main) (128k q8/q8, **FA on**; GB10 `"121"`, not the Jetson/3090 cmake) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-LFM2.5-2.6B.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Ternary Bonsai 2 27B PQ2_0](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/tree/main) (262k q8/q8; PTQ1_0 A/B; **PrismML fork**) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Bonsai-2-27B.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.6-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.8-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) |
@@ -124,7 +125,7 @@ Autarkic-LLM/
 │   └── example-skills/search-topic-research/
 ├── glossary.md
 ├── AMD-7900-XTX/                   # Vulkan Qwen3.6 MTP (tested) · Bonsai 2 HIP untested
-├── DGX-Spark-128GB/                # 3.6 tested · 3.8 port untested · Bonsai 2 untested
+├── DGX-Spark-128GB/                # 3.6 tested · 3.8 port untested · LFM2.5 untested (128k FA on) · Bonsai 2 untested
 ├── Dual-RTX6000-192GB/             # 3.6 + 3.8 tested · Localmaxing · Muse / Bonsai 2 untested
 ├── M5-MacBook-Pro-48GB/            # 3.6 tested · 3.8 port untested
 ├── M1-Ultra-Studio-64GB/           # Bonsai 2 Metal untested (PrismML fork)
@@ -140,6 +141,6 @@ Autarkic-LLM/
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** 2026-09-20 (Windows RTX 3090 LFM2.5-2.6B, 128k untested port)  
+**Last Updated:** 2026-09-20 (DGX Spark LFM2.5-2.6B, 128k untested port)  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)

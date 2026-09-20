@@ -252,6 +252,7 @@ Add `--mmproj ~/Documents/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. CU
 
 - Twin 3.6 (tested on this box): [DGX-Spark-Qwen3.6.md](DGX-Spark-Qwen3.6.md)
 - Qwen3.8 port (⚠️ untested, turboquant): [DGX-Spark-Qwen3.8.md](DGX-Spark-Qwen3.8.md)
+- LFM2.5-2.6B (⚠️ untested, turboquant `"121"`, not this PrismML binary): [DGX-Spark-LFM2.5-2.6B.md](DGX-Spark-LFM2.5-2.6B.md)
 - Dual RTX Bonsai 2 (CUDA sm_120, 262k): [Dual-RTX6000-Bonsai-2-27B.md](../Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md)
 - 24 GB CUDA WSL2 Bonsai 2 (131k): [Windows-RTX3090-Bonsai-2-27B.md](../Win-RTX3090-24GB/Windows-RTX3090-Bonsai-2-27B.md)
 - Model card: [prism-ml/Ternary-Bonsai-2-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) · docs: [Ternary Bonsai 2 27B](https://docs.prismml.com/bonsai-2-27b)

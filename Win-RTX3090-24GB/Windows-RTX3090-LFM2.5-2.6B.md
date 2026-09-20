@@ -420,6 +420,7 @@ If you take the [half-window](#this-box--only-if-primary-loads), only change `co
 ## See also
 
 - Jetson Orin Nano Super (8 GB, ✅ 64k): [Jetson-Orin-LFM2.5-2.6B.md](../Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md)
+- DGX Spark (128 GB, ⚠️ 128k / FA on, GB10 `"121"`): [DGX-Spark-LFM2.5-2.6B.md](../DGX-Spark-128GB/DGX-Spark-LFM2.5-2.6B.md)
 - This box, 27B ternary (PrismML fork, ⚠️ untested): [Windows-RTX3090-Bonsai-2-27B.md](Windows-RTX3090-Bonsai-2-27B.md)
 - 24 GB CUDA WSL2 twin (Qwen3.6 Q4, turboquant, **Ada cmake — do not paste here**): [Windows-RTX4090-Qwen3.6.md](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md)
 - Model card: [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B) · GGUF: [LiquidAI/LFM2.5-2.6B-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF)
