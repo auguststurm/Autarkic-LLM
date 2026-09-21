@@ -51,7 +51,7 @@ Workflows only use GPU 0 if `small` (or `{ model: "llama-cpp-8080/…" }`) actua
 - **Use for:** you on Pi while the other card does **non-code** fan-out — scan, classify, ingest, skeptic, short summary. Faster than a second 27B for those jobs; 262k on the fast side if the prompt is large.
 - **Not for:** code-heavy subagents (use Coder); two streams that both need 27B quality (use two 27Bs).
 
-Coder-Next / Flash-Next replace a *card*, they are not a fourth pack — [VRAM remaining](#vram-remaining-is-not-idle-gpu).
+Coder-Next / Flash-Next replace a *card*, they are not a fourth pack — [VRAM remaining](#vram-remaining-is-not-idle-gpu). Coder-Next one-card recipe: [Dual-RTX6000-Qwen3-Coder-Next.md](Dual-RTX6000-Qwen3-Coder-Next.md) (⚠️ untested; Q6 @ 262k).
 
 ### VRAM remaining is not idle GPU
 
@@ -66,11 +66,11 @@ What *is* maxed: **decode**. One 27B already holds a card at ~99% / ~300 W / ~51
 | Nothing extra (these packs) | ~35–50 GB / card | Card already at full tok/s. Second GPU is a second stream |
 | Second GGUF on the **same** GPU | Higher | Queue. Same tok/s, more models waiting. Fine only if they almost never generate together |
 | 2+2 Q6 27B (two processes per card) | ~70 GB / card | Four endpoints, still two concurrent streams. ~25 tok/s per model if all four generate — a bad Pi experience |
-| Bigger model **instead** (Coder-Next ~52 GB, Flash-Next Q2/Q3 ~79–90 GB) | Most of one card | Still **one** stream on that GPU. Different quality; Flash-Next is not a Pi host |
+| Bigger model **instead** (Coder-Next Q6 ~73 GB / Q8 ~86 GB, Flash-Next Q2/Q3 ~79–90 GB) | Most of one card | Still **one** stream on that GPU. Different quality; Flash-Next is not a Pi host |
 
 So the Remaining column is large because **this Qwen 27B does not need 96 GB**, and stuffing the rest with more copies does not make Pi faster. Two cards → two streams. That is the maximum that still feels like a coding agent. Occupancy is a different knob: bigger model on a card, or extra GGUFs you accept will queue.
 
-**3B active is speed, not a VRAM discount** — every expert still loads, and it is not a free second lane on the same GPU. Do not park Qwen3.5-9B next to the 27B host. Do not load Qwen3.8-2.4T-A95B. Skip older 3.5/3.6 dense 27B copies. Coder-Next (~52 GB) / Flash-Next Q2 (~79 GB) replace a *card*; they are not a fourth pack beside a 262k 27B on the same GPU.
+**3B active is speed, not a VRAM discount** — every expert still loads, and it is not a free second lane on the same GPU. Do not park Qwen3.5-9B next to the 27B host. Do not load Qwen3.8-2.4T-A95B. Skip older 3.5/3.6 dense 27B copies. Coder-Next ([guide](Dual-RTX6000-Qwen3-Coder-Next.md): Q6 ~73 GB, Q8 ~86 GB stretch) / Flash-Next Q2 (~79 GB) replace a *card*; they are not a fourth pack beside a 262k 27B on the same GPU.
 
 A third process only makes sense on GPU 0, and only if you accept that it **queues** with the specialist already there.
 

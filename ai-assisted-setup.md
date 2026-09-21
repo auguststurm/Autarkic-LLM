@@ -108,6 +108,12 @@ The rest is judgment:
   per GPU, one Pi provider key per baseUrl. The Q8 primary is one card. Packs: two 27B, or
   27B + Coder-30B (code small), or 27B + 35B-A3B (general small). Do not invent a four-model
   zoo or put a second process on the 27B host GPU.
+- (Qwen3-Coder-Next, Dual RTX) Dual-RTX6000-Qwen3-Coder-Next.md — 80B-A3B coding MoE
+  on **one** 96 GB card. Download **only** UD-Q6_K_XL (~73 GB, sharded; pass
+  00001-of-00003) @ 262k q8/q8 (⚠️ untested). Do not fetch Q8/Q5 unless swapping later.
+  Arch qwen3next (fresh turboquant). Official sampling temp 1.0 / top_p 0.95 / top_k 40 /
+  min_p 0.01. Non-thinking. Do not copy the dense-27B Pi sampler row. The other card can
+  still run Dual-RTX6000-Qwen3.8.md.
 
 PI CODING AGENT — the only harness we are configuring:
 Once the server runs, give me a complete Pi `models.json` I can save as-is to
