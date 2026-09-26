@@ -22,6 +22,7 @@ Grok is the assistant this repo is written to pair with. The setup prompt still 
 
 - Primary engine: **llama-cpp-turboquant** (the TurboQuant fork of llama.cpp); build it via [`local-setup.md`](local-setup.md)
 - Preferred models: **Qwen3.8-27B** (dense VLM, Unsloth UD quants) on roomier boxes — **✅ tested** on Dual RTX 6000 day-of-release; **Qwen3-Coder-Next** (80B-A3B coding MoE, Unsloth UD; ⚠️ Dual RTX untested, **one 96 GB card**, Q6 @ 262k); **Ternary Bonsai 2 27B** (PrismML ternary pack of the same Qwen3.8 backbone; ⚠️ Dual RTX untested, **PrismML llama.cpp fork** — not turboquant); **Muse Glimmer 30B** (Meta, Apache 2.0, Unsloth UD) as a Dual RTX starting point (⚠️ untested); **Qwen3.6** dense + MoE where still the tested path; **Gemma 4 E2B** for edge devices — **✅ tested** on Jetson Orin Nano Super; **LFM2.5-2.6B** — **✅ tested** on the same Jetson (official Liquid GGUF, always-on thinking, 64k q8/q8); **⚠️ untested** ports on Windows RTX 3090 WSL2 (native **128k** q8/q8, **FA off**) and DGX Spark (native **128k** q8/q8, **FA on**, GB10 `"121"`); **MiniCPM5-2B** on the same Jetson — ⚠️ untested (official OpenBMB GGUF, PRIMARY think **off**, 32k q8/q8)
+- **Forge Trinity** (RTX Pro 2000 Blackwell 16 GB + two RTX Pro 6000 Max-Q 96 GB): one `llama-server` per GPU on the existing `sm_120` binary — LFM2.5-2.6B Q8_0 @ 128k on the 16 GB card, Qwen3.8 Q8 and Qwen3-Coder-Next Q6 each on one 96 GB card. ⚠️ untested. Pi runs on other LAN machines through a ufw allowlist. SSH manages the box, including the headless session switch: [Forge-Trinity.md](Forge-Trinity/Forge-Trinity.md)
 - Emphasis on KV-cache optimization (TurboQuant), flash attention, agent-friendly Qwen settings (thinking off, pinned context), Muse Glimmer / LFM2.5 settings (template thinking **cannot** be switched off — LFM Pi skills path uses `reasoning` false; traces JSON keeps clean `reasoning_content`), MiniCPM5-2B (OpenBMB documents a Think/No-think **toggle**; Jetson PRIMARY **forces off**, ⚠️ untested), and stable sampling (details in the [deep dive](llama-cpp-turboquant.md))
 - **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Dual RTX second card: [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) (one model per GPU). **Muse Glimmer + Pi** is a different row: [Muse Glimmer 30B + Pi](agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent). **LFM2.5-2.6B + Pi** (always-on `<think>`): [LFM2.5-2.6B + Pi](agentic-harnesses.md#lfm25-26b--pi-coding-agent). **MiniCPM5-2B + Pi** (PRIMARY think **off**; OpenBMB toggle ⚠️ untested): [MiniCPM5-2B + Pi](agentic-harnesses.md#minicpm5-2b--pi-coding-agent). Multi-agent research in [Pi graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
 
@@ -99,6 +100,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3-Coder-Next UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3-Coder-Next-GGUF/tree/main) (80B-A3B, 262k q8/q8, one card) | ⚠️ Untested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3-Coder-Next.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Muse Glimmer 30B UD-Q8_K_XL](https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/tree/main) (131k q8/q8, DFlash optional) | ⚠️ Untested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Ternary Bonsai 2 27B PQ2_0](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/tree/main) (262k q8/q8; PTQ1_0 A/B; **PrismML fork**) | ⚠️ Untested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md) |
+| Forge Trinity (RTX Pro 2000 16 GB + 2× RTX Pro 6000 Max-Q 96 GB) | 208 GB | CUDA (sm_120) | One server each: [LFM2.5-2.6B Q8_0](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/tree/main) on the 16 GB card (128k); [Qwen3.8-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) and [Qwen3-Coder-Next UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3-Coder-Next-GGUF/tree/main) on one 96 GB card each | ⚠️ Untested | [guide](Forge-Trinity/Forge-Trinity.md) |
 
 ## Quick Start
 
@@ -136,6 +138,7 @@ Autarkic-LLM/
 ├── AMD-7900-XTX/                   # Vulkan Qwen3.6 MTP (tested) · Bonsai 2 HIP untested
 ├── DGX-Spark-128GB/                # 3.6 tested · 3.8 port untested · LFM2.5 untested (128k FA on) · Bonsai 2 untested
 ├── Dual-RTX6000-192GB/             # 3.6 + 3.8 tested · Localmaxing · Coder-Next / Muse / Bonsai 2 untested
+├── Forge-Trinity/                  # RTX Pro 2000 16 GB + 2× RTX Pro 6000 Max-Q · LFM2.5 + Qwen3.8 + Coder-Next untested
 ├── M5-MacBook-Pro-48GB/            # 3.6 tested · 3.8 port untested
 ├── M1-Ultra-Studio-64GB/           # Bonsai 2 Metal untested (PrismML fork)
 ├── M4-MacBook-Air-24GB/
@@ -150,6 +153,6 @@ Autarkic-LLM/
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** 2026-09-20 (Dual RTX Qwen3-Coder-Next GGUF, untested)  
+**Last Updated:** 2026-09-25 (Forge Trinity: RTX Pro 2000 + two RTX Pro 6000 Max-Q, untested)  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)
