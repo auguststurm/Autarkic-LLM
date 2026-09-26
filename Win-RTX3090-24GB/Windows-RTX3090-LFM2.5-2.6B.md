@@ -45,21 +45,24 @@ export PATH="$HOME/.local/bin:$PATH"
 hf --help    # the command is `hf`
 ```
 
-**CUDA toolkit from the WSL-Ubuntu repo.** `nvidia-smi` inside WSL uses the Windows driver. Install the toolkit package that `apt-cache search` lists. The packages `cuda`, `cuda-drivers`, `nvidia-driver-*`, and `nvidia-cuda-toolkit` pull a Linux driver over the WSL `libcuda` stub.
+**CUDA toolkit from the WSL-Ubuntu repo.** `nvidia-smi` inside WSL uses the Windows driver. Install **`cuda-toolkit-13-1`**. Toolkit **13.2** (`libcudart.so.13.2`) segfaults in `cuInit` on WSL2 during `ggml_cuda_init`, before `llama-server` prints a log line. The packages `cuda`, `cuda-drivers`, `nvidia-driver-*`, and `nvidia-cuda-toolkit` pull a Linux driver over the WSL `libcuda` stub.
 
 ```bash
 wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
 sudo dpkg -i cuda-keyring_1.1-1_all.deb
 sudo apt-get update
-apt-cache search '^cuda-toolkit-'   # pick the latest cuda-toolkit-XX-Y
-sudo apt-get -y install cuda-toolkit-13-2   # example; use what search listed
+apt-cache search '^cuda-toolkit-13-1'
+sudo apt-get -y install cuda-toolkit-13-1
 ```
 
+`cuda-toolkit-12-8` is the fallback when the 13.1 package is absent. A binary already linked to `libcudart.so.13` needs a rebuild to run on 12.8.
+
 ```bash
-export PATH="/usr/local/cuda/bin:$PATH"
-export LD_LIBRARY_PATH="/usr/local/cuda/lib64:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
-# add both to ~/.bashrc
-nvcc --version
+export CUDA_HOME=/usr/local/cuda-13.1
+export PATH="$CUDA_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
+# add all three to ~/.bashrc
+nvcc --version    # release 13.1
 nvidia-smi
 # nvidia-smi --query-gpu=compute_cap often prints nothing under WSL. This card is sm_86.
 ```
@@ -98,8 +101,10 @@ cd ~/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build
+which nvcc    # $CUDA_HOME/bin/nvcc, release 13.1
 cmake -S . -B build \
   -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CUDA_COMPILER="$CUDA_HOME/bin/nvcc" \
   -DGGML_CUDA=ON \
   -DGGML_CUDA_FA=ON \
   -DGGML_CUDA_F16=ON \
@@ -125,15 +130,22 @@ Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboqua
 
 **If `ptxas` still prints `flash_attn_ext_vec` and `0xc000`:** delete `build/` and rerun the cmake. Read the two grep lines before building again. If they are already `86-real` and `OFF` and `ptxas` still fails, rebuild with `-DGGML_CUDA_FA=OFF` and run the server with `--flash-attn off`. That recovery build keeps the score buffer, so 128k prefill uses more VRAM.
 
-**GPU segfault.** GGUF path is `~/AIML/...`. `ldd build/bin/llama-server` shows `libcuda` from `/usr/lib/wsl/lib`. A binary left by a failed `ptxas` run gets a wiped `build/` and a fresh cmake. From `~/GitHub/llama-cpp-turboquant`:
+**Segmentation fault and no llama log.** That is `cuInit` dying before `ggml_cuda_init` prints. `-ngl 0` still enters that path. From `~/GitHub/llama-cpp-turboquant/build/bin`, with `CUDA_HOME` set as above:
 
 ```bash
-export LD_LIBRARY_PATH="/usr/local/cuda/lib64:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
-# CPU probe: GGUF and the binary, no GPU kernels
-./build/bin/llama-server -m ~/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
-  -ngl 0 -c 2048 --flash-attn off --port 8080
-# GPU, small window
-./build/bin/llama-server -m ~/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
+export PATH="$CUDA_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
+./llama-server --version
+```
+
+A good `--version` prints `ggml_cuda_init` and `NVIDIA GeForce RTX 3090`. If `nvcc --version` says **13.2** and `--version` is only `Segmentation fault`, install `cuda-toolkit-13-1`, point `CUDA_HOME` at `/usr/local/cuda-13.1`, and run `--version` again. The existing binary loads `libcudart.so.13`, so the 13.1 runtime satisfies it. When `--version` shows the 3090, rerun the primary command with that same `LD_LIBRARY_PATH`.
+
+If `--version` is still a bare segfault after the 13.1 runtime is on `LD_LIBRARY_PATH`, wipe `build/` and reconfigure with `-DCMAKE_CUDA_COMPILER=$CUDA_HOME/bin/nvcc` so the next link is against 13.1. `ldd build/bin/llama-server` then shows `libcudart` from `$CUDA_HOME/lib64` and `libcuda` from `/usr/lib/wsl/lib`.
+
+**Small GPU window** once `--version` shows the card. Still in `build/bin`:
+
+```bash
+./llama-server -m ~/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
   -ngl 99 -c 4096 --flash-attn on \
   --cache-type-k q8_0 --cache-type-v q8_0 --port 8080
 ```
@@ -145,7 +157,8 @@ Run from `~/GitHub/llama-cpp-turboquant/build/bin`. `--flash-attn` is `on`. KV t
 ```bash
 pkill -9 llama-server
 
-export LD_LIBRARY_PATH="/usr/local/cuda/lib64:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
+export CUDA_HOME=/usr/local/cuda-13.1
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
 
 cd ~/GitHub/llama-cpp-turboquant/build/bin
 
@@ -291,4 +304,4 @@ Loopback `--host 127.0.0.1` is reachable from Windows programs on this same mach
 - This box, 27B ternary (PrismML fork): [Windows-RTX3090-Bonsai-2-27B.md](Windows-RTX3090-Bonsai-2-27B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent)
 
-**Last Updated:** 2026-09-26
+**Last Updated:** 2026-09-26 (WSL toolkit is CUDA 13.1; 13.2 `libcudart` segfaults in `cuInit`)
