@@ -2,22 +2,22 @@
 
 > ⚠️ **Not yet tested** as a Pi daily driver on this SKU. Run the sections in order. Confirm the build links, then load → short decode → Pi tools, and report via issue/PR.
 
-**WSL2 Ubuntu 26.04 on Win11** · CUDA **13.2** · sm_**86** (Ampere GA102) · llama-cpp-turboquant. Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent).
+**WSL2 Ubuntu 26.04 on Win11** · CUDA **13.2** · sm\_**86** (Ampere GA102) · llama-cpp-turboquant. Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent).
 
-| Pin | Value |
-| --- | --- |
-| **Status** | ⚠️ Untested decode |
-| **Weights** | `LFM2.5-2.6B-Q8_0.gguf` (2.87 GB) |
-| **Catalog** | [LiquidAI/LFM2.5-2.6B-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF) · [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B) |
-| **Context** | `--ctx-size 131072` (`--fit off`) · Pi `contextWindow` **131072** |
-| **KV** | `q8_0` / `q8_0` |
-| **Flash-attn** | **on** (build default) |
-| **CMake** | `GGML_CUDA=ON` · `CMAKE_CUDA_ARCHITECTURES="86"` |
-| **Toolkit** | `cuda-toolkit-13-2` from the WSL-Ubuntu repo · `/usr/local/cuda-13.2` |
-| **Output** | `--n-predict 16384` · Pi `maxTokens` **16384** |
-| **Sampling** | temp **0.1** · top_k **50** · repeat **1.1** (Liquid card) |
-| **Thinking** | Template always opens `<think>`. **Pi skills/tools:** `reasoning` **false**. **Pi traces:** `reasoning` **true**, `thinkingLevelMap.off` **null** |
-| **Paths** | `~/AIML/models` · `~/GitHub/llama-cpp-turboquant` |
+| Pin            | Value                                                                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**     | ⚠️ Untested decode                                                                                                                                  |
+| **Weights**    | `LFM2.5-2.6B-Q8_0.gguf` (2.87 GB)                                                                                                                   |
+| **Catalog**    | [LiquidAI/LFM2.5-2.6B-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF) · [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B) |
+| **Context**    | `--ctx-size 131072` (`--fit off`) · Pi `contextWindow` **131072**                                                                                   |
+| **KV**         | `q8_0` / `q8_0`                                                                                                                                     |
+| **Flash-attn** | **on** (build default)                                                                                                                              |
+| **CMake**      | `GGML_CUDA=ON` · `CMAKE_CUDA_ARCHITECTURES="86"`                                                                                                    |
+| **Toolkit**    | `cuda-toolkit-13-2` from the WSL-Ubuntu repo · `/usr/local/cuda-13.2`                                                                               |
+| **Output**     | `--n-predict 16384` · Pi `maxTokens` **16384**                                                                                                      |
+| **Sampling**   | temp **0.1** · top_k **50** · repeat **1.1** (Liquid card)                                                                                          |
+| **Thinking**   | Template always opens `<think>`. **Pi skills/tools:** `reasoning` **false**. **Pi traces:** `reasoning` **true**, `thinkingLevelMap.off` **null**   |
+| **Paths**      | `~/AIML/models` · `~/GitHub/llama-cpp-turboquant`                                                                                                   |
 
 ## 1. First-time machine setup
 
@@ -64,21 +64,11 @@ hf download LiquidAI/LFM2.5-2.6B-GGUF \
   --local-dir ~/AIML/models
 ```
 
-Q8_0 (2.87 GB) is the weights file. Optional F16 (5.4 GB): same command, filename `LFM2.5-2.6B-F16.gguf`.
-
 ## 3. Build
 
 CUDA 13.2 is the toolkit whose headers match Ubuntu 26.04’s `noexcept` `rsqrt`. LFM2.5 head size is 64. `q8_0` / `q8_0` flash attention is in the fork’s default CUDA set.
 
-If [Bonsai](Windows-RTX3090-Bonsai-2-27B.md) already occupies `~/GitHub/llama.cpp-prism`, leave that tree.
-
 ```bash
-mkdir -p ~/GitHub
-cd ~/GitHub
-if [ ! -d llama-cpp-turboquant ]; then
-  git clone --depth 1 --branch feature/turboquant-kv-cache \
-    https://github.com/TheTom/llama-cpp-turboquant.git llama-cpp-turboquant
-fi
 cd ~/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
@@ -146,18 +136,18 @@ cd ~/GitHub/llama-cpp-turboquant/build/bin
 
 The [chat template](https://huggingface.co/LiquidAI/LFM2.5-2.6B/blob/main/chat_template.jinja) always opens `<think>`. `--jinja` selects that template. Loader is mmap. `--load-mode none` is the switch when WSL mmap of this file is slow.
 
-| Flag | Why |
-| --- | --- |
-| `--ctx-size 131072` `--fit off` | Native train length, pinned. q8_0 KV for 8 KV layers at 128k is about **1,088 MiB**. On OOM: batch 128, then ctx 65536 |
-| `q8_0` / `q8_0` | KV for this pin. Weights 2.87 GB + about 1.1 GB KV at 128k |
-| `--flash-attn on` | Default CUDA flash-attention kernels |
-| `--n-gpu-layers 99` `--main-gpu 0` | All layers on the WSL2 GPU, device 0 |
-| `--parallel 1` `--kv-unified` | One slot, one KV buffer |
-| `--no-context-shift` | A full window stops the request |
-| Batch 256 | Physical batch for this pin |
-| `--n-predict 16384` | Pi reply cap. Think tokens count against it. 4096 ends the first Pi turn with `finish_reason: length` |
-| `--threads 0` | The process picks the CPU thread count |
-| Sampling | Liquid card: `temp 0.1` / `top_k 50` / `repeat-penalty 1.1`. Presence, frequency, and min-p are 0 |
+| Flag                               | Why                                                                                                                    |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `--ctx-size 131072` `--fit off`    | Native train length, pinned. q8_0 KV for 8 KV layers at 128k is about **1,088 MiB**. On OOM: batch 128, then ctx 65536 |
+| `q8_0` / `q8_0`                    | KV for this pin. Weights 2.87 GB + about 1.1 GB KV at 128k                                                             |
+| `--flash-attn on`                  | Default CUDA flash-attention kernels                                                                                   |
+| `--n-gpu-layers 99` `--main-gpu 0` | All layers on the WSL2 GPU, device 0                                                                                   |
+| `--parallel 1` `--kv-unified`      | One slot, one KV buffer                                                                                                |
+| `--no-context-shift`               | A full window stops the request                                                                                        |
+| Batch 256                          | Physical batch for this pin                                                                                            |
+| `--n-predict 16384`                | Pi reply cap. Think tokens count against it. 4096 ends the first Pi turn with `finish_reason: length`                  |
+| `--threads 0`                      | The process picks the CPU thread count                                                                                 |
+| Sampling                           | Liquid card: `temp 0.1` / `top_k 50` / `repeat-penalty 1.1`. Presence, frequency, and min-p are 0                      |
 
 ```text
 log: n_ctx_seq (131072)
