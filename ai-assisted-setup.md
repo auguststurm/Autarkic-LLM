@@ -88,10 +88,11 @@ The rest is judgment:
 - (LFM2.5-2.6B only) Do **not** pass `--reasoning off` — the chat template always opens
   `<think>`. Official sampling is temp 0.1 / top_k 50 / repeat-penalty 1.1. Pi skills/tools:
   reasoning false, no thinkingLevelMap. Keep q8/q8. Jetson Orin: 64k / 8192 (✅ tested).
-  RTX 3090 WSL2: 128k / 16384 / FA off (⚠️ untested; ~/AIML, ~/GitHub,
-  cmake 86-real + GGML_CUDA_FA=OFF — do not copy the 4090 FA_ALL_QUANTS cmake).
+  RTX 3090 WSL2: 128k / 16384 / FA on (⚠️ untested; ~/AIML, ~/GitHub,
+  cmake 86-real + GGML_CUDA_FA=ON + GGML_CUDA_F16=ON, no FA_ALL_QUANTS —
+  do not copy the 4090 FA_ALL_QUANTS cmake).
   DGX Spark: 128k / 16384 / FA on (⚠️ untested; this folder’s GB10 `"121"` cmake —
-  do not copy Jetson FA_ALL_QUANTS or 3090 FA=OFF).
+  do not copy Jetson FA_ALL_QUANTS or the 3090 86-real cmake).
   Guides: Jetson-Orin-Nano-Super/Jetson-Orin-LFM2.5-2.6B.md ·
   Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md ·
   DGX-Spark-128GB/DGX-Spark-LFM2.5-2.6B.md.

@@ -1,30 +1,30 @@
 # Windows RTX 3090 (24 GB) - LFM2.5-2.6B
 
-> ⚠️ **Not yet tested** as a Pi daily driver on this SKU. Ampere cmake (`FA=OFF`, `86-real`), Q8_0, Liquid sampling. Confirm load → first decode → Pi tools, then report via issue/PR.
+> ⚠️ **Not yet tested** as a Pi daily driver on this SKU. Confirm the build links, then load → short decode → Pi tools, and report via issue/PR.
 
-**WSL2** (not native Windows) · CUDA sm_**86** (Ampere GA102) · llama-cpp-turboquant. Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent).
+**WSL2 Ubuntu on Win11** · CUDA sm_**86** (Ampere GA102) · llama-cpp-turboquant. Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent).
 
 | Pin | Value |
 | --- | --- |
-| **Status** | ⚠️ Untested decode. CMake: `FA_ALL_QUANTS` **fails** on this SKU — PRIMARY is FA **off** |
+| **Status** | ⚠️ Untested decode. FA **on**, `86-real` |
 | **Weights** | `LFM2.5-2.6B-Q8_0.gguf` (2.87 GB) |
 | **Catalog** | [LiquidAI/LFM2.5-2.6B-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF) · [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B) |
 | **Context** | `--ctx-size 131072` (`--fit off`) · Pi `contextWindow` **131072** |
-| **KV** | `q8_0` / `q8_0` (no `turbo*` — turbo KV needs flash-attn) |
-| **Flash-attn** | **off** (`-DGGML_CUDA_FA=OFF`) |
-| **CMake** | `86-real` · `FA=OFF` · `NO_VMM` · graphs off · **no** `FA_ALL_QUANTS` |
+| **KV** | `q8_0` / `q8_0` |
+| **Flash-attn** | **on** |
+| **CMake** | `86-real` · `GGML_CUDA_FA=ON` · `GGML_CUDA_F16=ON` · `GGML_CUDA_NO_VMM=ON` · `GGML_CUDA_GRAPHS=OFF` |
 | **Output** | `--n-predict 16384` · Pi `maxTokens` **16384** |
 | **Sampling** | temp **0.1** · top_k **50** · repeat **1.1** (Liquid card) |
-| **Thinking** | Omit server `--reasoning off`. **Pi skills/tools:** `reasoning` **false**, no `thinkingLevelMap`. **Pi traces:** `reasoning` **true**, `thinkingLevelMap.off` **null** |
-| **Paths** | `~/AIML/models` · `~/GitHub/llama-cpp-turboquant` (WSL2) |
+| **Thinking** | Template always opens `<think>`. **Pi skills/tools:** `reasoning` **false**. **Pi traces:** `reasoning` **true**, `thinkingLevelMap.off` **null** |
+| **Paths** | `~/AIML/models` · `~/GitHub/llama-cpp-turboquant` |
 
-Need CUDA in WSL first? Do **not** skip **First-time WSL** below on a machine that has never had WSL. [local-setup.md](../local-setup.md) clone path is `~/Documents/GitHub` — **this box uses `~/GitHub`**.
+A machine that has never had WSL follows **First-time WSL** below before the build. Paths on this box are `~/AIML` and `~/GitHub`.
 
 ## First-time WSL (Win11 + Ubuntu)
 
-Field notes from an HP OMEN 30L (Win11, RTX 3090) that had **never** had WSL. Driver stays on **Windows**. Toolkit + compiler live in Ubuntu.
+Field notes from an HP OMEN 30L (Win11, RTX 3090) on its first WSL install. The NVIDIA driver stays the Windows Game Ready / Studio driver. The toolkit and compiler live in Ubuntu.
 
-**Windows (PowerShell, Admin once):** `wsl --install` (Ubuntu), reboot, confirm the Game Ready / Studio NVIDIA driver is current. Then everything below is **inside** the Ubuntu distro.
+**Windows (PowerShell, Admin once):** `wsl --install` (Ubuntu), reboot, then confirm the Windows NVIDIA driver is current. Everything below is inside the Ubuntu distro.
 
 ```bash
 sudo apt update
@@ -32,7 +32,7 @@ sudo apt install -y build-essential cmake git curl ninja-build \
   python3-full python3-pip python3-pip-whl python3-venv python3-dev
 ```
 
-System Python has no usable `pip` module until those packages land. **Do not** `pip install` into `/usr` (PEP 668). Hugging Face’s installer (`curl … hf.co/cli/install.sh`) makes `~/.hf-cli/venv` and then runs `$venv/bin/python -m pip` — if that venv was created *before* `python3-venv` worked, you get `No module named pip`. Wipe and recreate:
+PEP 668 blocks `pip` into `/usr`. Install `hf` in its own venv. If `~/.hf-cli` was created before `python3-venv` was installed, `python -m pip` fails with `No module named pip` — delete that directory and recreate it:
 
 ```bash
 rm -rf ~/.hf-cli
@@ -42,15 +42,12 @@ mkdir -p ~/.local/bin
 ln -sf ~/.hf-cli/bin/hf ~/.local/bin/hf
 export PATH="$HOME/.local/bin:$PATH"
 # add the PATH line to ~/.bashrc
-hf --help    # command is `hf`, not `huggingface-cli`
+hf --help    # the command is `hf`
 ```
 
-**CUDA toolkit (WSL-Ubuntu repo only):**
+**CUDA toolkit from the WSL-Ubuntu repo.** `nvidia-smi` inside WSL uses the Windows driver. Install the toolkit package that `apt-cache search` lists. The packages `cuda`, `cuda-drivers`, `nvidia-driver-*`, and `nvidia-cuda-toolkit` pull a Linux driver over the WSL `libcuda` stub.
 
 ```bash
-# Do NOT: apt install cuda, cuda-drivers, nvidia-driver-*, or nvidia-cuda-toolkit
-# Those pull a Linux NVIDIA driver and break the Windows↔WSL libcuda stub.
-
 wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
 sudo dpkg -i cuda-keyring_1.1-1_all.deb
 sudo apt-get update
@@ -63,11 +60,11 @@ export PATH="/usr/local/cuda/bin:$PATH"
 export LD_LIBRARY_PATH="/usr/local/cuda/lib64:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
 # add both to ~/.bashrc
 nvcc --version
-nvidia-smi                  # inside WSL; uses the Windows driver
-# nvidia-smi --query-gpu=compute_cap often prints nothing under WSL. 3090 is still 86.
+nvidia-smi
+# nvidia-smi --query-gpu=compute_cap often prints nothing under WSL. This card is sm_86.
 ```
 
-Keep clones and GGUFs under **`~/` on the WSL filesystem**. mmap / CUDA of files on `/mnt/c/...` is a known segfault source.
+Clones and GGUFs live under `~/` on the WSL filesystem. mmap / CUDA of a file on `/mnt/c/...` segfaults.
 
 ## Download
 
@@ -78,13 +75,15 @@ hf download LiquidAI/LFM2.5-2.6B-GGUF \
   --local-dir ~/AIML/models
 ```
 
-Q8_0 (2.87 GB) is the quality pin. Skip Q6_K on 24 GB. Optional F16 (5.4 GB): same command, swap `--model` to `LFM2.5-2.6B-F16.gguf`.
+Q8_0 (2.87 GB) is the weights file for this pin. Optional F16 (5.4 GB): same command, filename `LFM2.5-2.6B-F16.gguf`.
 
 ## Build (Ampere / sm_86)
 
-`FA_ALL_QUANTS` + D=512 turbo FA vec fails `ptxas` here (`0x10100` bytes vs `0xc000` max). `"86"` (not `86-real`) can keep Pascal `61-virtual` from a dirty cache. LFM `head_dim` is **64** — this box does not need those kernels.
+LFM2.5 has 30 layers: 22 short-conv and 8 GQA, head size **64**. The fork’s default CUDA flash-attn set includes `q8_0` / `q8_0` at head sizes 64, 128, and 256. `CMAKE_CUDA_ARCHITECTURES=86-real` emits SASS for this GA102.
 
-First time only (WSL2 path — not `~/Documents/GitHub`):
+`ptxas` rejects `flash_attn_ext_vec` when that kernel wants `0x10100` bytes of static shared memory. The cap on that error is `0xc000` (48 KiB), which is the head-dim 512 vec kernel. On this branch `DECL_FATTN_VEC_CASE_D512` is compiled for HIP. A cache that still lists `61-virtual` also compiles Pascal, whose shared-memory cap is 48 KiB. After cmake, the architecture line is `86-real` only and `GGML_CUDA_FA_ALL_QUANTS` is `OFF`.
+
+First clone:
 
 ```bash
 mkdir -p ~/GitHub && cd ~/GitHub
@@ -92,7 +91,7 @@ git clone --depth 1 --branch feature/turboquant-kv-cache \
   https://github.com/TheTom/llama-cpp-turboquant.git llama-cpp-turboquant
 ```
 
-If this box already has the [Bonsai PrismML](Windows-RTX3090-Bonsai-2-27B.md) tree under `~/GitHub/llama.cpp-prism`, leave it alone and clone turboquant next to it.
+If [Bonsai](Windows-RTX3090-Bonsai-2-27B.md) already occupies `~/GitHub/llama.cpp-prism`, leave that tree. This GGUF uses `~/GitHub/llama-cpp-turboquant`.
 
 ```bash
 cd ~/GitHub/llama-cpp-turboquant
@@ -102,47 +101,46 @@ rm -rf build
 cmake -S . -B build \
   -DCMAKE_BUILD_TYPE=Release \
   -DGGML_CUDA=ON \
-  -DGGML_CUDA_FA=OFF \
+  -DGGML_CUDA_FA=ON \
+  -DGGML_CUDA_F16=ON \
   -DGGML_CUDA_GRAPHS=OFF \
   -DGGML_CUDA_NO_VMM=ON \
   -DGGML_NATIVE=OFF \
   -DCMAKE_CUDA_ARCHITECTURES=86-real
-grep CMAKE_CUDA_ARCHITECTURES build/CMakeCache.txt   # must be only 86-real
+grep CMAKE_CUDA_ARCHITECTURES build/CMakeCache.txt    # 86-real only
+grep GGML_CUDA_FA_ALL_QUANTS build/CMakeCache.txt     # OFF
 cmake --build build --config Release -j$(nproc)
-mkdir -p build/bin/kv-cache
 ```
 
 | Flag | Why on this box |
 | --- | --- |
-| `86-real` | Ampere GA102 only. Not `"86"` (can keep `61-virtual`) |
-| `GGML_NATIVE=OFF` | Stop the host from adding extra virtual archs |
-| `GGML_CUDA_FA=OFF` | Skip FA kernels, including the D=512 turbo vec `ptxas` rejects. PRIMARY then uses `--flash-attn off` |
-| `GGML_CUDA_GRAPHS=OFF` + `GGML_CUDA_NO_VMM=ON` | WSL CUDA graphs / VMM are a likely segfault source. Do not re-enable until a small GPU run is clean |
-| No `FA_ALL_QUANTS` | Instantiates turbo×head-dim combos this card cannot compile |
-| No `GGML_CUDA_F16` | Not in the OMEN 30L recipe. Add `-DGGML_CUDA_F16=ON` only after FA=OFF already links |
+| `86-real` | SASS for GA102. The cache check above catches a leftover `61-virtual` |
+| `GGML_NATIVE=OFF` | CUDA arch list stays `86-real` |
+| `GGML_CUDA_FA=ON` | Flash-attn. Head 64 `q8_0`/`q8_0` is in the default CUDA set |
+| `GGML_CUDA_F16=ON` | FP16 compute on sm_86 tensor cores |
+| `GGML_CUDA_GRAPHS=OFF` | WSL pin. Graphs stay off until a small GPU run is clean |
+| `GGML_CUDA_NO_VMM=ON` | WSL pin. VMM stays off until that same run is clean |
 
-Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant) (`feature/turboquant-kv-cache`). This recipe stays on that fork with FA off. Do not launch the PrismML binary for this GGUF.
+Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant) (`feature/turboquant-kv-cache`).
 
-**If `ptxas` still mentions `flash_attn_ext_vec` / `0xc000`:** `build/` was not wiped, or `CMakeCache.txt` still lists `61-virtual` / `FA_ALL_QUANTS`. Delete `build/` and rerun the cmake above.
+**If `ptxas` still prints `flash_attn_ext_vec` and `0xc000`:** delete `build/` and rerun the cmake. Read the two grep lines before building again. If they are already `86-real` and `OFF` and `ptxas` still fails, rebuild with `-DGGML_CUDA_FA=OFF` and run the server with `--flash-attn off`. That recovery build keeps the score buffer, so 128k prefill uses more VRAM.
 
-**If `llama-server` segfaults** after a failed FA compile, treat the binary as bad — rebuild with `FA=OFF`. From `~/GitHub/llama-cpp-turboquant`:
+**GPU segfault.** GGUF path is `~/AIML/...`. `ldd build/bin/llama-server` shows `libcuda` from `/usr/lib/wsl/lib`. A binary left by a failed `ptxas` run gets a wiped `build/` and a fresh cmake. From `~/GitHub/llama-cpp-turboquant`:
 
 ```bash
 export LD_LIBRARY_PATH="/usr/local/cuda/lib64:/usr/lib/wsl/lib:${LD_LIBRARY_PATH:-}"
-# CPU first (proves the GGUF / binary)
+# CPU probe: GGUF and the binary, no GPU kernels
 ./build/bin/llama-server -m ~/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
   -ngl 0 -c 2048 --flash-attn off --port 8080
-# then GPU, small window
+# GPU, small window
 ./build/bin/llama-server -m ~/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
-  -ngl 99 -c 4096 --flash-attn off \
+  -ngl 99 -c 4096 --flash-attn on \
   --cache-type-k q8_0 --cache-type-v q8_0 --port 8080
 ```
 
-GGUF must be under `~/AIML`, not `/mnt/c`. `ldd build/bin/llama-server` should see `libcuda` from `/usr/lib/wsl/lib`. Do not “fix” a segfault by turning `--flash-attn on` — this binary has no FA kernels.
-
 ## PRIMARY command
 
-Run from `~/GitHub/llama-cpp-turboquant/build/bin`. Use **`--flash-attn off`**, not `-fa 1`. Do not pass `--cache-type-v turbo*`.
+Run from `~/GitHub/llama-cpp-turboquant/build/bin`. `--flash-attn` is `on`. KV types are `q8_0` and `q8_0`.
 
 ```bash
 pkill -9 llama-server
@@ -161,7 +159,7 @@ cd ~/GitHub/llama-cpp-turboquant/build/bin
   --main-gpu 0 \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --jinja \
-  --flash-attn off \
+  --flash-attn on \
   --no-context-shift \
   --parallel 1 \
   --ubatch-size 256 \
@@ -177,21 +175,22 @@ cd ~/GitHub/llama-cpp-turboquant/build/bin
   --log-verbosity 1
 ```
 
-Omit `--reasoning off` — the [chat template](https://huggingface.co/LiquidAI/LFM2.5-2.6B/blob/main/chat_template.jinja) always opens `<think>`. Omit `--cache-ram 0`. Omit `--load-mode none` — mmap is the default for this 2.87 GB GGUF. Add `--load-mode none` only if WSL mmap of the file is slow.
+The [chat template](https://huggingface.co/LiquidAI/LFM2.5-2.6B/blob/main/chat_template.jinja) always opens `<think>`. `--jinja` selects that template. Loader is mmap for this 2.87 GB file. `--load-mode none` is the switch when WSL mmap of the file is slow.
 
 ### Why these values (this box)
 
 | Flag | Why |
 | --- | --- |
-| `--ctx-size 131072` | Native train length. KV is **1,088 MiB** q8/q8 at 128k. **128k prefill on sm_86 is unmeasured** — if first decode OOMs, drop batch before ctx |
-| `q8_0` / `q8_0` | Only 8 of 30 layers are GQA; turbo KV needs FA, which this build does not have |
-| `--flash-attn off` | Matches `-DGGML_CUDA_FA=OFF`. `auto` may still try FA |
-| mmap (no `--load-mode`) | Default for this 2.87 GB file. Add `--load-mode none` only if WSL mmap is slow |
-| `--main-gpu 0` | Discrete card (WSL2 CUDA convention) |
-| Batch 256 | Drop to **128** if 128k prefill OOMs, then `--ctx-size 65536` |
-| `--n-predict 16384` | Pi default. Thinking counts against the cap. Do not drop to 4096 |
-| `--threads 0` | Auto CPU threads (this box’s WSL2 pin) |
-| Sampling | Liquid card: `temp 0.1` / `top_k 50` / `repeat-penalty 1.1` |
+| `--ctx-size 131072` `--fit off` | Native train length, pinned. q8_0 KV estimate for 8 KV layers at 128k is **1,088 MiB**. 128k prefill on this SKU is unmeasured — on OOM, batch 128, then ctx 65536 |
+| `q8_0` / `q8_0` | KV precision for this pin. Weights 2.87 GB + about 1.1 GB KV at 128k |
+| `--flash-attn on` | Same switch as `-DGGML_CUDA_FA=ON`. The score matrix stays inside the kernel |
+| `--n-gpu-layers 99` `--main-gpu 0` | All layers on the WSL2 GPU, device 0 |
+| `--parallel 1` `--kv-unified` | One slot, one KV buffer, so the 128k pin is the whole cache |
+| `--no-context-shift` | A full window stops the request |
+| Batch 256 | Starting physical batch while 128k prefill is still unmeasured |
+| `--n-predict 16384` | Pi reply cap. Think tokens count against it. 4096 ends the first Pi turn with `finish_reason: length` |
+| `--threads 0` | The process picks the CPU thread count |
+| Sampling | Liquid card: `temp 0.1` / `top_k 50` / `repeat-penalty 1.1`. Presence, frequency, and min-p are 0 |
 
 ### Confirm
 
@@ -201,7 +200,7 @@ log: kv_cache_init ≈ 1088 MiB
 nvidia-smi   # inside WSL; MiB after load and after a short decode
 ```
 
-Then: (1) load, (2) short decode, (3) new Pi session with real `ls` / `read`. A 17×23 prompt does not prove 128k prefill.
+Order: (1) load, (2) short decode, (3) a new Pi session that actually runs `ls` / `read`. The curl below is the short decode. A 128k prefill is a separate run.
 
 ```bash
 curl -s --noproxy '*' http://127.0.0.1:8080/v1/chat/completions \
@@ -212,15 +211,15 @@ curl -s --noproxy '*' http://127.0.0.1:8080/v1/chat/completions \
 print('content  :', m.get('content')); print('reasoning chars:', len(m.get('reasoning_content') or ''))"
 ```
 
-Thinking lands in `reasoning_content`, answer in `content`. Restart **both** llama-server and Pi after pin or JSON changes. Status bar must match `131072` / `16384`.
+Thinking is `reasoning_content`. The answer is `content`. After a pin or JSON change, restart llama-server and Pi. The Pi status bar reads `131072` / `16384`.
 
 ## Pi Coding Agent `models.json`
 
-Save **one** of these to `~/.pi/agent/models.json` **inside WSL** (`mkdir -p ~/.pi/agent`). If Pi is installed on Windows itself, that file is `%USERPROFILE%\.pi\agent\models.json` — still point `baseUrl` at `http://127.0.0.1:8080/v1`. `id` matches `--alias`. `/model` to reload; `/new` after a pin or reasoning-shape change.
+Save **one** of these to `~/.pi/agent/models.json` inside WSL (`mkdir -p ~/.pi/agent`). Pi installed on Windows uses `%USERPROFILE%\.pi\agent\models.json` and the same `baseUrl`, `http://127.0.0.1:8080/v1`. `id` matches `--alias`. `/model` reloads the file. `/new` after a pin or reasoning-shape change.
 
 ### Skills / tools (start here)
 
-`reasoning` **false**, no `thinkingLevelMap`. Does not strip `<think>` from the GGUF.
+`reasoning` **false**. The template’s `<think>` prefix stays in the GGUF output.
 
 ```json
 {
@@ -275,21 +274,21 @@ Save **one** of these to `~/.pi/agent/models.json` **inside WSL** (`mkdir -p ~/.
 }
 ```
 
-Empty `content` with `finish_reason: length` → tools JSON first, not a higher cap. Do not add server `--reasoning off`.
+Empty `content` with `finish_reason: length` means the next session uses the tools JSON above. The server cap stays 16384.
 
 ## This box
 
 **Half-window:** `--ctx-size 65536` and Pi `contextWindow` 65536.
 
-**OOM on load / first decode:** (1) free desktop GPU apps / check `nvidia-smi` **inside** WSL, (2) batch **128**, (3) `--ctx-size 65536` + Pi 65536. Do not swap to Q6_K first. Do not turn `--flash-attn on` or `turbo*`.
+**OOM on load or first decode:** (1) close other GPU apps and read `nvidia-smi` inside WSL, (2) `--ubatch-size 128 --batch-size 128`, (3) `--ctx-size 65536` and Pi `65536`. On the FA-off recovery binary, the server flag stays `--flash-attn off`.
 
-**DSpark** (Liquid draft sidecar): skip on this FA-off binary. Liquid’s sample uses `-fa on`. Confirm `./llama-server --help | grep -i dspark` shows `draft-dspark` only if you later rebuild with FA on — not this cmake.
+**DSpark** (Liquid draft sidecar): optional, untried here. `./llama-server --help | grep -i dspark` lists `draft-dspark` when this binary has it. Liquid’s sample command uses `--flash-attn on`.
 
-Loopback `--host 127.0.0.1` is reachable from Windows clients on the same machine (WSL2 localhost forwarding).
+Loopback `--host 127.0.0.1` is reachable from Windows programs on this same machine (WSL2 localhost forwarding).
 
 ## See also
 
 - This box, 27B ternary (PrismML fork): [Windows-RTX3090-Bonsai-2-27B.md](Windows-RTX3090-Bonsai-2-27B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses — LFM2.5](../agentic-harnesses.md#lfm25-26b--pi-coding-agent)
 
-**Last Updated:** 2026-09-20 (recipe density; FA off, 86-real, 128k q8/q8, ⚠️ decode untested)
+**Last Updated:** 2026-09-26
