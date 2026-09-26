@@ -6,38 +6,20 @@
 
 | Pin | Value |
 | --- | --- |
-| **Status** | ⚠️ Untested decode. FA **on**, `86-real` |
+| **Status** | ⚠️ Untested decode |
 | **Weights** | `LFM2.5-2.6B-Q8_0.gguf` (2.87 GB) |
 | **Catalog** | [LiquidAI/LFM2.5-2.6B-GGUF](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF) · [LiquidAI/LFM2.5-2.6B](https://huggingface.co/LiquidAI/LFM2.5-2.6B) |
 | **Context** | `--ctx-size 131072` (`--fit off`) · Pi `contextWindow` **131072** |
 | **KV** | `q8_0` / `q8_0` |
-| **Flash-attn** | **on** |
-| **CMake** | `86-real` · `GGML_CUDA_FA=ON` · `GGML_CUDA_F16=ON` · `GGML_CUDA_NO_VMM=ON` · `GGML_CUDA_GRAPHS=OFF` |
-| **Toolkit** | `/usr/local/cuda-13.2` · runtime libs in `lib64` |
+| **Flash-attn** | **on** (build default) |
+| **CMake** | `GGML_CUDA=ON` · `CMAKE_CUDA_ARCHITECTURES="86"` |
+| **Toolkit** | `cuda-toolkit-13-2` from the WSL-Ubuntu repo · `/usr/local/cuda-13.2` |
 | **Output** | `--n-predict 16384` · Pi `maxTokens` **16384** |
 | **Sampling** | temp **0.1** · top_k **50** · repeat **1.1** (Liquid card) |
 | **Thinking** | Template always opens `<think>`. **Pi skills/tools:** `reasoning` **false**. **Pi traces:** `reasoning` **true**, `thinkingLevelMap.off` **null** |
 | **Paths** | `~/AIML/models` · `~/GitHub/llama-cpp-turboquant` |
 
-Every later block starts with `source ~/.rtx3090-env.sh`. That file is created in section 1.
-
-## 1. Shell
-
-Inside Ubuntu:
-
-```bash
-cat > ~/.rtx3090-env.sh << 'EOF'
-export CUDA_HOME=/usr/local/cuda-13.2
-export PATH="$HOME/.local/bin:$CUDA_HOME/bin:$PATH"
-export LD_LIBRARY_PATH="$CUDA_HOME/lib64:/usr/lib/wsl/lib"
-EOF
-grep -q 'rtx3090-env.sh' ~/.bashrc || echo 'source ~/.rtx3090-env.sh' >> ~/.bashrc
-source ~/.rtx3090-env.sh
-```
-
-`lib64` is the symlink to `targets/x86_64-linux/lib`. Sourcing the file replaces `LD_LIBRARY_PATH`, so an older toolkit cannot stay first.
-
-## 2. First-time machine setup
+## 1. First-time machine setup
 
 Skip this section when `nvcc --version` already prints `release 13.2` and `hf --help` runs.
 
@@ -52,7 +34,7 @@ python3 -m venv ~/.hf-cli
 ~/.hf-cli/bin/python -m pip install -U pip huggingface_hub
 mkdir -p ~/.local/bin
 ln -sf ~/.hf-cli/bin/hf ~/.local/bin/hf
-source ~/.rtx3090-env.sh
+export PATH="$HOME/.local/bin:$PATH"
 hf --help
 ```
 
@@ -61,19 +43,21 @@ wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/
 sudo dpkg -i cuda-keyring_1.1-1_all.deb
 sudo apt-get update
 sudo apt-get -y install cuda-toolkit-13-2
-source ~/.rtx3090-env.sh
+line='export PATH=/usr/local/cuda-13.2/bin${PATH:+:${PATH}}'
+grep -qxF "$line" ~/.bashrc || echo "$line" >> ~/.bashrc
+export PATH=/usr/local/cuda-13.2/bin${PATH:+:${PATH}}
 nvcc --version
 nvidia-smi
 ```
 
-`nvcc --version` prints `Cuda compilation tools, release 13.2` and `which nvcc` prints `/usr/local/cuda-13.2/bin/nvcc`. `nvidia-smi --query-gpu=compute_cap` often prints nothing under WSL. This card is sm_86.
+That `PATH` line is the [post-install step](https://docs.nvidia.com/cuda/archive/13.2.2/cuda-installation-guide-linux/index.html#environment-setup) for this toolkit. `LD_LIBRARY_PATH` is the runfile installer step, not this deb install. `nvcc --version` prints `release 13.2`. This card is compute capability 8.6.
 
 Models and the clone live under `~/`. A GGUF opened from `/mnt/c/...` segfaults.
 
-## 3. Download
+## 2. Download
 
 ```bash
-source ~/.rtx3090-env.sh
+export PATH="$HOME/.local/bin:$PATH"
 mkdir -p ~/AIML/models
 hf download LiquidAI/LFM2.5-2.6B-GGUF \
   LFM2.5-2.6B-Q8_0.gguf \
@@ -82,16 +66,13 @@ hf download LiquidAI/LFM2.5-2.6B-GGUF \
 
 Q8_0 (2.87 GB) is the weights file. Optional F16 (5.4 GB): same command, filename `LFM2.5-2.6B-F16.gguf`.
 
-## 4. Build
+## 3. Build
 
-LFM2.5 has 30 layers: 22 short-conv and 8 GQA, head size **64**. The fork’s default CUDA flash-attn set includes `q8_0` / `q8_0` at head sizes 64, 128, and 256.
-
-CUDA 13.1’s `crt/math_functions.h` declares `rsqrt` / `rsqrtf` without `noexcept`. glibc 2.41+ declares them `noexcept(true)`, so `nvcc` exits 2 on Ubuntu 26.04. That header fix shipped in CUDA 13.2. No header patch.
+CUDA 13.2 is the toolkit whose headers match Ubuntu 26.04’s `noexcept` `rsqrt`. LFM2.5 head size is 64. `q8_0` / `q8_0` flash attention is in the fork’s default CUDA set.
 
 If [Bonsai](Windows-RTX3090-Bonsai-2-27B.md) already occupies `~/GitHub/llama.cpp-prism`, leave that tree.
 
 ```bash
-source ~/.rtx3090-env.sh
 mkdir -p ~/GitHub
 cd ~/GitHub
 if [ ! -d llama-cpp-turboquant ]; then
@@ -102,64 +83,39 @@ cd ~/GitHub/llama-cpp-turboquant
 git checkout feature/turboquant-kv-cache
 git pull
 rm -rf build
-which nvcc
 cmake -S . -B build \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_CUDA_COMPILER="$CUDA_HOME/bin/nvcc" \
   -DGGML_CUDA=ON \
-  -DGGML_CUDA_FA=ON \
-  -DGGML_CUDA_F16=ON \
-  -DGGML_CUDA_GRAPHS=OFF \
-  -DGGML_CUDA_NO_VMM=ON \
-  -DGGML_NATIVE=OFF \
-  -DCMAKE_CUDA_ARCHITECTURES=86-real
-grep CMAKE_CUDA_ARCHITECTURES build/CMakeCache.txt
-grep GGML_CUDA_FA_ALL_QUANTS build/CMakeCache.txt
+  -DCMAKE_CUDA_ARCHITECTURES="86"
 cmake --build build --config Release -j$(nproc)
 ```
 
-`which nvcc` prints `/usr/local/cuda-13.2/bin/nvcc`. The architecture grep prints `86-real` only. The `FA_ALL_QUANTS` grep prints `OFF`.
+Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant) (`feature/turboquant-kv-cache`). `"86"` is this card’s compute capability, the value in [llama.cpp’s build doc](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md).
 
-| Flag | Why on this box |
-| --- | --- |
-| `86-real` | SASS for GA102. The grep catches a leftover `61-virtual` (Pascal, 48 KiB shared memory) |
-| `GGML_NATIVE=OFF` | CUDA arch list stays `86-real` |
-| `GGML_CUDA_FA=ON` | Flash-attn. Head 64 `q8_0`/`q8_0` is in the default CUDA set |
-| `GGML_CUDA_F16=ON` | FP16 compute on sm_86 tensor cores |
-| `GGML_CUDA_GRAPHS=OFF` | WSL pin until a small GPU run is clean |
-| `GGML_CUDA_NO_VMM=ON` | WSL pin until that same run is clean |
-
-Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboquant) (`feature/turboquant-kv-cache`).
-
-`ptxas` rejecting `flash_attn_ext_vec` for `0x10100` bytes against `0xc000` (48 KiB) is the head-dim 512 kernel, or a cache that still lists `61-virtual`. Delete `build/` and rerun this section. If both greps are already right and `ptxas` still fails, rebuild with `-DGGML_CUDA_FA=OFF` and start the server with `--flash-attn off`.
-
-## 5. Check the binary
+## 4. Check the binary
 
 ```bash
-source ~/.rtx3090-env.sh
 cd ~/GitHub/llama-cpp-turboquant/build/bin
 ldd ./llama-server | grep -E 'cudart|libcuda'
 ./llama-server --version
 ```
 
-`ldd` shows `libcudart` from `/usr/local/cuda-13.2/lib64` and `libcuda` from `/usr/lib/wsl/lib`. `--version` prints `ggml_cuda_init` and `NVIDIA GeForce RTX 3090`.
+`libcudart` resolves under `/usr/local/cuda-13.2`. `libcuda` resolves under `/usr/lib/wsl/lib`. `--version` prints `ggml_cuda_init` and `NVIDIA GeForce RTX 3090`. If `ldd` prints `libcudart.so.13 => not found`, the [install FAQ](https://docs.nvidia.com/cuda/archive/13.2.2/cuda-installation-guide-linux/index.html) says to set `LD_LIBRARY_PATH=/usr/local/cuda-13.2/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}`.
 
 Short GPU load:
 
 ```bash
-source ~/.rtx3090-env.sh
 cd ~/GitHub/llama-cpp-turboquant/build/bin
 ./llama-server -m ~/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
   -ngl 99 -c 4096 --flash-attn on \
   --cache-type-k q8_0 --cache-type-v q8_0 --port 8080
 ```
 
-Stop it with Ctrl-C before the primary command. A segfault with no `ggml_cuda_init` line means this shell did not source `~/.rtx3090-env.sh`.
+Stop it with Ctrl-C before the primary command.
 
-## 6. Server
+## 5. Server
 
 ```bash
-source ~/.rtx3090-env.sh
 pkill -9 llama-server
 cd ~/GitHub/llama-cpp-turboquant/build/bin
 ./llama-server \
@@ -194,7 +150,7 @@ The [chat template](https://huggingface.co/LiquidAI/LFM2.5-2.6B/blob/main/chat_t
 | --- | --- |
 | `--ctx-size 131072` `--fit off` | Native train length, pinned. q8_0 KV for 8 KV layers at 128k is about **1,088 MiB**. On OOM: batch 128, then ctx 65536 |
 | `q8_0` / `q8_0` | KV for this pin. Weights 2.87 GB + about 1.1 GB KV at 128k |
-| `--flash-attn on` | Same switch as `-DGGML_CUDA_FA=ON` |
+| `--flash-attn on` | Default CUDA flash-attention kernels |
 | `--n-gpu-layers 99` `--main-gpu 0` | All layers on the WSL2 GPU, device 0 |
 | `--parallel 1` `--kv-unified` | One slot, one KV buffer |
 | `--no-context-shift` | A full window stops the request |
@@ -221,11 +177,11 @@ Thinking is `reasoning_content`. The answer is `content`. `nvidia-smi` inside WS
 
 **Half-window:** `--ctx-size 65536` and Pi `contextWindow` 65536.
 
-**OOM on load:** close other GPU apps, then `--ubatch-size 128 --batch-size 128`, then ctx `65536`. On an `FA=OFF` rebuild, the server flag is `--flash-attn off`.
+**OOM on load:** close other GPU apps, then `--ubatch-size 128 --batch-size 128`, then ctx `65536`.
 
 Loopback `--host 127.0.0.1` is reachable from Windows programs on this machine.
 
-## 7. Pi `models.json`
+## 6. Pi `models.json`
 
 Save one file to `~/.pi/agent/models.json` inside WSL (`mkdir -p ~/.pi/agent`). Pi on Windows uses `%USERPROFILE%\.pi\agent\models.json` and the same `baseUrl`. `id` matches `--alias`. `/model` reloads the file. `/new` after a pin or reasoning-shape change.
 
