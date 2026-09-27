@@ -142,6 +142,7 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 
 ## See also
 
+- This box, LFM2.5-2.6B: [Windows-RTX4090-LFM2.5-2.6B.md](Windows-RTX4090-LFM2.5-2.6B.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 - Workflows: [pi-coding-agent-graphs.md](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
 
