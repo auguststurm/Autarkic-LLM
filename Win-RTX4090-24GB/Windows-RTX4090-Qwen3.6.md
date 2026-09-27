@@ -63,7 +63,7 @@ cd ~/GitHub/llama-cpp-turboquant/build/bin
   --fit off \
   --n-gpu-layers 99 \
   --main-gpu 0 \
-  --load-mode none \
+  --no-mmap \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --cache-ram 0 \
   --jinja \
@@ -95,7 +95,7 @@ cd ~/GitHub/llama-cpp-turboquant/build/bin
 | `--cache-ram 0` | Hybrid DeltaNet multi-turn ([#21681](https://github.com/ggml-org/llama.cpp/issues/21681)) |
 | Sampling | Qwen tool/coding profile; **no DRY** ([#20837](https://github.com/ggml-org/llama.cpp/issues/20837)) |
 | `--n-predict 16384` | Full reports (match Pi `maxTokens`) |
-| `--load-mode none` | Needs free **host RAM** (~18 GB+) for load on WSL2 |
+| `--no-mmap` | Buffered read. Needs free **host RAM** (~18 GB+) for load on WSL2. This box’s working pin |
 
 `--ctx-size` is a request: confirm `n_ctx_seq (98304)`. `n_ctx_seq < n_ctx_train (262144)` is expected on 24 GB.
 
@@ -145,4 +145,4 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 - Workflows: [pi-coding-agent-graphs.md](../_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
 
-**Last Updated:** 2026-09-20 (recipe density; WSL2 paths unchanged)
+**Last Updated:** 2026-09-26 (`--no-mmap` is the working load flag on this WSL2 box)
