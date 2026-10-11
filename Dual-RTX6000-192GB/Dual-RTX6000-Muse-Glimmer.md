@@ -16,7 +16,7 @@ Need llama.cpp / turboquant **`b10353+`** (arch `muse-glimmer`). This box’s ti
 | **Output** | `--n-predict 32768` (thinking counts against this) |
 | **Sampling** | temp **1.0** · top_p **0.95** · top_k **64** · presence **0** · repeat **1.0** |
 | **Thinking** | **Cannot be switched off.** `reasoning_strength` **high** (Meta default for agents) |
-| **Paths** | model `~/Documents/AIML/models` · engine `~/Documents/GitHub/llama-cpp-turboquant` |
+| **Paths** | model `/data/AIML/models` · engine `~/Documents/GitHub/llama-cpp-turboquant` |
 
 **Pi (this model):** `--jinja` required. Keep `--parallel 1` (slots split `-c`; a 32k slot can fill on thinking and return **empty `content`**). Never stop on `<|eom|>`. Do not pass `--reasoning-format none` (dumps thinking into `content`). Details: [agentic harnesses — Muse](../agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent). GGUF names: [local-setup](../local-setup.md#understanding-gguf-quants-why-so-many-files).
 
@@ -29,7 +29,7 @@ Need the engine built first? [local-setup.md](../local-setup.md).
 ```bash
 hf download unsloth/Muse-Glimmer-30B-GGUF \
   Muse-Glimmer-30B-UD-Q8_K_XL.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 If load fails with `unknown model architecture: 'muse-glimmer'`, `git pull` and rebuild before changing flags.
@@ -68,7 +68,7 @@ Research baseline — Dual RTX CUDA pin + **Meta / Unsloth Muse defaults**. No D
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/models/Muse-Glimmer-30B-UD-Q8_K_XL.gguf \
+  --model /data/AIML/models/Muse-Glimmer-30B-UD-Q8_K_XL.gguf \
   --alias muse-glimmer-30b \
   --host 127.0.0.1 --port 8080 \
   --ctx-size 131072 \
@@ -170,13 +170,13 @@ Block-diffusion drafter (~1.6 GB). `--spec-type draft-dflash`, not MTP. Primary 
 ```bash
 hf download unsloth/Muse-Glimmer-30B-GGUF \
   dflash-kquant.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 Add to PRIMARY (build must list `draft-dflash`):
 
 ```bash
-  --spec-draft-model ~/Documents/AIML/models/dflash-kquant.gguf \
+  --spec-draft-model /data/AIML/models/dflash-kquant.gguf \
   --spec-type draft-dflash \
   --spec-draft-ngl 99 \
   --spec-draft-n-max 4
@@ -202,7 +202,7 @@ Then Pi `contextWindow` **262144**. If the log still caps, set metadata with `gg
 ```bash
 hf download unsloth/Muse-Glimmer-30B-GGUF \
   mmproj-Muse-Glimmer-30B-BF16.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 Add `--mmproj …/mmproj-Muse-Glimmer-30B-BF16.gguf`. Leaner: `mmproj-Muse-Glimmer-30B-Q8_0.gguf`, `mmproj-kquant.gguf`. Images bill as prompt tokens (up to 4096 visual tokens). Keep text/agent primary without mmproj.

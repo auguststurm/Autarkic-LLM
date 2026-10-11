@@ -16,7 +16,7 @@ This page is the **coder model** on GPU 0. The other 96 GB card stays free for t
 | **Output** | `--n-predict 32768` |
 | **Sampling** | temp **1.0** · top_p **0.95** · top_k **40** · min_p **0.01** · presence **0** · repeat **1.0** |
 | **Thinking** | Instruct-only (no `<think>`). Keep `--reasoning off` + budget **0** like other Dual RTX Qwen pins |
-| **Paths** | model `~/Documents/AIML/models` · engine `~/Documents/GitHub/llama-cpp-turboquant` |
+| **Paths** | model `/data/AIML/models` · engine `~/Documents/GitHub/llama-cpp-turboquant` |
 
 Need the engine built first? [local-setup.md](../local-setup.md). GGUF names: [local-setup](../local-setup.md#understanding-gguf-quants-why-so-many-files). Unsloth run notes: [Qwen3-Coder-Next](https://unsloth.ai/docs/models/qwen3-coder-next).
 
@@ -29,11 +29,11 @@ Need the engine built first? [local-setup.md](../local-setup.md). GGUF names: [l
 ```bash
 hf download unsloth/Qwen3-Coder-Next-GGUF \
   --include "UD-Q6_K_XL/*" \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 ```bash
-ls -lh ~/Documents/AIML/models/UD-Q6_K_XL/
+ls -lh /data/AIML/models/UD-Q6_K_XL/
 # expect ~5.9M + ~50G + ~23G. Point --model at 00001-of-00003 only.
 ```
 
@@ -83,7 +83,7 @@ pkill -9 llama-server
 cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
 
 CUDA_VISIBLE_DEVICES=0 ./llama-server \
-  --model ~/Documents/AIML/models/UD-Q6_K_XL/Qwen3-Coder-Next-UD-Q6_K_XL-00001-of-00003.gguf \
+  --model /data/AIML/models/UD-Q6_K_XL/Qwen3-Coder-Next-UD-Q6_K_XL-00001-of-00003.gguf \
   --alias qwen3-coder-next \
   --host 127.0.0.1 --port 8080 \
   --ctx-size 262144 \
@@ -167,12 +167,12 @@ Stay on Q6 until load + first decode are clean. Do **not** fetch Q8 or Q5 “jus
 ```bash
 hf download unsloth/Qwen3-Coder-Next-GGUF \
   --include "UD-Q8_K_XL/*" \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 ```bash
 # Same PRIMARY, only:
-#   --model ~/Documents/AIML/models/UD-Q8_K_XL/Qwen3-Coder-Next-UD-Q8_K_XL-00001-of-00003.gguf
+#   --model /data/AIML/models/UD-Q8_K_XL/Qwen3-Coder-Next-UD-Q8_K_XL-00001-of-00003.gguf
 ```
 
 Keep this process on **GPU 0**. If **load** or **first decode** OOMs, change **one** axis at a time:
@@ -190,12 +190,12 @@ Do not also pass `--fit on`. Skip plain `Q8_0` unless UD-Q8 is the last straw.
 ```bash
 hf download unsloth/Qwen3-Coder-Next-GGUF \
   --include "UD-Q5_K_XL/*" \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 ```bash
 # Same PRIMARY, only:
-#   --model ~/Documents/AIML/models/UD-Q5_K_XL/Qwen3-Coder-Next-UD-Q5_K_XL-00001-of-00003.gguf
+#   --model /data/AIML/models/UD-Q5_K_XL/Qwen3-Coder-Next-UD-Q5_K_XL-00001-of-00003.gguf
 ```
 
 **Optional turbo V** (capacity only — Q6/Q5 should not need it):

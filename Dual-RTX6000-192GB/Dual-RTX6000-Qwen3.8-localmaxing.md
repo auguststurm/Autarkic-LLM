@@ -4,7 +4,7 @@
 >
 > One isolated `llama-server` per model (`CUDA_VISIBLE_DEVICES`). Not llama.cpp **router** mode (load/unload one process). Not `--split-mode layer` (still one model, striped).
 
-Blackwell **sm_120** · llama-cpp-turboquant · Ubuntu. Paths: model `~/Documents/AIML/models` · engine `~/Documents/GitHub/llama-cpp-turboquant`.
+Blackwell **sm_120** · llama-cpp-turboquant · Ubuntu. Paths: model `/data/AIML/models` · engine `~/Documents/GitHub/llama-cpp-turboquant`.
 
 | Pin | Value |
 | --- | --- |
@@ -81,7 +81,7 @@ A third process only makes sense on GPU 0, and only if you accept that it **queu
 ```bash
 hf download unsloth/Qwen3.8-27B-GGUF \
   Qwen3.8-27B-UD-Q6_K_XL.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 **27B + Coder** — keep the tested Q8 host; add the coding MoE:
@@ -89,11 +89,11 @@ hf download unsloth/Qwen3.8-27B-GGUF \
 ```bash
 hf download unsloth/Qwen3.8-27B-GGUF \
   Qwen3.8-27B-UD-Q8_K_XL.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 
 hf download unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF \
   Qwen3-Coder-30B-A3B-Instruct-UD-Q6_K_XL.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 **27B + 35B-A3B** — same Q8 host; general MoE instead of Coder:
@@ -101,11 +101,11 @@ hf download unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF \
 ```bash
 hf download unsloth/Qwen3.8-27B-GGUF \
   Qwen3.8-27B-UD-Q8_K_XL.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 
 hf download unsloth/Qwen3.6-35B-A3B-GGUF \
   Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 Confirm filenames on Hugging Face before download. Catalog: [local-setup](../local-setup.md#model-catalog-hugging-face).
@@ -154,7 +154,7 @@ Two Pi-quality 262k endpoints — [why](#why-pick-a-pack).
 cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
 
 CUDA_VISIBLE_DEVICES=1 ./llama-server \
-  --model ~/Documents/AIML/models/Qwen3.8-27B-UD-Q6_K_XL.gguf \
+  --model /data/AIML/models/Qwen3.8-27B-UD-Q6_K_XL.gguf \
   --alias qwen3.8-27b-gpu1 \
   --port 8081 \
   --ctx-size 262144 --threads 12 \
@@ -176,7 +176,7 @@ CUDA_VISIBLE_DEVICES=1 ./llama-server \
 cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
 
 CUDA_VISIBLE_DEVICES=0 ./llama-server \
-  --model ~/Documents/AIML/models/Qwen3.8-27B-UD-Q6_K_XL.gguf \
+  --model /data/AIML/models/Qwen3.8-27B-UD-Q6_K_XL.gguf \
   --alias qwen3.8-27b-gpu0 \
   --port 8080 \
   --ctx-size 262144 --threads 12 \
@@ -277,7 +277,7 @@ Q8 Pi host + fast coding MoE — [why](#why-pick-a-pack).
 cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
 
 CUDA_VISIBLE_DEVICES=1 ./llama-server \
-  --model ~/Documents/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
+  --model /data/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
   --alias qwen3.8-27b-gpu1 \
   --port 8081 \
   --ctx-size 262144 --threads 12 \
@@ -299,7 +299,7 @@ CUDA_VISIBLE_DEVICES=1 ./llama-server \
 cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
 
 CUDA_VISIBLE_DEVICES=0 ./llama-server \
-  --model ~/Documents/AIML/models/Qwen3-Coder-30B-A3B-Instruct-UD-Q6_K_XL.gguf \
+  --model /data/AIML/models/Qwen3-Coder-30B-A3B-Instruct-UD-Q6_K_XL.gguf \
   --alias qwen3-coder-30b \
   --port 8080 \
   --ctx-size 65536 --threads 12 \
@@ -398,7 +398,7 @@ Q8 Pi host + fast general MoE — [why](#why-pick-a-pack).
 cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
 
 CUDA_VISIBLE_DEVICES=1 ./llama-server \
-  --model ~/Documents/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
+  --model /data/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
   --alias qwen3.8-27b-gpu1 \
   --port 8081 \
   --ctx-size 262144 --threads 12 \
@@ -420,7 +420,7 @@ CUDA_VISIBLE_DEVICES=1 ./llama-server \
 cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
 
 CUDA_VISIBLE_DEVICES=0 ./llama-server \
-  --model ~/Documents/AIML/models/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf \
+  --model /data/AIML/models/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf \
   --alias qwen3.6-35b-a3b \
   --port 8080 \
   --ctx-size 262144 --threads 12 \

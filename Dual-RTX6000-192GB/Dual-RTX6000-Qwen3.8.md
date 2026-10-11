@@ -14,7 +14,7 @@ Blackwell **sm_120** · llama-cpp-turboquant · Ubuntu. This file is also the **
 | **Output** | `--n-predict 16384` |
 | **Pi sampling** | temp **0.6** · top_p **0.95** · top_k **20** · presence **0** · repeat **1.0** |
 | **Thinking** | `--reasoning off` (Pi tools) |
-| **Paths** | model `~/Documents/AIML/models` · engine `~/Documents/GitHub/llama-cpp-turboquant` |
+| **Paths** | model `/data/AIML/models` · engine `~/Documents/GitHub/llama-cpp-turboquant` |
 
 **Pi:** `contextWindow` = 262144, `maxTokens` = 16384. Two limits, no DRY, no `--reasoning-preserve`. [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware).
 
@@ -25,7 +25,7 @@ Need the engine built first? [local-setup.md](../local-setup.md).
 ```bash
 hf download unsloth/Qwen3.8-27B-GGUF \
   Qwen3.8-27B-UD-Q8_K_XL.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 Fresh turboquant build required (arch tag `qwen35`). If load fails with unknown architecture, `git pull` and rebuild before changing flags.
@@ -58,7 +58,7 @@ Tested baseline with Pi. Run from `build/bin`. Use this first (no MTP).
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
+  --model /data/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
   --host 127.0.0.1 --port 8080 \
   --ctx-size 262144 \
   --fit off \
@@ -206,10 +206,10 @@ Not required for Pi text/agent work.
 ```bash
 hf download unsloth/Qwen3.8-27B-GGUF \
   mmproj-F16.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
-Add `--mmproj ~/Documents/AIML/models/mmproj-F16.gguf` only if this `llama-server` build exposes multimodal flags for `qwen35`.
+Add `--mmproj /data/AIML/models/mmproj-F16.gguf` only if this `llama-server` build exposes multimodal flags for `qwen35`.
 
 ### NVFP4 (different stack)
 

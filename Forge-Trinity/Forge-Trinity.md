@@ -13,23 +13,23 @@
 ```bash
 hf download LiquidAI/LFM2.5-2.6B-GGUF \
   LFM2.5-2.6B-Q8_0.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 
 hf download unsloth/Qwen3.8-27B-GGUF \
   Qwen3.8-27B-UD-Q8_K_XL.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 
 hf download unsloth/Qwen3-Coder-Next-GGUF \
   --include "UD-Q6_K_XL/*" \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 Coder-Next is sharded. Pass `00001-of-00003`. Leave `00002` and `00003` in that folder.
 
 ```bash
-ls -lh ~/Documents/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
-       ~/Documents/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
-       ~/Documents/AIML/models/UD-Q6_K_XL/
+ls -lh /data/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
+       /data/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
+       /data/AIML/models/UD-Q6_K_XL/
 ```
 
 ## Binary
@@ -213,7 +213,7 @@ The chat template always opens `<think>`. This command has no `--reasoning` flag
 cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
 
 CUDA_VISIBLE_DEVICES="$GPU_LFM" ./llama-server \
-  --model ~/Documents/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
+  --model /data/AIML/models/LFM2.5-2.6B-Q8_0.gguf \
   --alias lfm2.5-2.6b \
   --host 0.0.0.0 --port 8080 \
   --ctx-size 131072 \
@@ -246,7 +246,7 @@ CUDA_VISIBLE_DEVICES="$GPU_LFM" ./llama-server \
 cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
 
 CUDA_VISIBLE_DEVICES="$GPU_QWEN38" ./llama-server \
-  --model ~/Documents/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
+  --model /data/AIML/models/Qwen3.8-27B-UD-Q8_K_XL.gguf \
   --alias qwen3.8-27b \
   --host 0.0.0.0 --port 8081 \
   --ctx-size 262144 \
@@ -284,7 +284,7 @@ CUDA_VISIBLE_DEVICES="$GPU_QWEN38" ./llama-server \
 cd ~/Documents/GitHub/llama-cpp-turboquant/build/bin
 
 CUDA_VISIBLE_DEVICES="$GPU_CODER" ./llama-server \
-  --model ~/Documents/AIML/models/UD-Q6_K_XL/Qwen3-Coder-Next-UD-Q6_K_XL-00001-of-00003.gguf \
+  --model /data/AIML/models/UD-Q6_K_XL/Qwen3-Coder-Next-UD-Q6_K_XL-00001-of-00003.gguf \
   --alias qwen3-coder-next \
   --host 0.0.0.0 --port 8082 \
   --ctx-size 262144 \

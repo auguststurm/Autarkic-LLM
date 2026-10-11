@@ -2,7 +2,7 @@
 
 Common setup steps for all platforms in **Autarkic-LLM**. Hardware guides are the **daily recipe** (this box’s cmake, `hf download`, `llama-server`, Pi JSON). This file is prerequisites, clone/build by backend, the model catalog, and the **GGUF naming decoder** — guides link here instead of repeating it.
 
-**Paths:** Linux/macOS/Jetson `~/Documents/AIML/models` + `~/Documents/GitHub/llama-cpp-turboquant`. Windows **WSL2**: `~/AIML` + `~/GitHub`. Any path works if `--model` matches.
+**Paths:** Linux/macOS/Jetson `~/Documents/AIML/models` + `~/Documents/GitHub/llama-cpp-turboquant`. **Dual RTX 6000** and **Forge Trinity** weights: `/data/AIML/models`. Windows **WSL2**: `~/AIML` + `~/GitHub`. Any path works if `--model` matches.
 
 ## 1. Prerequisites
 
@@ -200,7 +200,8 @@ Dense ~27B UD pick order: **Q8 → Q6 → Q5 → Q4 → IQ3/IQ2**. [Unsloth Dyna
 pip install -U huggingface_hub hf_transfer
 
 # Muse Glimmer example (hf is the current CLI)
-# Hardware guides use ~/Documents/AIML/models as a flat local-dir; any path works if --model matches.
+# Most hardware guides use ~/Documents/AIML/models as a flat local-dir.
+# Dual RTX 6000 and Forge Trinity use /data/AIML/models. Any path works if --model matches.
 hf download unsloth/Muse-Glimmer-30B-GGUF \
   Muse-Glimmer-30B-UD-Q8_K_XL.gguf \
   --local-dir ~/Documents/AIML/models

@@ -150,7 +150,7 @@ Autarkic-LLM/
 └── Jetson-Orin-Nano-Super/         # Gemma 4 E2B tested · LFM2.5 tested (64k) · MiniCPM5-2B untested
 ```
 
-**Paths:** Linux/macOS/Jetson guides use `~/Documents/AIML/models` and `~/Documents/GitHub/llama-cpp-turboquant`. **Windows is WSL2** (`~/AIML`, `~/GitHub`). Any path works if `--model` matches.
+**Paths:** Linux/macOS/Jetson guides use `~/Documents/AIML/models` and `~/Documents/GitHub/llama-cpp-turboquant`. **Dual RTX 6000** and **Forge Trinity** weights live at `/data/AIML/models`. **Windows is WSL2** (`~/AIML`, `~/GitHub`). Any path works if `--model` matches.
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 

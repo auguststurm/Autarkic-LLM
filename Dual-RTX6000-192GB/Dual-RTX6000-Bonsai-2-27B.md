@@ -17,7 +17,7 @@ Blackwell **sm_120** · [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/l
 | **Output** | `--n-predict 16384` |
 | **Pi sampling** | temp **0.6** · top_p **0.95** · top_k **20** · presence **0** · repeat **1.0** |
 | **Thinking** | `--reasoning off` (Pi tools). Model thinks by default if you leave it on |
-| **Paths** | model `~/Documents/AIML/models` · engine `~/Documents/GitHub/llama.cpp-prism` |
+| **Paths** | model `/data/AIML/models` · engine `~/Documents/GitHub/llama.cpp-prism` |
 
 Need CUDA prereqs? [local-setup.md](../local-setup.md). This page’s cmake is the PrismML fork, not the turboquant clone. GGUF names (`PQ2_0` vs `PTQ1_0`): [local-setup](../local-setup.md#model-catalog-hugging-face).
 
@@ -29,10 +29,10 @@ Both packs. Same ternary g128 weights; different on-disk packing. Skip `Ternary-
 hf download prism-ml/Ternary-Bonsai-2-27B-gguf \
   Ternary-Bonsai-2-27B-PQ2_0.gguf \
   Ternary-Bonsai-2-27B-PTQ1_0.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
-Confirm both files exist under `~/Documents/AIML/models` before building.
+Confirm both files exist under `/data/AIML/models` before building.
 
 **Why two files, and which first.** On this Blackwell box, start with **PQ2_0**, then swap to **PTQ1_0** and [bench both](#try-both-packs). Keep whichever wins here.
 
@@ -79,7 +79,7 @@ Research baseline — Dual RTX CUDA pin + Bonsai 2 **PQ2_0**. No mmproj. Thinkin
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/models/Ternary-Bonsai-2-27B-PQ2_0.gguf \
+  --model /data/AIML/models/Ternary-Bonsai-2-27B-PQ2_0.gguf \
   --alias bonsai-2-27b \
   --host 127.0.0.1 --port 8080 \
   --ctx-size 262144 \
@@ -151,18 +151,18 @@ Same command. Only `--model` changes. `pkill` between runs.
 
 ```bash
 # Same PRIMARY, only:
-#   --model ~/Documents/AIML/models/Ternary-Bonsai-2-27B-PTQ1_0.gguf
+#   --model /data/AIML/models/Ternary-Bonsai-2-27B-PTQ1_0.gguf
 ```
 
 From `build/bin`, numbers PrismML reports as `tg128` / `pp512`:
 
 ```bash
 ./llama-bench \
-  -m ~/Documents/AIML/models/Ternary-Bonsai-2-27B-PQ2_0.gguf \
+  -m /data/AIML/models/Ternary-Bonsai-2-27B-PQ2_0.gguf \
   -ngl 99 -fa 1 -p 512 -n 128
 
 ./llama-bench \
-  -m ~/Documents/AIML/models/Ternary-Bonsai-2-27B-PTQ1_0.gguf \
+  -m /data/AIML/models/Ternary-Bonsai-2-27B-PTQ1_0.gguf \
   -ngl 99 -fa 1 -p 512 -n 128
 ```
 
@@ -210,7 +210,7 @@ This is **not** a replacement for the [Q8 27B Pi primary](Dual-RTX6000-Qwen3.8.m
 # GPU 1 (display) — start first
 cd ~/Documents/GitHub/llama.cpp-prism/build/bin
 CUDA_VISIBLE_DEVICES=1 ./llama-server \
-  --model ~/Documents/AIML/models/Ternary-Bonsai-2-27B-PQ2_0.gguf \
+  --model /data/AIML/models/Ternary-Bonsai-2-27B-PQ2_0.gguf \
   --alias bonsai-2-27b-pq2 --port 8081 --threads 12 \
   --host 127.0.0.1 --ctx-size 262144 --fit off \
   --n-gpu-layers 99 --main-gpu 0 --load-mode none \
@@ -228,7 +228,7 @@ CUDA_VISIBLE_DEVICES=1 ./llama-server \
 # GPU 0
 cd ~/Documents/GitHub/llama.cpp-prism/build/bin
 CUDA_VISIBLE_DEVICES=0 ./llama-server \
-  --model ~/Documents/AIML/models/Ternary-Bonsai-2-27B-PTQ1_0.gguf \
+  --model /data/AIML/models/Ternary-Bonsai-2-27B-PTQ1_0.gguf \
   --alias bonsai-2-27b-ptq1 --port 8080 --threads 12 \
   --host 127.0.0.1 --ctx-size 262144 --fit off \
   --n-gpu-layers 99 --main-gpu 0 --load-mode none \
@@ -283,10 +283,10 @@ Not required for Pi text/agent work. Demo uses the Q8_0 pack.
 ```bash
 hf download prism-ml/Ternary-Bonsai-2-27B-gguf \
   Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
-Add `--mmproj ~/Documents/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. BF16 reference: `Ternary-Bonsai-2-27B-mmproj-BF16.gguf` (~0.93 GB). Images bill as prompt tokens.
+Add `--mmproj /data/AIML/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf`. BF16 reference: `Ternary-Bonsai-2-27B-mmproj-BF16.gguf` (~0.93 GB). Images bill as prompt tokens.
 
 ### Other stacks
 

@@ -14,7 +14,7 @@ Blackwell **sm_120** · llama-cpp-turboquant · Ubuntu. Pi: [agentic harnesses](
 | **Output** | `--n-predict 16384` |
 | **Pi sampling** | temp **0.6** · top_p **0.95** · top_k **20** · presence **0** · repeat **1.0** |
 | **Thinking** | `--reasoning off` |
-| **Paths** | `~/Documents/AIML/models` · `~/Documents/GitHub/llama-cpp-turboquant` |
+| **Paths** | `/data/AIML/models` · `~/Documents/GitHub/llama-cpp-turboquant` |
 
 Need the engine built first? [local-setup.md](../local-setup.md). GGUF names: [local-setup](../local-setup.md#understanding-gguf-quants-why-so-many-files).
 
@@ -23,7 +23,7 @@ Need the engine built first? [local-setup.md](../local-setup.md). GGUF names: [l
 ```bash
 hf download unsloth/Qwen3.6-27B-GGUF \
   Qwen3.6-27B-UD-Q8_K_XL.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 ## Build
@@ -50,7 +50,7 @@ Fork: [TheTom/llama-cpp-turboquant](https://github.com/TheTom/llama-cpp-turboqua
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/models/Qwen3.6-27B-UD-Q8_K_XL.gguf \
+  --model /data/AIML/models/Qwen3.6-27B-UD-Q8_K_XL.gguf \
   --host 127.0.0.1 --port 8080 \
   --ctx-size 262144 \
   --fit off \
@@ -143,14 +143,14 @@ Save this entire file to `~/.pi/agent/models.json` (`mkdir -p ~/.pi/agent`). Res
 ```bash
 hf download unsloth/Qwen3.6-35B-A3B-GGUF \
   Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf \
-  --local-dir ~/Documents/AIML/models
+  --local-dir /data/AIML/models
 ```
 
 ```bash
 pkill -9 llama-server
 
 ./llama-server \
-  --model ~/Documents/AIML/models/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf \
+  --model /data/AIML/models/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf \
   --host 127.0.0.1 --port 8080 \
   --ctx-size 262144 \
   --fit off \
