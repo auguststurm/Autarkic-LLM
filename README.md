@@ -1,3 +1,5 @@
+
+
 # Autarkic-LLM
 
 > 🤖 **Setting up a machine? Don't read this whole repo — let an AI do it.** Prefer **Grok**. Copy the prompt in **[`ai-assisted-setup.md`](ai-assisted-setup.md)**, paste your hardware at the bottom, and it will use this repo to generate your build, `llama-server` command, model download, and Pi Coding Agent `models.json`.
