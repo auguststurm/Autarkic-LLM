@@ -48,7 +48,7 @@ Hardware-specific numbers always come from **your** guide (pin table + `models.j
 
 ## Qwen3.6-27B + Pi Coding Agent (cross-hardware)
 
-> **Also applies to Qwen3.8-27B.** Same hybrid thinking, tool-loop risks, and two token limits. **✅ Field-tested on Dual RTX 6000** ([guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md), 2026-08-14). Other 3.8 ports still ⚠️ untested: [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) · [M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md). Overview: [README — Qwen3.8](README.md#qwen38-2026-08-14). **Ternary Bonsai 2 27B** is that same backbone, ternary-packed — use the same Pi two-limit / no-DRY / `--reasoning off` lessons, but serve it from the PrismML fork ([guide](Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md), ⚠️ untested).
+> **Also applies to Qwen3.8-27B.** Same hybrid thinking, tool-loop risks, and two token limits. **✅ Field-tested on Dual RTX 6000** ([guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md), 2026-08-14). Other 3.8 ports still ⚠️ untested: [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) · [RTX PRO 5000](RTX-PRO-5000-48GB/RTX-PRO-5000-Qwen3.8.md) · [M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md). Overview: [README — Qwen3.8](README.md#qwen38-2026-08-14). **Ternary Bonsai 2 27B** is that same backbone, ternary-packed — use the same Pi two-limit / no-DRY / `--reasoning off` lessons, but serve it from the PrismML fork ([guide](Dual-RTX6000-192GB/Dual-RTX6000-Bonsai-2-27B.md), ⚠️ untested).
 
 These apply whenever Pi drives **dense Qwen 27B** (**Qwen3.6-27B** or **Qwen3.8-27B**) via this repo’s server. Exact `--ctx-size`, quant, and KV types stay in the **hardware guide**.
 
@@ -82,7 +82,7 @@ Weights are fixed; **KV grows with context**. **K** (keys) routes attention and 
 3. Only then compress **V** with turbo* if VRAM/RAM is tight — smoke-test real `ls`/`read` paths on a **new** session first.  
 4. Never crush **K** before **V**.
 
-TurboQuant **fork** ≠ must use turbo **types**. Roomier machines keep high-precision KV — e.g. [M5 48 GB](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) (~196k q8/q8; [3.8 port](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md)) and [Dual RTX 6000 192 GB](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) (**full 262k q8/q8**, **field-tested with Pi on Qwen3.8** and [3.6](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md)). Tighter boxes (Air, 24 GB CUDA under load) use turbo V to buy window. Field-validated 24 GB CUDA agent baseline: [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (**96k q8/q8**, large `maxTokens`).
+TurboQuant **fork** ≠ must use turbo **types**. Roomier machines keep high-precision KV — e.g. [M5 48 GB](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) (~196k q8/q8; [3.8 port](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md)), [RTX PRO 5000 48 GB](RTX-PRO-5000-48GB/RTX-PRO-5000-Qwen3.8.md) (dedicated VRAM, Q8 @ **262k q8/q8**, ⚠️ untested), and [Dual RTX 6000 192 GB](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) (**full 262k q8/q8**, **field-tested with Pi on Qwen3.8** and [3.6](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md)). Tighter boxes (Air, 24 GB CUDA under load) use turbo V to buy window. Field-validated 24 GB CUDA agent baseline: [Windows RTX 4090](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (**96k q8/q8**, large `maxTokens`).
 
 ### Operational habits
 

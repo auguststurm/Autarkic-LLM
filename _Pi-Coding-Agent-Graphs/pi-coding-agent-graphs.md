@@ -123,7 +123,7 @@ Other sources (same CLI): `pi install git:github.com/user/repo`, `pi install htt
 | Tools | **No DRY**; presence **0** for path-heavy agents; see [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware) |
 | KV | Prefer **q8/q8** while it fits; turbo **V** only to buy context (K stays high precision) |
 
-Example field-validated pins (do not copy numbers across hardware without reading that guide): [Windows RTX 4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (24 GB) · [Dual RTX 6000 Qwen3.8](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) (192 GB, ✅ tested). Other 3.8 ports: [DGX Spark](../DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) · [M5 Pro](../M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md).
+Example field-validated pins (do not copy numbers across hardware without reading that guide): [Windows RTX 4090](../Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) (24 GB) · [Dual RTX 6000 Qwen3.8](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) (192 GB, ✅ tested). Other 3.8 ports: [DGX Spark](../DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) · [RTX PRO 5000](../RTX-PRO-5000-48GB/RTX-PRO-5000-Qwen3.8.md) · [M5 Pro](../M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md).
 
 ## Configuration & launch
 

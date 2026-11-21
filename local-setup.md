@@ -66,7 +66,7 @@ cmake --build . --config Release -j$(nproc)
 > | RTX 3090 (Ampere) | `"86-real"` (not `"86"` — see [3090 LFM](Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md); skip `FA_ALL_QUANTS`) |
 > | Jetson Orin Nano | `"87"` |
 > | RTX 4090 (Ada) | `"89"` |
-> | RTX 6000 Pro Max-Q (Blackwell) | `"120"` |
+> | RTX 6000 Pro Max-Q, RTX PRO 5000 (Blackwell) | `"120"` |
 > | DGX Spark GB10 | `"121"` |
 
 **Linux / Vulkan (AMD RDNA3):**
@@ -108,7 +108,7 @@ Most configs use [Unsloth](https://huggingface.co/unsloth) GGUF builds (Dynamic 
 
 Collections: [Muse Glimmer (Unsloth)](https://huggingface.co/collections/unsloth/muse-glimmer) · [Qwen3.8 (Unsloth)](https://huggingface.co/collections/unsloth/qwen38) · [Qwen3.6 (Unsloth)](https://huggingface.co/collections/unsloth/qwen36) · [Qwen3-Coder (Unsloth)](https://huggingface.co/collections/unsloth/qwen3-coder) · [Gemma 4 (Unsloth)](https://huggingface.co/collections/unsloth/gemma-4). MTP variants (e.g. `*-MTP-GGUF`) offer ~1.5–2× faster decode via multi-token prediction. Muse Glimmer’s analog is **DFlash** (`dflash-kquant.gguf`, `--spec-type draft-dflash`). **Default rule:** pick the largest / highest-quality quant that still leaves headroom for OS + KV at your pinned context — each [hardware guide](README.md#hardware-configurations-included) names the exact file.
 
-**Qwen3.8 guides** (knobs from each box’s tested 3.6 path): [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** (2026-08-14, Pi) · [Dual RTX Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) one model per card (2×27B ✅, or 27B + Coder / 35B-A3B) · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) ⚠️ untested · [M5 MacBook Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ⚠️ untested. Need a fresh turboquant build (`qwen35` arch).
+**Qwen3.8 guides** (knobs from each box’s tested 3.6 path, except RTX PRO 5000, which uses the Dual RTX sm_120 pin): [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** (2026-08-14, Pi) · [Dual RTX Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) one model per card (2×27B ✅, or 27B + Coder / 35B-A3B) · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) ⚠️ untested · [RTX PRO 5000 Blackwell](RTX-PRO-5000-48GB/RTX-PRO-5000-Qwen3.8.md) ⚠️ untested (Forge GPU 1, RVN Q8 @ 262k q8/q8) · [M5 MacBook Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ⚠️ untested. Need a fresh turboquant build (`qwen35` arch).
 
 **Qwen3-Coder-Next guide:** [Dual RTX 6000](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3-Coder-Next.md) ⚠️ untested (2026-09-20). 80B-A3B coding MoE, arch `qwen3next`, native **262k**, **non-thinking**. Download **only** **UD-Q6_K_XL** (~73.1 GB, **3 shards** — pass `00001-of-00003`) @ 262k q8/q8 on **one** 96 GB card. Official sampling **temp 1.0 / top_p 0.95 / top_k 40 / min_p 0.01**. Need a fresh turboquant (`qwen3next`). Docs: [Unsloth](https://unsloth.ai/docs/models/qwen3-coder-next).
 
@@ -294,7 +294,7 @@ Each hardware guide includes a **complete** Pi `models.json` (numbers from that 
 ## Next Steps
 
 - Open your hardware guide (README table) for that box’s **PRIMARY** `llama-server` command, cmake, `hf download`, and Pi JSON. Windows is **WSL2** (`~/AIML`, `~/GitHub`).
-- **Qwen3.8:** [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) / [M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ports ⚠️ — overview in [README](README.md#qwen38-2026-08-14).
+- **Qwen3.8:** [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) **✅ Tested** · [DGX Spark](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) / [RTX PRO 5000](RTX-PRO-5000-48GB/RTX-PRO-5000-Qwen3.8.md) / [M5 Pro](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) ports ⚠️ — overview in [README](README.md#qwen38-2026-08-14).
 - **Qwen3-Coder-Next:** [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3-Coder-Next.md) ⚠️ untested — Q6 @ 262k on one card; overview in [README](README.md#qwen3-coder-next-2026-02).
 - **Muse Glimmer:** [Dual RTX](Dual-RTX6000-192GB/Dual-RTX6000-Muse-Glimmer.md) ⚠️ untested — overview in [README](README.md#muse-glimmer-30b-2026-08).
 - **MiniCPM5-2B:** [Jetson Orin Nano Super](Jetson-Orin-Nano-Super/Jetson-Orin-MiniCPM5-2B.md) ⚠️ untested.

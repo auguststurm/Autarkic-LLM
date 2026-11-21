@@ -106,9 +106,10 @@ The rest is judgment:
   (no DRY, sampling, contextWindow vs maxTokens, K/V), follow agentic-harnesses.md and the hardware
   guide.
 - (Qwen3.8, released 2026-08-14) Prefer a Qwen3.8 hardware guide when one exists for my class of
-  machine (Dual RTX 6000, DGX Spark, M5 Pro — see README "Qwen3.8"). Dual RTX 6000 Qwen3.8 is
+  machine (Dual RTX 6000, DGX Spark, RTX PRO 5000, M5 Pro — see README "Qwen3.8"). Dual RTX 6000 Qwen3.8 is
   field-tested; DGX Spark and M5 Pro ports reuse tested 3.6 knobs but are still untested — flag
-  that. Use a fresh turboquant build (arch qwen35). Confirm exact UD- quant filenames on
+  that. RTX PRO 5000 Blackwell is Forge GPU index 1 (48935 MiB, sm_120). Its guide is the RVN Q8
+  already on disk, same binary as the 6000s, and is still untested. Use a fresh turboquant build (arch qwen35). Confirm exact UD- quant filenames on
   unsloth/Qwen3.8-27B-GGUF.
 - (Dual RTX 6000, both cards) Dual-RTX6000-Qwen3.8-localmaxing.md — one isolated llama-server
   per GPU, one Pi provider key per baseUrl. The Q8 primary is one card. Packs: two 27B, or
