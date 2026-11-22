@@ -1,6 +1,6 @@
 # RTX PRO 5000 Blackwell (48 GB) — Inkling 2 Mini
 
-> ⚠️ **Not yet tested** on this card (written 2026-11-21). Confirm load, then first decode, before a Pi tool turn.
+> ⚠️ **Load failed** on this card (2026-11-21) at `--ctx-size 262144` with the default `--ubatch-size 512`. The prompt compute buffer asked for 25532 MiB and `cudaMalloc` returned out of memory. The command below uses `--ubatch-size 256`. That load is not yet run. Confirm load, then first decode, before a Pi tool turn.
 
 GPU index **1**, NVIDIA RTX PRO 5000 Blackwell, **48935 MiB**, compute capability **12.0**, bus `00000000:21:00.0`. Port **8083**. Stop the Qwen server on 8081 before starting this one. Both use this GPU. Ports 8080–8082 belong to Forge Trinity. Before starting, `ss -ltn | grep -E ':808[0-3]'` should print nothing.
 
@@ -8,7 +8,7 @@ GPU index **1**, NVIDIA RTX PRO 5000 Blackwell, **48935 MiB**, compute capabilit
 | --- | --- |
 | **Weights** | `/data/AIML/models/Inkling-2-Mini-GGUF/Mainline_Support/Inkling-2-Mini-UD-Q8_K_XL.gguf_file` (22.87 GB decimal, 21.30 GiB) |
 | **Projector** | `mmproj-F16.gguf` (639 MB decimal, 0.60 GiB), repo root of that download |
-| **Context** | `--ctx-size 262144`, `--parallel 1` |
+| **Context** | `--ctx-size 262144`, `--parallel 1`, `--ubatch-size 256` |
 | **KV** | `q8_0` / `q8_0` |
 | **Output** | `--n-predict 16384` |
 | **Sampling** | temp **1.0** · top_p **1.0** · top_k **0** · min_p **0.0** |
@@ -119,20 +119,22 @@ CUDA_VISIBLE_DEVICES=1 ./llama-server \
   --split-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
   --parallel 1 \
+  --ubatch-size 256 \
   --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
   --n-predict 16384
 ```
 
-Checked against this binary, build 12625 (`cbb1c1c50`), and the GGUF on disk. Not a measured load.
+Checked against this binary, build 12625 (`cbb1c1c50`), and the GGUF on disk. The 512-token micro-batch did not fit. The 256-token one has not been run.
 
 | Flag | Why |
 | --- | --- |
 | `CUDA_VISIBLE_DEVICES=1` | GPU 1, RTX PRO 5000 Blackwell, 48935 MiB, CC 12.0, bus `00000000:21:00.0`, power limit 270.00 W. Index 0 is the desktop GPU. If the index changes, change this mask and leave the power-limit bus alone |
 | `--split-mode none` | Default is `layer`. This mask leaves one visible GPU, so `layer` and `none` place the model on that GPU. `none` is the guard if the mask is dropped |
 | `--n-gpu-layers all` | This binary's value for every layer. Default is `auto`. The file has `block_count` 24 and loop `[6, 18)` × 3, so `n_layer_all` is 48 |
-| `--ctx-size 262144` | File `context_length` is 1048576. 262144 divides by 256, so the context pad does not change it. `--fit on` does not shrink a context you set. Fit in 48935 MiB is not measured |
+| `--ctx-size 262144` | File `context_length` is 1048576. 262144 divides by 256, so the context pad does not change it. The KV for this window was not the buffer that failed |
+| `--ubatch-size 256` | The prompt graph is reserved for `min(n_ctx, n_ubatch)` tokens. The default 512 asked for 25532 MiB (`26772472064` bytes) and the card returned out of memory. 256 is the next size. It has not been measured |
 | `--parallel 1` | One request, one slot. This binary's continuous batching is on by default, and every live slot is one step on this GPU. Another slot does not add a GPU. It shares the 270 W budget, so each request is slower. `n_seq_max` 1 keeps `n_ctx_seq` at 262144. Do not pass `--kv-unified`. At one slot it does not change the window |
-| `q8_0` KV | Default is `f16`. Eight full-context layers at 262144 are 4.25 GiB of tensor payload; `f16` is 8 GiB. Physical layers 5, 11, 17, and 23 are full attention. Layers 5 and 23 run once. Layers 11 and 17 run on each of the 3 passes. The other 40 layers are the sliding window: 1536 cells (1024 + 512), 127.5 MiB at `q8_0`. Not measured on this card |
+| `q8_0` KV | Default is `f16`. Eight full-context layers at 262144 are 4.25 GiB of tensor payload; `f16` is 8 GiB. Physical layers 5, 11, 17, and 23 are full attention. Layers 5 and 23 run once. Layers 11 and 17 run on each of the 3 passes. The other 40 layers are the sliding window: 1280 cells (1024 + the 256 micro-batch), 106.25 MiB at `q8_0` |
 | `--n-predict 16384` | Default is `-1`, which does not stop. Pi `maxTokens` is the same number |
 | Sampling | The GGUF stores temp 1.0, top_k 0, top_p 1.0, min_p 0.0, and this binary copies those when the flags are omitted. CLI defaults otherwise are 0.80, 40, 0.95, 0.05 |
 | no `--cpu-moe` | [Issue 32710](https://github.com/ggml-org/llama.cpp/issues/32710) is open. Experts of looped layers 6–17 on the host return NaN. Those reports are other GPUs, not this 5000. `--flash-attn` stays `auto` |
@@ -149,7 +151,7 @@ n_ctx                 = 262144
 n_ctx_seq             = 262144
 n_slots = 1, n_ctx_slot = 262144, kv_unified = 'false'
 creating non-SWA KV cache, size = 262144 cells
-creating     SWA KV cache, size = 1536 cells
+creating     SWA KV cache, size = 1280 cells
 n_ctx_seq (262144) < n_ctx_train (1048576) -- the full capacity of the model will not be utilized
 flash_attn            = auto
 nvidia-smi   # index 1 grows after load and after a short decode
@@ -181,18 +183,40 @@ The capacity line is this pin. The GGUF `context_length` is 1048576. This card s
 }
 ```
 
+## Directory instance
+
+`PI_CODING_AGENT_DIR` replaces `~/.pi/agent` for that process. From the project directory:
+
+```bash
+mkdir -p .pi/agent
+```
+
+Write the JSON above to `.pi/agent/models.json`. Write `.pi/agent/settings.json`:
+
+```json
+{
+  "defaultProvider": "llama-cpp",
+  "defaultModel": "inkling-2-mini-gpu1"
+}
+```
+
+```bash
+PI_CODING_AGENT_DIR="$PWD/.pi/agent" pi
+```
+
+Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` reloads `models.json`.
+
 ## Out of memory
 
-Keep `--parallel 1` and `--n-gpu-layers all`. In order:
+Keep `--parallel 1`, `--n-gpu-layers all`, and `--ctx-size 262144`. Drop `--ubatch-size` to `128`. The prompt buffer tracks that size, not the context, once the context is larger than it.
 
-1. `--ctx-size 131072`, then `65536`. With one slot, `n_ctx_seq` equals `--ctx-size`. Set Pi `contextWindow` to that number.
-2. Swap `--model` to `Mainline_Support/Inkling-2-Mini-UD-Q4_K_XL.gguf_file` (17.63 GB decimal). The repo-root `.gguf` of that stem is a different file. Download the `Mainline_Support` name as a filename, the same way as Q8.
+If the log is still `failed to allocate compute pp buffers`, then drop `--ctx-size` to `131072`, then `65536`, and set Pi `contextWindow` to that number.
 
-`--fit on` does not shrink a context you set. If the pinned context does not fit, this binary aborts with `n_gpu_layers already set by user to -2`. A CUDA out-of-memory after that estimate is the same ladder. Do not pass `--cpu-moe` or `--n-cpu-moe` to free VRAM. That is the open NaN path on layers 6–17.
+The fit line `n_gpu_layers already set by user to -2` was a warning on this run. The process continued and exited on the CUDA allocation.
 
 ## See also
 
 - Same weights on one 6000: [Dual-RTX6000-Inkling-2-Mini.md](../Dual-RTX6000-192GB/Dual-RTX6000-Inkling-2-Mini.md)
 - Qwen on this card, same power unit: [RTX-PRO-5000-Qwen3.8.md](RTX-PRO-5000-Qwen3.8.md)
 
-**Last Updated:** 2026-11-21 (llama.cpp `master`, UD-Q8_K_XL @ 262k q8/q8, GPU 1, power cap 270 W)
+**Last Updated:** 2026-11-21 (load failed at ubatch 512, 25532 MiB compute buffer; next command is ubatch 256, ctx 262144)

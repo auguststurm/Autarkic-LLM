@@ -130,6 +130,29 @@ flash_attn            = auto
 }
 ```
 
+## Directory instance
+
+`PI_CODING_AGENT_DIR` replaces `~/.pi/agent` for that process. From the project directory:
+
+```bash
+mkdir -p .pi/agent
+```
+
+Write the JSON above to `.pi/agent/models.json`. Write `.pi/agent/settings.json`:
+
+```json
+{
+  "defaultProvider": "llama-cpp",
+  "defaultModel": "inkling-2-mini"
+}
+```
+
+```bash
+PI_CODING_AGENT_DIR="$PWD/.pi/agent" pi
+```
+
+Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` reloads `models.json`.
+
 ## Out of memory
 
 Keep `--parallel 1` and `--n-gpu-layers all`. Drop `--ctx-size` to `524288`, then `262144`, and set Pi `contextWindow` to that number.

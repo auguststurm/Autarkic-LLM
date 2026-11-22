@@ -136,6 +136,38 @@ The capacity line is this pin. The offload log lists one CUDA device. Loopback `
 }
 ```
 
+## Directory instance
+
+`PI_CODING_AGENT_DIR` replaces `~/.pi/agent` for that process. From the project directory:
+
+```bash
+mkdir -p .pi/agent
+```
+
+Write the JSON above to `.pi/agent/models.json`. Write `.pi/agent/settings.json`:
+
+```json
+{
+  "defaultProvider": "llama-cpp",
+  "defaultModel": "inkling-2-mini"
+}
+```
+
+Inside WSL:
+
+```bash
+PI_CODING_AGENT_DIR="$PWD/.pi/agent" pi
+```
+
+Pi on Windows, from that directory in PowerShell:
+
+```powershell
+$env:PI_CODING_AGENT_DIR = "$PWD\.pi\agent"
+pi
+```
+
+Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` reloads `models.json`.
+
 ## Out of memory
 
 Keep `--parallel 1`, `--n-gpu-layers all`, and `--load-mode none`. Drop `--batch-size` and `--ubatch-size` to `128`. Then drop `--ctx-size` to `65536`, then `32768`, and set Pi `contextWindow` to that number.

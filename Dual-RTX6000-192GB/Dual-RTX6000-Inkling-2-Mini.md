@@ -134,6 +134,31 @@ The other 6000 uses the same block with `baseUrl` port **8085** and `id` `inklin
 }
 ```
 
+## Directory instance
+
+`PI_CODING_AGENT_DIR` replaces `~/.pi/agent` for that process. From the project directory:
+
+```bash
+mkdir -p .pi/agent
+```
+
+Write the JSON above to `.pi/agent/models.json`. Write `.pi/agent/settings.json`:
+
+```json
+{
+  "defaultProvider": "llama-cpp",
+  "defaultModel": "inkling-2-mini-gpu2"
+}
+```
+
+For the other 6000, `defaultModel` is `inkling-2-mini-gpu3`.
+
+```bash
+PI_CODING_AGENT_DIR="$PWD/.pi/agent" pi
+```
+
+Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` reloads `models.json`.
+
 ## Out of memory
 
 Keep `--parallel 4`, `--no-kv-unified`, and `--n-gpu-layers all`. Drop `--ctx-size` to `1048576` (each slot 262144), then `524288` (each slot 131072). Set Pi `contextWindow` to that per-slot number, not to `--ctx-size`.

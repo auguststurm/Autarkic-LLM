@@ -139,6 +139,29 @@ The capacity line is this pin. The offload log names the Metal device. Activity 
 }
 ```
 
+## Directory instance
+
+`PI_CODING_AGENT_DIR` replaces `~/.pi/agent` for that process. From the project directory:
+
+```bash
+mkdir -p .pi/agent
+```
+
+Write the JSON above to `.pi/agent/models.json`. Write `.pi/agent/settings.json`:
+
+```json
+{
+  "defaultProvider": "llama-cpp",
+  "defaultModel": "inkling-2-mini"
+}
+```
+
+```bash
+PI_CODING_AGENT_DIR="$PWD/.pi/agent" pi
+```
+
+Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` reloads `models.json`.
+
 ## Out of memory
 
 Keep `--parallel 1`, `--n-gpu-layers all`, and the default mmap. Close other apps. Drop `--batch-size` and `--ubatch-size` to `256`, then `128`. Then drop `--ctx-size` to `262144`, then `131072`, and set Pi `contextWindow` to that number.
