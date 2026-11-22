@@ -1,6 +1,6 @@
 # M1 Pro MacBook Pro (32 GB) — Inkling 2 Mini
 
-> ⚠️ **Not yet tested** on this machine (written 2026-11-21). Confirm load, then first decode, before a Pi tool turn. Metal can load and then run out of memory on the first prompt.
+> ⚠️ **Not yet tested** on this machine (written 2026-11-21). Confirm load, then first decode, before a Pi tool turn.
 
 **Metal.** 32 GB unified memory, shared with macOS. `uname -m` prints `arm64`. Build on this Mac. Port **8080**. Before starting, `lsof -nP -iTCP:8080 -sTCP:LISTEN` should print nothing.
 
@@ -18,9 +18,11 @@ Paths: `~/Documents/AIML/models` and `~/Documents/GitHub/llama.cpp-inkling`.
 
 ## Weights
 
-Skip this when that `.gguf_file` is already under `~/Documents/AIML/models/Inkling-2-Mini-GGUF`.
+Three ways to run this model. The three server commands use them in this order.
 
-Download the `Mainline_Support` name and leave it unchanged. Pass both paths as filenames. A token after `--include` is read as a filename, and `hf` then ignores `--include`.
+1. **Censored.** `Inkling-2-Mini-UD-Q4_K_XL.gguf_file` from [unsloth/Inkling-2-Mini-GGUF](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF). The Unsloth file is Q4, 16.42 GiB. That is the censored weights for this machine.
+2. **Censored plus the LoRA.** The same Unsloth file, plus `Inkling-2-Mini-Uncensored-LoRA.gguf`. The AtomicChat uncensored release is also a Q4 file, 15.39 GiB. The LoRA puts that edit on the Unsloth Q4 file. The baked file is the edit already merged, in AtomicChat's own Q4.
+3. **Uncensored file.** `Inkling-2-Mini-Uncensored-AD-Q4_K.gguf` from [AtomicChat/Inkling-2-Mini-Uncensored-GGUF](https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF). Leave `--lora` off. The edit is already in the file.
 
 ```bash
 mkdir -p ~/Documents/AIML/models
@@ -29,6 +31,17 @@ hf download unsloth/Inkling-2-Mini-GGUF \
   mmproj-F16.gguf \
   --local-dir ~/Documents/AIML/models/Inkling-2-Mini-GGUF
 ```
+
+```bash
+mkdir -p ~/Documents/AIML/models
+hf download AtomicChat/Inkling-2-Mini-Uncensored-GGUF \
+  Inkling-2-Mini-Uncensored-AD-Q4_K.gguf \
+  Inkling-2-Mini-Uncensored-LoRA.gguf \
+  mmproj-Inkling-2-Mini-Uncensored-F16.gguf \
+  --local-dir ~/Documents/AIML/models/Inkling-2-Mini-Uncensored-GGUF
+```
+
+`mmproj-Inkling-2-Mini-Uncensored-F16.gguf` has the same vision weights as Unsloth `mmproj-F16.gguf`. Either projector works. A command that already has `--mmproj` can keep the Unsloth path.
 
 ## Build
 
@@ -76,6 +89,50 @@ cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
   --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
   --n-predict 16384
 ```
+
+### Original with the uncensored LoRA
+
+Same command. `--lora` applies [AtomicChat's adapter](https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF) to the weights above. Scale is 1.0.
+
+```bash
+cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
+
+./llama-server \
+  --model ~/Documents/AIML/models/Inkling-2-Mini-GGUF/Mainline_Support/Inkling-2-Mini-UD-Q4_K_XL.gguf_file \
+  --lora ~/Documents/AIML/models/Inkling-2-Mini-Uncensored-GGUF/Inkling-2-Mini-Uncensored-LoRA.gguf \
+  --mmproj ~/Documents/AIML/models/Inkling-2-Mini-GGUF/mmproj-F16.gguf \
+  --alias inkling-2-mini \
+  --host 127.0.0.1 --port 8080 \
+  --ctx-size 131072 \
+  --n-gpu-layers all \
+  --split-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --parallel 1 \
+  --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
+  --n-predict 16384
+```
+
+### Uncensored model
+
+Same command. `--model` is the baked file. Leave `--lora` off.
+
+```bash
+cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
+
+./llama-server \
+  --model ~/Documents/AIML/models/Inkling-2-Mini-Uncensored-GGUF/Inkling-2-Mini-Uncensored-AD-Q4_K.gguf \
+  --mmproj ~/Documents/AIML/models/Inkling-2-Mini-GGUF/mmproj-F16.gguf \
+  --alias inkling-2-mini \
+  --host 127.0.0.1 --port 8080 \
+  --ctx-size 131072 \
+  --n-gpu-layers all \
+  --split-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --parallel 1 \
+  --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
+  --n-predict 16384
+```
+
 
 Checked against llama.cpp master source and this Q4 file’s header. Not a measured load on this Mac.
 
@@ -153,9 +210,5 @@ PI_CODING_AGENT_DIR="$PWD/.pi/agent" pi
 ```
 
 Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` reloads `models.json`.
-
-## Out of memory
-
-Drop `--ctx-size` to `65536`, then `32768`. Set Pi `contextWindow` to that number. Then set `--batch-size 512` and `--ubatch-size 512`, then both to `256`.
 
 **Last Updated:** 2026-11-21 (llama.cpp master, Metal, UD-Q4_K_XL @ 131072 q8/q8, one slot, untested)

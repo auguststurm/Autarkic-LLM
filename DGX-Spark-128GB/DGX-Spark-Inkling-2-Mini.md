@@ -18,9 +18,11 @@ Paths: `~/Documents/AIML/models` and `~/Documents/GitHub/llama.cpp-inkling`.
 
 ## Weights
 
-Skip this when that `.gguf_file` is already under `~/Documents/AIML/models/Inkling-2-Mini-GGUF`.
+Three ways to run this model. The three server commands use them in this order.
 
-Download the `Mainline_Support` file. The repo-root `Inkling-2-Mini-UD-Q8_K_XL.gguf` is a different file. Leave the Hub name. Pass both paths as filenames: a token after `--include` is a filename, and `hf` then ignores `--include` and downloads only the projector.
+1. **Censored.** `Inkling-2-Mini-UD-Q8_K_XL.gguf_file` from [unsloth/Inkling-2-Mini-GGUF](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF). The Unsloth file is Q8, 21.30 GiB. That is the censored weights, and it is the quality file on this machine.
+2. **Censored plus the LoRA.** The same Unsloth file, plus `Inkling-2-Mini-Uncensored-LoRA.gguf`. The AtomicChat uncensored release is a Q4 file, 15.39 GiB. To stay on Q8 and still remove the refusals, put their LoRA on this Unsloth file. The LoRA is the edit by itself. The baked Q4 file is the same edit already merged, at the lower quant.
+3. **Uncensored file.** `Inkling-2-Mini-Uncensored-AD-Q4_K.gguf` from [AtomicChat/Inkling-2-Mini-Uncensored-GGUF](https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF). Leave `--lora` off. The edit is already in the file.
 
 ```bash
 mkdir -p ~/Documents/AIML/models
@@ -29,6 +31,17 @@ hf download unsloth/Inkling-2-Mini-GGUF \
   mmproj-F16.gguf \
   --local-dir ~/Documents/AIML/models/Inkling-2-Mini-GGUF
 ```
+
+```bash
+mkdir -p ~/Documents/AIML/models
+hf download AtomicChat/Inkling-2-Mini-Uncensored-GGUF \
+  Inkling-2-Mini-Uncensored-AD-Q4_K.gguf \
+  Inkling-2-Mini-Uncensored-LoRA.gguf \
+  mmproj-Inkling-2-Mini-Uncensored-F16.gguf \
+  --local-dir ~/Documents/AIML/models/Inkling-2-Mini-Uncensored-GGUF
+```
+
+`mmproj-Inkling-2-Mini-Uncensored-F16.gguf` has the same vision weights as Unsloth `mmproj-F16.gguf`. Either projector works. A command that already has `--mmproj` can keep the Unsloth path.
 
 ## Build
 
@@ -74,6 +87,50 @@ cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
   --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
   --n-predict 8192
 ```
+
+### Original with the uncensored LoRA
+
+Same command. `--lora` applies [AtomicChat's adapter](https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF) to the weights above. Scale is 1.0.
+
+```bash
+cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
+
+./llama-server \
+  --model ~/Documents/AIML/models/Inkling-2-Mini-GGUF/Mainline_Support/Inkling-2-Mini-UD-Q8_K_XL.gguf_file \
+  --lora ~/Documents/AIML/models/Inkling-2-Mini-Uncensored-GGUF/Inkling-2-Mini-Uncensored-LoRA.gguf \
+  --mmproj ~/Documents/AIML/models/Inkling-2-Mini-GGUF/mmproj-F16.gguf \
+  --alias inkling-2-mini \
+  --host 127.0.0.1 --port 8080 \
+  --ctx-size 1048576 \
+  --n-gpu-layers all \
+  --split-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --parallel 1 \
+  --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
+  --n-predict 8192
+```
+
+### Uncensored model
+
+Same command. `--model` is the baked file. Leave `--lora` off.
+
+```bash
+cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
+
+./llama-server \
+  --model ~/Documents/AIML/models/Inkling-2-Mini-Uncensored-GGUF/Inkling-2-Mini-Uncensored-AD-Q4_K.gguf \
+  --mmproj ~/Documents/AIML/models/Inkling-2-Mini-GGUF/mmproj-F16.gguf \
+  --alias inkling-2-mini \
+  --host 127.0.0.1 --port 8080 \
+  --ctx-size 1048576 \
+  --n-gpu-layers all \
+  --split-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --parallel 1 \
+  --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
+  --n-predict 8192
+```
+
 
 Checked against llama.cpp master source and the Q8 file. Not a measured load on this Spark.
 
@@ -152,10 +209,6 @@ PI_CODING_AGENT_DIR="$PWD/.pi/agent" pi
 ```
 
 Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` reloads `models.json`.
-
-## Out of memory
-
-Drop `--ctx-size` to `524288`, then `262144`. Set Pi `contextWindow` to that number.
 
 ## See also
 

@@ -113,7 +113,7 @@ The rest is judgment:
   unsloth/Qwen3.8-27B-GGUF. The same guide caps that blower card at 270 W (`nvidia-smi -i` on bus 00000000:21:00.0 only; this host’s VBIOS accepts 250–300 W).
 - (Inkling 2 Mini, released 2026-11-20) One model, a separate pin per machine. Do not reuse a context, quant, backend, or path from another guide.
   Workstation only, one sm_120 tree at ~/Documents/GitHub/llama.cpp-inkling (CMAKE_CUDA_ARCHITECTURES=120, build 12625). turboquant cannot load inkling2_loop.
-  RTX PRO 5000: RTX-PRO-5000-48GB/RTX-PRO-5000-Inkling-2-Mini.md, CUDA_VISIBLE_DEVICES=1, port 8083, UD-Q8_K_XL, ctx 262144, --parallel 1, contextWindow 262144.
+  RTX PRO 5000: RTX-PRO-5000-48GB/RTX-PRO-5000-Inkling-2-Mini.md, CUDA_VISIBLE_DEVICES=1, port 8083, UD-Q8_K_XL, ctx 262144, --parallel 1, --ubatch-size 256, contextWindow 262144. ✅ Tested 2026-11-22.
   One RTX PRO 6000: Dual-RTX6000-192GB/Dual-RTX6000-Inkling-2-Mini.md, CUDA_VISIBLE_DEVICES=2, port 8084
   (the other 6000 is mask 3, port 8085). Same Q8 file. --ctx-size 2097152 --parallel 4 --no-kv-unified, so each slot is 524288. Pi contextWindow on that 6000 server is 524288, not 2097152 and not the 5000's 262144.
   On this workstation index 0 is the desktop 2000 and index 1 is the 5000. Do not copy an older Dual RTX command that assumes the 6000s are index 0 and 1.
@@ -125,6 +125,7 @@ The rest is judgment:
   M1 Ultra is M1-Ultra-Studio-64GB/M1-Ultra-Studio-Inkling-2-Mini.md. Metal only, arm64, 64 GB unified. The pin is UD-Q8_K_XL, ctx 1048576, --parallel 1, --n-gpu-layers all, port 8080. Do not pass --load-mode none. Do not copy a CUDA or Vulkan command onto it.
   M5 MacBook Pro is M5-MacBook-Pro-48GB/M5-MacBook-Pro-Inkling-2-Mini.md. Metal only, 48 GB unified. Do not copy the M1 Ultra 1048576 pin. The pin is UD-Q8_K_XL, ctx 524288, --parallel 1, batch 512, n-predict 8192, port 8080. Native 1M is about 39 GiB and is the stretch, not the pin.
   M1 Pro MacBook Pro 32 GB is M1-MacBook-Pro-32GB/M1-MacBook-Pro-Inkling-2-Mini.md. Metal, arm64, UD-Q4_K_XL, ctx 131072, --parallel 1, n-predict 16384, port 8080.
+  M2 Max Mac Studio 64 GB is M2-Max-Studio-64GB/M2-Max-Studio-Inkling-2-Mini.md. Metal, arm64, UD-Q8_K_XL, ctx 1048576, --parallel 1, n-predict 16384, port 8080. 30-core or 38-core GPU, 400 GB/s. Not the M1 Ultra guide.
   ASUS GeForce RTX 5070 Ti 16 GB is Win-RTX5070Ti-16GB/Windows-RTX5070Ti-Inkling-2-Mini.md. WSL2, sm_120, UD-Q3_K_XL, ctx 32768, --parallel 1, batch 256, port 8080.
 - (Dual RTX 6000, both cards) Dual-RTX6000-Qwen3.8-localmaxing.md — one isolated llama-server
   per GPU, one Pi provider key per baseUrl. The Q8 primary is one card. Packs: two 27B, or

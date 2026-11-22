@@ -17,9 +17,11 @@ Paths: `~/AIML/models` and `~/GitHub/llama.cpp-inkling`.
 
 ## Weights
 
-Skip this when that `.gguf_file` is already under `~/AIML/models/Inkling-2-Mini-GGUF`.
+Three ways to run this model. The three server commands use them in this order.
 
-Download that `Mainline_Support` name and leave it unchanged. Pass it as a filename. A token after `--include` is read as a filename, and `hf` then ignores `--include`.
+1. **Censored.** `Inkling-2-Mini-UD-Q3_K_XL.gguf_file` from [unsloth/Inkling-2-Mini-GGUF](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF). The Unsloth file is Q3, 12.70 GiB. That is the censored weights for this 16 GB card.
+2. **Censored plus the LoRA.** The same Unsloth file, plus `Inkling-2-Mini-Uncensored-LoRA.gguf`. The AtomicChat uncensored release is a Q4 file, 15.39 GiB. The LoRA puts that edit on the Unsloth Q3 file and keeps this card's current size. The baked Q4 file is the edit already merged. It is larger than the Q3 pin.
+3. **Uncensored file.** `Inkling-2-Mini-Uncensored-AD-Q4_K.gguf` from [AtomicChat/Inkling-2-Mini-Uncensored-GGUF](https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF). Leave `--lora` off. The edit is already in the file.
 
 ```bash
 mkdir -p ~/AIML/models
@@ -27,6 +29,17 @@ hf download unsloth/Inkling-2-Mini-GGUF \
   Mainline_Support/Inkling-2-Mini-UD-Q3_K_XL.gguf_file \
   --local-dir ~/AIML/models/Inkling-2-Mini-GGUF
 ```
+
+```bash
+mkdir -p ~/AIML/models
+hf download AtomicChat/Inkling-2-Mini-Uncensored-GGUF \
+  Inkling-2-Mini-Uncensored-AD-Q4_K.gguf \
+  Inkling-2-Mini-Uncensored-LoRA.gguf \
+  mmproj-Inkling-2-Mini-Uncensored-F16.gguf \
+  --local-dir ~/AIML/models/Inkling-2-Mini-Uncensored-GGUF
+```
+
+`mmproj-Inkling-2-Mini-Uncensored-F16.gguf` has the same vision weights as Unsloth `mmproj-F16.gguf`. Either projector works. A command that already has `--mmproj` can keep the Unsloth path.
 
 ## Build
 
@@ -69,6 +82,52 @@ cd ~/GitHub/llama.cpp-inkling/build/bin
   --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
   --n-predict 8192
 ```
+
+### Original with the uncensored LoRA
+
+Same command. `--lora` applies [AtomicChat's adapter](https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF) to the weights above. Scale is 1.0.
+
+```bash
+cd ~/GitHub/llama.cpp-inkling/build/bin
+
+./llama-server \
+  --model ~/AIML/models/Inkling-2-Mini-GGUF/Mainline_Support/Inkling-2-Mini-UD-Q3_K_XL.gguf_file \
+  --lora ~/AIML/models/Inkling-2-Mini-Uncensored-GGUF/Inkling-2-Mini-Uncensored-LoRA.gguf \
+  --alias inkling-2-mini \
+  --host 127.0.0.1 --port 8080 \
+  --ctx-size 32768 \
+  --n-gpu-layers all \
+  --split-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --parallel 1 \
+  --batch-size 256 \
+  --ubatch-size 256 \
+  --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
+  --n-predict 8192
+```
+
+### Uncensored model
+
+Same command. `--model` is the baked file. Leave `--lora` off.
+
+```bash
+cd ~/GitHub/llama.cpp-inkling/build/bin
+
+./llama-server \
+  --model ~/AIML/models/Inkling-2-Mini-Uncensored-GGUF/Inkling-2-Mini-Uncensored-AD-Q4_K.gguf \
+  --alias inkling-2-mini \
+  --host 127.0.0.1 --port 8080 \
+  --ctx-size 32768 \
+  --n-gpu-layers all \
+  --split-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --parallel 1 \
+  --batch-size 256 \
+  --ubatch-size 256 \
+  --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
+  --n-predict 8192
+```
+
 
 Checked against llama.cpp master source and this Q3 file’s header. Not a measured load on this 5070 Ti.
 
@@ -156,9 +215,5 @@ pi
 ```
 
 Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` reloads `models.json`.
-
-## Out of memory
-
-Drop `--batch-size` and `--ubatch-size` to `128`. Then drop `--ctx-size` to `16384`. Set Pi `contextWindow` to that number. If `16384` does not load, use `Mainline_Support/Inkling-2-Mini-UD-IQ3_XXS.gguf_file` (11.66 GB decimal, 10.86 GiB) at `--ctx-size 32768`. Download that name as a filename.
 
 **Last Updated:** 2026-11-21 (llama.cpp master, UD-Q3_K_XL @ 32768 q8/q8, one slot, sm_120, untested)

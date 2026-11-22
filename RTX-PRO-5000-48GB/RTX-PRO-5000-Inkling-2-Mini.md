@@ -1,6 +1,6 @@
 # RTX PRO 5000 Blackwell (48 GB) — Inkling 2 Mini
 
-> ⚠️ **Load failed** on this card (2026-11-21) at `--ctx-size 262144` with the default `--ubatch-size 512`. The prompt compute buffer asked for 25532 MiB and `cudaMalloc` returned out of memory. The command below uses `--ubatch-size 256`. That load is not yet run. Confirm load, then first decode, before a Pi tool turn.
+> ✅ **Tested** on this card (2026-11-22). The censored Q8 command below loaded at `--ctx-size 262144` and `--ubatch-size 256`. The LoRA command and the baked Q4 command use those same server flags.
 
 GPU index **1**, NVIDIA RTX PRO 5000 Blackwell, **48935 MiB**, compute capability **12.0**, bus `00000000:21:00.0`. Port **8083**. Stop the Qwen server on 8081 before starting this one. Both use this GPU. Ports 8080–8082 belong to Forge Trinity. Before starting, `ss -ltn | grep -E ':808[0-3]'` should print nothing.
 
@@ -16,14 +16,30 @@ GPU index **1**, NVIDIA RTX PRO 5000 Blackwell, **48935 MiB**, compute capabilit
 
 ## Weights
 
-Download the `Mainline_Support` file. The repo-root `Inkling-2-Mini-UD-Q8_K_XL.gguf` is a different file. Leave the Hub name. Pass both paths as filenames: a token after `--include` is a filename, and `hf` then ignores `--include` and downloads only the projector.
+Three ways to run this model. The three server commands use them in this order.
+
+1. **Censored.** `Inkling-2-Mini-UD-Q8_K_XL.gguf_file` from [unsloth/Inkling-2-Mini-GGUF](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF). The Unsloth file is Q8, 21.30 GiB. That is the censored weights, and it is the quality file on this machine.
+2. **Censored plus the LoRA.** The same Unsloth file, plus `Inkling-2-Mini-Uncensored-LoRA.gguf`. The AtomicChat uncensored release is a Q4 file, 15.39 GiB. To stay on Q8 and still remove the refusals, put their LoRA on this Unsloth file. The LoRA is the edit by itself. The baked Q4 file is the same edit already merged, at the lower quant.
+3. **Uncensored file.** `Inkling-2-Mini-Uncensored-AD-Q4_K.gguf` from [AtomicChat/Inkling-2-Mini-Uncensored-GGUF](https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF). Leave `--lora` off. The edit is already in the file.
 
 ```bash
+mkdir -p /data/AIML/models
 hf download unsloth/Inkling-2-Mini-GGUF \
   Mainline_Support/Inkling-2-Mini-UD-Q8_K_XL.gguf_file \
   mmproj-F16.gguf \
   --local-dir /data/AIML/models/Inkling-2-Mini-GGUF
 ```
+
+```bash
+mkdir -p /data/AIML/models
+hf download AtomicChat/Inkling-2-Mini-Uncensored-GGUF \
+  Inkling-2-Mini-Uncensored-AD-Q4_K.gguf \
+  Inkling-2-Mini-Uncensored-LoRA.gguf \
+  mmproj-Inkling-2-Mini-Uncensored-F16.gguf \
+  --local-dir /data/AIML/models/Inkling-2-Mini-Uncensored-GGUF
+```
+
+`mmproj-Inkling-2-Mini-Uncensored-F16.gguf` has the same vision weights as Unsloth `mmproj-F16.gguf`. Either projector works. A command that already has `--mmproj` can keep the Unsloth path.
 
 ## Build
 
@@ -124,7 +140,53 @@ CUDA_VISIBLE_DEVICES=1 ./llama-server \
   --n-predict 16384
 ```
 
-Checked against this binary, build 12625 (`cbb1c1c50`), and the GGUF on disk. The 512-token micro-batch did not fit. The 256-token one has not been run.
+### Original with the uncensored LoRA
+
+Same command. `--lora` applies [AtomicChat's adapter](https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF) to the weights above. Scale is 1.0.
+
+```bash
+cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
+
+CUDA_VISIBLE_DEVICES=1 ./llama-server \
+  --model /data/AIML/models/Inkling-2-Mini-GGUF/Mainline_Support/Inkling-2-Mini-UD-Q8_K_XL.gguf_file \
+  --lora /data/AIML/models/Inkling-2-Mini-Uncensored-GGUF/Inkling-2-Mini-Uncensored-LoRA.gguf \
+  --mmproj /data/AIML/models/Inkling-2-Mini-GGUF/mmproj-F16.gguf \
+  --alias inkling-2-mini-gpu1 \
+  --host 127.0.0.1 --port 8083 \
+  --ctx-size 262144 \
+  --n-gpu-layers all \
+  --split-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --parallel 1 \
+  --ubatch-size 256 \
+  --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
+  --n-predict 16384
+```
+
+### Uncensored model
+
+Same command. `--model` is the baked file. Leave `--lora` off.
+
+```bash
+cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
+
+CUDA_VISIBLE_DEVICES=1 ./llama-server \
+  --model /data/AIML/models/Inkling-2-Mini-Uncensored-GGUF/Inkling-2-Mini-Uncensored-AD-Q4_K.gguf \
+  --mmproj /data/AIML/models/Inkling-2-Mini-GGUF/mmproj-F16.gguf \
+  --alias inkling-2-mini-gpu1 \
+  --host 127.0.0.1 --port 8083 \
+  --ctx-size 262144 \
+  --n-gpu-layers all \
+  --split-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --parallel 1 \
+  --ubatch-size 256 \
+  --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
+  --n-predict 16384
+```
+
+
+Checked against this binary, build 12625 (`cbb1c1c50`), and the GGUF on disk. The censored command loaded on this card at `--ubatch-size 256`.
 
 | Flag | Why |
 | --- | --- |
@@ -132,7 +194,7 @@ Checked against this binary, build 12625 (`cbb1c1c50`), and the GGUF on disk. Th
 | `--split-mode none` | Default is `layer`. This mask leaves one visible GPU, so `layer` and `none` place the model on that GPU. `none` is the guard if the mask is dropped |
 | `--n-gpu-layers all` | This binary's value for every layer. Default is `auto`. The file has `block_count` 24 and loop `[6, 18)` × 3, so `n_layer_all` is 48 |
 | `--ctx-size 262144` | File `context_length` is 1048576. 262144 divides by 256, so the context pad does not change it. The KV for this window was not the buffer that failed |
-| `--ubatch-size 256` | The prompt graph is reserved for `min(n_ctx, n_ubatch)` tokens. The default 512 asked for 25532 MiB (`26772472064` bytes) and the card returned out of memory. 256 is the next size. It has not been measured |
+| `--ubatch-size 256` | The prompt graph is reserved for `min(n_ctx, n_ubatch)` tokens. This is the size that loaded. The default 512 asked for 25532 MiB and did not fit |
 | `--parallel 1` | One request, one slot. This binary's continuous batching is on by default, and every live slot is one step on this GPU. Another slot does not add a GPU. It shares the 270 W budget, so each request is slower. `n_seq_max` 1 keeps `n_ctx_seq` at 262144. Do not pass `--kv-unified`. At one slot it does not change the window |
 | `q8_0` KV | Default is `f16`. Eight full-context layers at 262144 are 4.25 GiB of tensor payload; `f16` is 8 GiB. Physical layers 5, 11, 17, and 23 are full attention. Layers 5 and 23 run once. Layers 11 and 17 run on each of the 3 passes. The other 40 layers are the sliding window: 1280 cells (1024 + the 256 micro-batch), 106.25 MiB at `q8_0` |
 | `--n-predict 16384` | Default is `-1`, which does not stop. Pi `maxTokens` is the same number |
@@ -206,13 +268,9 @@ PI_CODING_AGENT_DIR="$PWD/.pi/agent" pi
 
 Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` reloads `models.json`.
 
-## Out of memory
-
-Drop `--ubatch-size` to `128`. Then drop `--ctx-size` to `131072`, then `65536`. Set Pi `contextWindow` to the `--ctx-size` you are running.
-
 ## See also
 
 - Same weights on one 6000: [Dual-RTX6000-Inkling-2-Mini.md](../Dual-RTX6000-192GB/Dual-RTX6000-Inkling-2-Mini.md)
 - Qwen on this card, same power unit: [RTX-PRO-5000-Qwen3.8.md](RTX-PRO-5000-Qwen3.8.md)
 
-**Last Updated:** 2026-11-21 (load failed at ubatch 512, 25532 MiB compute buffer; next command is ubatch 256, ctx 262144)
+**Last Updated:** 2026-11-22 (censored Q8 @ 262144, ubatch 256, tested on this card)
