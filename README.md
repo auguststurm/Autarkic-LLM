@@ -109,7 +109,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.8-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/turbo4, ported from 3.6) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [LFM2.5-2.6B Q8_0](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/tree/main) (128k q8/q8, **FA on**; GB10 `"121"`, not the Jetson/3090 cmake) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-LFM2.5-2.6B.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Ternary Bonsai 2 27B PQ2_0](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/tree/main) (262k q8/q8; PTQ1_0 A/B; **PrismML fork**) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Bonsai-2-27B.md) |
-| DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Inkling 2 Mini UD-Q8_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (1048576 q8/q8, one slot, llama.cpp **master**, `sm_121`) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Inkling-2-Mini.md) |
+| DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Inkling 2 Mini UD-Q8_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (524288 ×4 private q8/q8, llama.cpp **master**, `sm_121`) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Inkling-2-Mini.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.6-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.8-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | Localmaxing (one per card): 2× [Qwen3.8-27B](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main), or 27B + [Coder-30B](https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/tree/main) / [35B-A3B](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) | ✅ Load+decode (2× Q6) | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) |
@@ -152,7 +152,7 @@ Autarkic-LLM/
 │   └── example-skills/search-topic-research/
 ├── glossary.md
 ├── AMD-7900-XTX/                   # Vulkan Qwen3.6 MTP (tested) · Bonsai 2 HIP untested · Inkling 2 Mini Vulkan untested (Q4 @ 128000)
-├── DGX-Spark-128GB/                # 3.6 tested · 3.8 port untested · LFM2.5 untested (128k FA on) · Bonsai 2 untested · Inkling 2 Mini untested (1M q8/q8)
+├── DGX-Spark-128GB/                # 3.6 tested · 3.8 port untested · LFM2.5 untested (128k FA on) · Bonsai 2 untested · Inkling 2 Mini untested (524288 ×4)
 ├── Dual-RTX6000-192GB/             # 3.6 + 3.8 tested · Localmaxing · Coder-Next / Muse / Bonsai 2 / Inkling 2 Mini untested
 ├── Forge-Trinity/                  # RTX Pro 2000 16 GB + 2× RTX Pro 6000 Max-Q · LFM2.5 + Qwen3.8 + Coder-Next untested
 ├── RTX-PRO-5000-48GB/              # Qwen3.8 Q8 @ 262k untested · Inkling 2 Mini master tested · 5000 power cap

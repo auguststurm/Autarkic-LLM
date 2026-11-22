@@ -8,9 +8,9 @@ Paths: `~/Documents/AIML/models` and `~/Documents/GitHub/llama.cpp-inkling`.
 
 | Pin | Value |
 | --- | --- |
-| **Weights** | `~/Documents/AIML/models/Inkling-2-Mini-GGUF/Mainline_Support/Inkling-2-Mini-UD-Q8_K_XL.gguf_file` (22.87 GB decimal, 21.30 GiB) |
+| **Weights** | Q8, one copy, for four streams and for one stream. `Inkling-2-Mini-UD-Q8_K_XL.gguf_file` (22.87 GB decimal, 21.30 GiB). The baked uncensored file is Q4, 15.39 GiB |
 | **Projector** | `mmproj-F16.gguf` (639 MB decimal, 0.60 GiB) |
-| **Context** | `--ctx-size 1048576`, `--parallel 1` |
+| **Context** | `--ctx-size 2097152`, `--parallel 4 --no-kv-unified`. Each slot is **524288** |
 | **KV** | `q8_0` / `q8_0` |
 | **Output** | `--n-predict 8192` |
 | **Sampling** | temp **1.0** · top_p **1.0** · top_k **0** · min_p **0.0** |
@@ -18,11 +18,11 @@ Paths: `~/Documents/AIML/models` and `~/Documents/GitHub/llama.cpp-inkling`.
 
 ## Weights
 
-Three ways to run this model. The three server commands use them in this order.
+The weights load once. Four streams do not load four copies. What grows is the KV cache: 34.00 GiB for four private 524288 windows, or 17.00 GiB for one 1048576 window. Q8 is 21.30 GiB, and it is the largest file Unsloth ships for this model. It fits both ways on this 128 GB pool. There is no higher quant to switch to for the single stream.
 
-1. **Censored.** `Inkling-2-Mini-UD-Q8_K_XL.gguf_file` from [unsloth/Inkling-2-Mini-GGUF](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF). The Unsloth file is Q8, 21.30 GiB. That is the censored weights, and it is the quality file on this machine.
-2. **Censored plus the LoRA.** The same Unsloth file, plus `Inkling-2-Mini-Uncensored-LoRA.gguf`. The AtomicChat uncensored release is a Q4 file, 15.39 GiB. To stay on Q8 and still remove the refusals, put their LoRA on this Unsloth file. The LoRA is the edit by itself. The baked Q4 file is the same edit already merged, at the lower quant.
-3. **Uncensored file.** `Inkling-2-Mini-Uncensored-AD-Q4_K.gguf` from [AtomicChat/Inkling-2-Mini-Uncensored-GGUF](https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF). Leave `--lora` off. The edit is already in the file.
+1. **Censored.** `Inkling-2-Mini-UD-Q8_K_XL.gguf_file` from [unsloth/Inkling-2-Mini-GGUF](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF). Q8, 21.30 GiB. Use this for four streams and for one stream.
+2. **Censored plus the LoRA.** The same Q8 file, plus `Inkling-2-Mini-Uncensored-LoRA.gguf`. The adapter is about 42 MB. This is how to stay on Q8 and run the uncensored edit, for either stream count.
+3. **Uncensored file.** `Inkling-2-Mini-Uncensored-AD-Q4_K.gguf` from [AtomicChat/Inkling-2-Mini-Uncensored-GGUF](https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF). Q4, 15.39 GiB. The edit is already in the file. Leave `--lora` off. This is the lower quant, used when you want one uncensored GGUF instead of Q8 plus the adapter. It also fits four streams and one stream.
 
 ```bash
 mkdir -p ~/Documents/AIML/models
@@ -79,11 +79,11 @@ cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
   --mmproj ~/Documents/AIML/models/Inkling-2-Mini-GGUF/mmproj-F16.gguf \
   --alias inkling-2-mini \
   --host 127.0.0.1 --port 8080 \
-  --ctx-size 1048576 \
+  --ctx-size 2097152 \
   --n-gpu-layers all \
   --split-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
-  --parallel 1 \
+  --parallel 4 --no-kv-unified \
   --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
   --n-predict 8192
 ```
@@ -101,11 +101,11 @@ cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
   --mmproj ~/Documents/AIML/models/Inkling-2-Mini-GGUF/mmproj-F16.gguf \
   --alias inkling-2-mini \
   --host 127.0.0.1 --port 8080 \
-  --ctx-size 1048576 \
+  --ctx-size 2097152 \
   --n-gpu-layers all \
   --split-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
-  --parallel 1 \
+  --parallel 4 --no-kv-unified \
   --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
   --n-predict 8192
 ```
@@ -122,11 +122,11 @@ cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
   --mmproj ~/Documents/AIML/models/Inkling-2-Mini-GGUF/mmproj-F16.gguf \
   --alias inkling-2-mini \
   --host 127.0.0.1 --port 8080 \
-  --ctx-size 1048576 \
+  --ctx-size 2097152 \
   --n-gpu-layers all \
   --split-mode none \
   --cache-type-k q8_0 --cache-type-v q8_0 \
-  --parallel 1 \
+  --parallel 4 --no-kv-unified \
   --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
   --n-predict 8192
 ```
@@ -136,11 +136,11 @@ Checked against llama.cpp master source and the Q8 file. Not a measured load on 
 
 | Flag | Why |
 | --- | --- |
-| `--ctx-size 1048576` | The GGUF `context_length`. 1048576 divides by 256, so the context pad does not change it. Weights are 21.30 GiB, the projector is 0.60 GiB, and eight full-context layers at `q8_0` are 17.00 GiB. Forty sliding-window layers are 1536 cells (1024 + 512), 127.5 MiB. Known payload is about 39.0 GiB. The OS shares the 128 GB pool. The compute buffer is not measured. Four private copies of this window would be 68 GiB of full-context KV and are not the pin |
-| `--parallel 1` | One request, one slot. Continuous batching is on by default, and every live slot is one step on this GPU. `n_seq_max` 1 keeps `n_ctx_seq` at 1048576. Do not pass `--kv-unified` |
+| `--ctx-size 2097152` | Total of four private caches. With the shared pool off, `n_ctx_seq` is `--ctx-size / 4`, so each slot is 524288. 524288 divides by 256. Weights are 21.30 GiB, the projector is 0.60 GiB, and eight full-context layers at `q8_0` are 34.00 GiB for that total. Four sliding-window streams are 510 MiB. Known payload is about 56.4 GiB. That leaves about 70 GB of the 128 GB pool for the OS and the compute graph. The compute graph is not measured on this Spark. Four private copies of the full 1048576 window would be 68 GiB of full-context KV, about 90 GiB with the weights and the projector, which does not leave that room, so they are not this command |
+| `--parallel 4 --no-kv-unified` | Four agents, four private caches. `--parallel 4` does not turn the shared pool on. `--no-kv-unified` keeps it off, so one agent cannot take cells from another. One stream, below, is the choice when a single session needs the full 1048576 window |
 | `--n-gpu-layers all` | Every layer on the GPU. Default is `auto`. The file has `block_count` 24 and loop `[6, 18)` × 3, so `n_layer_all` is 48 |
 | `--split-mode none` | Default is `layer`. One visible GPU is already one device. `none` is the guard if a second device is visible |
-| `q8_0` KV | Default `f16` for those eight layers at this context is 32 GiB. `q8_0` is 17.00 GiB |
+| `q8_0` KV | Default `f16` for those eight layers at this total is 64 GiB. `q8_0` is 34.00 GiB |
 | `--n-predict 8192` | Default is `-1`, which does not stop. The tested guide in this folder caps Pi at 8192. If a reply ends with `finish_reason: length`, raise this and Pi `maxTokens` together to 16384 |
 | Sampling | This Q8 file stores temp 1.0, top_k 0, top_p 1.0, min_p 0.0, and this binary copies those when the flags are omitted. CLI defaults otherwise are 0.80, 40, 0.95, 0.05 |
 | no `--cpu-moe` | [Issue 32710](https://github.com/ggml-org/llama.cpp/issues/32710) is open. Experts of looped layers 6–17 on the host return NaN. `--flash-attn` stays `auto` |
@@ -148,24 +148,50 @@ Checked against llama.cpp master source and the Q8 file. Not a measured load on 
 
 Text-only: drop `--mmproj` and skip the projector download.
 
+### One stream
+
+Use this when one session should hold the full window. Keep the Q8 file. The change is the context, not the quant: `--ctx-size 1048576` and `--parallel 1`. The GB10 then spends every decode step on that one request. Set Pi `contextWindow` to `1048576`. The LoRA command and the baked Q4 command take those same two flag changes.
+
+```bash
+cd ~/Documents/GitHub/llama.cpp-inkling/build/bin
+
+./llama-server \
+  --model ~/Documents/AIML/models/Inkling-2-Mini-GGUF/Mainline_Support/Inkling-2-Mini-UD-Q8_K_XL.gguf_file \
+  --mmproj ~/Documents/AIML/models/Inkling-2-Mini-GGUF/mmproj-F16.gguf \
+  --alias inkling-2-mini \
+  --host 127.0.0.1 --port 8080 \
+  --ctx-size 1048576 \
+  --n-gpu-layers all \
+  --split-mode none \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --parallel 1 \
+  --temp 1.0 --top-p 1.0 --top-k 0 --min-p 0.0 \
+  --n-predict 8192
+```
+
+Eight full-context layers are then 17.00 GiB. With the weights and the projector, the known payload is about 39.0 GiB. Confirm `n_seq_max = 1`, `kv_unified = false`, `n_ctx = 1048576`, `n_ctx_seq = 1048576`.
+
 ## Confirm
 
+This block is the four-stream command.
+
 ```text
-n_seq_max             = 1
+n_seq_max             = 4
 kv_unified            = false
-n_ctx                 = 1048576
-n_ctx_seq             = 1048576
-n_slots = 1, n_ctx_slot = 1048576, kv_unified = 'false'
-creating non-SWA KV cache, size = 1048576 cells
+n_ctx                 = 2097152
+n_ctx_seq             = 524288
+n_slots = 4, n_ctx_slot = 524288, kv_unified = 'false'
+creating non-SWA KV cache, size = 524288 cells
 creating     SWA KV cache, size = 1536 cells
+n_ctx_seq (524288) < n_ctx_train (1048576) -- the full capacity of the model will not be utilized
 flash_attn            = auto
 ```
 
-`n_ctx_seq` matches the GGUF `context_length`. A line that says the full capacity will not be utilized means the context is below this pin. The offload log lists one CUDA device. If `nvidia-smi` prints `Memory-Usage: Not Supported`, that is the unified pool, not a failed load.
+The capacity line is this pin. Each slot is half the GGUF window. The offload log lists one CUDA device. If `nvidia-smi` prints `Memory-Usage: Not Supported`, that is the unified pool, not a failed load.
 
 ## Pi `models.json`
 
-`id` must match `--alias`. `~/.pi/agent/models.json`. Restart Pi.
+`id` must match `--alias`. `~/.pi/agent/models.json`. Restart Pi. This JSON is the four-stream command. For one stream, set `contextWindow` to `1048576` and the name to the 1048576 window.
 
 ```json
 {
@@ -177,8 +203,8 @@ flash_attn            = auto
       "models": [
         {
           "id": "inkling-2-mini",
-          "name": "Inkling 2 Mini UD-Q8 (1048576 q8/q8) - DGX Spark",
-          "contextWindow": 1048576,
+          "name": "Inkling 2 Mini UD-Q8 (524288 x4 q8/q8) - DGX Spark",
+          "contextWindow": 524288,
           "maxTokens": 8192
         }
       ]
@@ -215,4 +241,4 @@ Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` rel
 - This box, Qwen3.6: [DGX-Spark-Qwen3.6.md](DGX-Spark-Qwen3.6.md)
 - This box, Qwen3.8: [DGX-Spark-Qwen3.8.md](DGX-Spark-Qwen3.8.md)
 
-**Last Updated:** 2026-11-21 (llama.cpp master, UD-Q8_K_XL @ 1048576 q8/q8, one slot, sm_121, untested)
+**Last Updated:** 2026-11-22 (four private streams at 524288; one stream at 1048576 is the alternative, untested)
