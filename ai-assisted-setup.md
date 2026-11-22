@@ -124,6 +124,7 @@ The rest is judgment:
   AMD 7900 XTX is AMD-7900-XTX/7900-XTX-Inkling-2-Mini.md. Vulkan only. Do not pass GGML_CUDA or GGML_HIP. The pin is UD-Q4_K_XL, ctx 128000, --parallel 1, port 8080, paths ~/Documents/AIML and ~/Documents/GitHub. The Q8 file is not that pin. HIP stays the Bonsai guide.
   M1 Ultra is M1-Ultra-Studio-64GB/M1-Ultra-Studio-Inkling-2-Mini.md. Metal only, arm64, 64 GB unified. The pin is UD-Q8_K_XL, ctx 1048576, --parallel 1, --n-gpu-layers all, port 8080. Do not pass --load-mode none. Do not copy a CUDA or Vulkan command onto it.
   M5 MacBook Pro is M5-MacBook-Pro-48GB/M5-MacBook-Pro-Inkling-2-Mini.md. Metal only, 48 GB unified. Do not copy the M1 Ultra 1048576 pin. The pin is UD-Q8_K_XL, ctx 524288, --parallel 1, batch 512, n-predict 8192, port 8080. Native 1M is about 39 GiB and is the stretch, not the pin.
+  M1 Pro MacBook Pro 32 GB is M1-MacBook-Pro-32GB/M1-MacBook-Pro-Inkling-2-Mini.md. Metal, arm64, UD-Q4_K_XL, ctx 131072, --parallel 1, n-predict 16384, port 8080.
   ASUS GeForce RTX 5070 Ti 16 GB is Win-RTX5070Ti-16GB/Windows-RTX5070Ti-Inkling-2-Mini.md. WSL2, sm_120, UD-Q3_K_XL, ctx 32768, --parallel 1, batch 256, port 8080.
 - (Dual RTX 6000, both cards) Dual-RTX6000-Qwen3.8-localmaxing.md — one isolated llama-server
   per GPU, one Pi provider key per baseUrl. The Q8 primary is one card. Packs: two 27B, or

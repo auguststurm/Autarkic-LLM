@@ -98,6 +98,7 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 | MacBook Pro M5 | 48 GB | Metal | [Qwen3.6-27B UD-Q5_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (196k ctx) | ✅ Tested | [guide](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) |
 | MacBook Pro M5 | 48 GB | Metal | [Qwen3.8-27B UD-Q5_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (196k q8/q8, ported from 3.6) | ⚠️ Untested | [guide](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) |
 | MacBook Pro M5 | 48 GB | Metal | [Inkling 2 Mini UD-Q8_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (524288 q8/q8, one slot, llama.cpp **master**) | ⚠️ Untested | [guide](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Inkling-2-Mini.md) |
+| MacBook Pro M1 Pro | 32 GB | Metal | [Inkling 2 Mini UD-Q4_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (131072 q8/q8, one slot, llama.cpp **master**) | ⚠️ Untested | [guide](M1-MacBook-Pro-32GB/M1-MacBook-Pro-Inkling-2-Mini.md) |
 | RTX PRO 5000 Blackwell (Forge GPU 1) | 48 GB (48935 MiB) | CUDA (sm_120) | Qwen3.8-27B RVN Q8_0 + mmproj (262k q8/q8, `CUDA_VISIBLE_DEVICES=1`; blower cap 270 W) | ⚠️ Untested | [guide](RTX-PRO-5000-48GB/RTX-PRO-5000-Qwen3.8.md) |
 | RTX PRO 5000 Blackwell (Forge GPU 1) | 48 GB (48935 MiB) | CUDA (sm_120) | [Inkling 2 Mini UD-Q8_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (262k q8/q8, llama.cpp **master**, `CUDA_VISIBLE_DEVICES=1`) | ⚠️ Untested | [guide](RTX-PRO-5000-48GB/RTX-PRO-5000-Inkling-2-Mini.md) |
 | RTX PRO 6000 Blackwell Max-Q (Forge GPU 2) | 96 GB | CUDA (sm_120) | [Inkling 2 Mini UD-Q8_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (524288 ×4 private q8/q8, llama.cpp **master**, `CUDA_VISIBLE_DEVICES=2`) | ⚠️ Untested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Inkling-2-Mini.md) |
@@ -155,6 +156,7 @@ Autarkic-LLM/
 ├── Forge-Trinity/                  # RTX Pro 2000 16 GB + 2× RTX Pro 6000 Max-Q · LFM2.5 + Qwen3.8 + Coder-Next untested
 ├── RTX-PRO-5000-48GB/              # Qwen3.8 Q8 @ 262k untested · Inkling 2 Mini master untested · 5000 power cap
 ├── M5-MacBook-Pro-48GB/            # 3.6 tested · 3.8 port untested · Inkling 2 Mini Metal untested (Q8 @ 524288)
+├── M1-MacBook-Pro-32GB/            # Inkling 2 Mini Metal untested (Q4 @ 131072)
 ├── M1-Ultra-Studio-64GB/           # Bonsai 2 Metal untested (PrismML fork) · Inkling 2 Mini Metal untested (1M q8/q8)
 ├── M4-MacBook-Air-24GB/
 ├── M4-Mac-Mini-16GB/
