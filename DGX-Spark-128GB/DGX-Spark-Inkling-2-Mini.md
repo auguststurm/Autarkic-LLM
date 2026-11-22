@@ -155,9 +155,7 @@ Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` rel
 
 ## Out of memory
 
-Keep `--parallel 1` and `--n-gpu-layers all`. Drop `--ctx-size` to `524288`, then `262144`, and set Pi `contextWindow` to that number.
-
-`--fit on` does not shrink a context you set. If the pinned context does not fit, this binary aborts with `n_gpu_layers already set by user to -2`. A CUDA out-of-memory after that estimate is the same ladder. Do not pass `--cpu-moe` or `--n-cpu-moe`.
+Drop `--ctx-size` to `524288`, then `262144`. Set Pi `contextWindow` to that number.
 
 ## See also
 

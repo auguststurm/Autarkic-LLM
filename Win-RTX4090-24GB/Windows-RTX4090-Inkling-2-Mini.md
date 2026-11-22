@@ -170,11 +170,7 @@ Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` rel
 
 ## Out of memory
 
-Keep `--parallel 1`, `--n-gpu-layers all`, and `--load-mode none`. Drop `--batch-size` and `--ubatch-size` to `128`. Then drop `--ctx-size` to `65536`, then `32768`, and set Pi `contextWindow` to that number.
-
-`--fit on` does not shrink a context you set. If the pinned context does not fit, this binary aborts with `n_gpu_layers already set by user to -2`. A CUDA out-of-memory after that estimate is the same ladder. Do not pass `--cpu-moe` or `--n-cpu-moe`.
-
-After 98304 loads and `nvidia-smi` still shows several GiB free, the stretch is `--ctx-size 131072`. Eight full-context layers are then 2.125 GiB, and the known payload is about 18.67 GiB. Match Pi `contextWindow`. That load is not measured.
+Drop `--batch-size` and `--ubatch-size` to `128`. Then drop `--ctx-size` to `65536`, then `32768`. Set Pi `contextWindow` to the `--ctx-size` you are running.
 
 ## See also
 

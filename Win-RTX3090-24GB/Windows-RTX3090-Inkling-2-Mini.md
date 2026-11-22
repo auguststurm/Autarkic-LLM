@@ -163,13 +163,7 @@ Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` rel
 
 ## Out of memory
 
-Keep `--parallel 1` and `--n-gpu-layers all`. Drop `--ctx-size` to `32768`, then `16384`, and set Pi `contextWindow` to that number.
-
-`--fit on` does not shrink a context you set. If the pinned context does not fit, this binary aborts with `n_gpu_layers already set by user to -2`. A CUDA out-of-memory after that estimate is the same ladder. Do not pass `--cpu-moe` or `--n-cpu-moe`.
-
-If 16384 still does not load, switch `--model` to `Mainline_Support/Inkling-2-Mini-UD-Q3_K_XL.gguf_file` (13.63 GB decimal, 12.70 GiB). Download that name as a filename. The repo-root `.gguf` of that stem is a different file.
-
-After 65536 loads and `nvidia-smi` still shows several GiB free, the stretch is `--ctx-size 131072`. Eight full-context layers are then 2.125 GiB, and the known payload is about 18.67 GiB. Match Pi `contextWindow`. That load is not measured.
+Drop `--ctx-size` to `32768`, then `16384`. Set Pi `contextWindow` to that number. If `16384` does not load, use `Mainline_Support/Inkling-2-Mini-UD-Q3_K_XL.gguf_file` (13.63 GB decimal, 12.70 GiB). Download that name as a filename.
 
 ## See also
 

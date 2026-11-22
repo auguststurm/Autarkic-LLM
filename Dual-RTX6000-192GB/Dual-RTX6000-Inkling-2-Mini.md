@@ -161,9 +161,7 @@ Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` rel
 
 ## Out of memory
 
-Keep `--parallel 4`, `--no-kv-unified`, and `--n-gpu-layers all`. Drop `--ctx-size` to `1048576` (each slot 262144), then `524288` (each slot 131072). Set Pi `contextWindow` to that per-slot number, not to `--ctx-size`.
-
-`--fit on` does not shrink a context you set. If the pinned context does not fit, this binary aborts with `n_gpu_layers already set by user to -2`. A CUDA out-of-memory after that estimate is the same ladder. Do not pass `--cpu-moe` or `--n-cpu-moe` to free VRAM. That is the open NaN path on layers 6–17.
+Drop `--ctx-size` to `1048576`, then `524288`. Each slot is that number divided by 4: `262144`, then `131072`. Set Pi `contextWindow` to the per-slot number.
 
 ## See also
 

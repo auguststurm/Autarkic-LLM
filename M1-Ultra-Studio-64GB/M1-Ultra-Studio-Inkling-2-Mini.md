@@ -160,9 +160,7 @@ Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` rel
 
 ## Out of memory
 
-Keep `--parallel 1`, `--n-gpu-layers all`, and the default mmap. A load that succeeds and a first prompt that dies is the Metal failure on this machine. Drop `--ctx-size` to `524288`, then `262144`, and set Pi `contextWindow` to that number. If the failure is still the first prompt, set `--batch-size 512` (ubatch is already 512), then both to `256`.
-
-`--fit on` does not shrink a context you set. If the pinned context does not fit, this binary aborts with `n_gpu_layers already set by user to -2`. Do not pass `--cpu-moe` or `--n-cpu-moe`.
+Drop `--ctx-size` to `524288`, then `262144`. Set Pi `contextWindow` to that number. Then set `--batch-size 512` and `--ubatch-size 512`, then both to `256`.
 
 ## See also
 

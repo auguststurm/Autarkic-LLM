@@ -164,11 +164,7 @@ Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` rel
 
 ## Out of memory
 
-Keep `--parallel 1`, `--n-gpu-layers all`, and the default mmap. Close other apps. Drop `--batch-size` and `--ubatch-size` to `256`, then `128`. Then drop `--ctx-size` to `262144`, then `131072`, and set Pi `contextWindow` to that number.
-
-`--fit on` does not shrink a context you set. If the pinned context does not fit, this binary aborts with `n_gpu_layers already set by user to -2`. Do not pass `--cpu-moe` or `--n-cpu-moe`.
-
-After 524288 decodes and Activity Monitor still shows several GiB free, the stretch is `--ctx-size 786432` (full-context KV 12.75 GiB, known payload about 34.8 GiB), then `1048576` (known payload about 39.0 GiB). Match Pi `contextWindow`. Confirm the first decode, not only the load.
+Drop `--batch-size` and `--ubatch-size` to `256`, then `128`. Then drop `--ctx-size` to `262144`, then `131072`. Set Pi `contextWindow` to the `--ctx-size` you are running.
 
 ## See also
 

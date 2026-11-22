@@ -208,11 +208,7 @@ Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` rel
 
 ## Out of memory
 
-Keep `--parallel 1`, `--n-gpu-layers all`, and `--ctx-size 262144`. Drop `--ubatch-size` to `128`. The prompt buffer tracks that size, not the context, once the context is larger than it.
-
-If the log is still `failed to allocate compute pp buffers`, then drop `--ctx-size` to `131072`, then `65536`, and set Pi `contextWindow` to that number.
-
-The fit line `n_gpu_layers already set by user to -2` was a warning on this run. The process continued and exited on the CUDA allocation.
+Drop `--ubatch-size` to `128`. Then drop `--ctx-size` to `131072`, then `65536`. Set Pi `contextWindow` to the `--ctx-size` you are running.
 
 ## See also
 

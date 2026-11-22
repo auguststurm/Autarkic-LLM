@@ -159,12 +159,6 @@ Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` rel
 
 ## Out of memory
 
-Drop `--batch-size` and `--ubatch-size` to `128`. Then drop `--ctx-size` to `16384` and set Pi `contextWindow` to that number.
-
-A log line `n_gpu_layers already set by user to -2` is the same step: lower `--ctx-size` and keep `--n-gpu-layers all`.
-
-If 16384 still does not load, use `Mainline_Support/Inkling-2-Mini-UD-IQ3_XXS.gguf_file` (11.66 GB decimal, 10.86 GiB) at `--ctx-size 32768`. Download that name as a filename.
-
-After 32768 loads and `nvidia-smi` still shows a few GiB free, set `--ctx-size 65536`. Eight full-context layers are then 1.06 GiB, and the known payload is about 13.9 GiB. Match Pi `contextWindow`.
+Drop `--batch-size` and `--ubatch-size` to `128`. Then drop `--ctx-size` to `16384`. Set Pi `contextWindow` to that number. If `16384` does not load, use `Mainline_Support/Inkling-2-Mini-UD-IQ3_XXS.gguf_file` (11.66 GB decimal, 10.86 GiB) at `--ctx-size 32768`. Download that name as a filename.
 
 **Last Updated:** 2026-11-21 (llama.cpp master, UD-Q3_K_XL @ 32768 q8/q8, one slot, sm_120, untested)

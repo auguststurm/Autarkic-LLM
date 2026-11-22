@@ -156,10 +156,6 @@ Models, settings, and sessions for that launch stay in `.pi/agent`. `/model` rel
 
 ## Out of memory
 
-Drop `--ctx-size` to `65536`, then `32768`, and set Pi `contextWindow` to that number. If the failure is the first prompt, set `--batch-size 512` and `--ubatch-size 512`, then both to `256`.
-
-A log line `n_gpu_layers already set by user to -2` is the same step: lower `--ctx-size` and keep `--n-gpu-layers all`.
-
-After 131072 decodes and Activity Monitor still shows several GiB free, set `--ctx-size 262144`. Eight full-context layers are then 4.25 GiB, and the known payload is about 21.4 GiB. Match Pi `contextWindow`.
+Drop `--ctx-size` to `65536`, then `32768`. Set Pi `contextWindow` to that number. Then set `--batch-size 512` and `--ubatch-size 512`, then both to `256`.
 
 **Last Updated:** 2026-11-21 (llama.cpp master, Metal, UD-Q4_K_XL @ 131072 q8/q8, one slot, untested)
