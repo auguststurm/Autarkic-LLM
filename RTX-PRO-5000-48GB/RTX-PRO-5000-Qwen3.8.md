@@ -138,9 +138,71 @@ Keep `--fit off`. A bare `--fit on` can shrink the window under the Pi pin.
 
 **Optional turbo V** after Q8 @ 262k decodes cleanly: `--cache-type-k q8_0 --cache-type-v turbo4`. New Pi session; real `ls` / `read` before trusting it.
 
+## Power limit
+
+This card is the dual-slot blower. NVIDIA’s product table rates max power consumption at **300 W** for both the 48 GB and 72 GB RTX PRO 5000 Blackwell. This workstation’s card is the 48 GB part (48935 MiB), bus `00000000:21:00.0`, VBIOS `98.02.92.00.05`. Queried 2026-11-21 on driver 595.99.02, before the cap: Min Power Limit **250.00 W**, Default / Max **300.00 W**, current limit **300.00 W**. A later read of this bus is persistence **Enabled** and current limit **270.00 W**. Default is still **300.00 W**. A TechPowerUp dump of the sibling ROM `98.02.92.00.01` (PG153 SKU 530, 48 GB, 2025-09-18) stores a 300.0 W target, a 300.0 W limit, and an adjustment of −17% to +0%. −17% of 300 W is 249 W, which is the 250 W floor this driver reports. 250 W is that floor.
+
+`nvidia-smi -pl` sets the maximum board power in watts. [NVIDIA’s nvidia-smi page](https://docs.nvidia.com/deploy/nvidia-smi/index.html) says the value has to sit between the Min and Max Power Limit, accepts an integer or a float, needs root, and lasts until the next driver reload. Pass `-i 00000000:21:00.0`. A bare `nvidia-smi -pl` writes every GPU.
+
+Set **270 W**. That value is inside the 250–300 W window this VBIOS accepts. [Deep-AI-Evo’s Qwen3.8-27B serving benchmark](https://github.com/Deep-AI-Evo/qwen3.8-27b-q6k-fp8-rtx-pro5000-serving-benchmark) (2026-08-15 to 2026-08-17) locked an RTX PRO 5000 **72 GB** Blackwell (73415 MiB, same 300 W board rating) at 270 W for llama.cpp Q6_K, vLLM, and SGLang, including about 200K context and two-way concurrency. Their report: peak draw **244 W**, temperature **73 °C**, and the 270 W cap did not change speed or temperature because the peak stayed under the cap. This workstation is the 48 GB card. 270 W is legal here. That 72 GB run is the published measurement. Read `power.draw` on this box during a long decode.
+
+`nvidia-smi -pl` and `nvidia-smi -pm` last until the driver unloads. Both are gone after a reboot. On this workstation `nvidia-persistenced.service` is already active at boot and is started with `--no-persistence-mode`, so that daemon does not apply 270 W and does not turn persistence mode on. The enabled unit below is what puts 270 W back after restart. The two `nvidia-smi` commands alone do not.
+
+```bash
+nvidia-smi -i 00000000:21:00.0 --query-gpu=index,name,pci.bus_id,power.draw,power.limit,power.default_limit,power.min_limit,power.max_limit --format=csv
+nvidia-smi -i 00000000:21:00.0 -q -d TEMPERATURE
+```
+
+On driver 595.99.02 the temperature block reports **GPU T.Limit Temp**, **GPU Shutdown T.Limit Temp** (−5 C), and **GPU Slowdown T.Limit Temp** (−2 C). GPU Target Temperature read N/A at idle. At a 40 C die, T.Limit read 51 C. The published `98.02.92.00.01` ROM lists a 92 C target and a 105 C max.
+
+```bash
+sudo nvidia-smi -i 00000000:21:00.0 -pm 1
+sudo nvidia-smi -i 00000000:21:00.0 -pl 270
+```
+
+`/etc/systemd/system/nvidia-rtx-pro-5000-power.service`:
+
+```ini
+[Unit]
+Description=Cap RTX PRO 5000 power limit
+After=nvidia-persistenced.service
+Wants=nvidia-persistenced.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/nvidia-smi -i 00000000:21:00.0 -pm 1
+ExecStart=/usr/bin/nvidia-smi -i 00000000:21:00.0 -pl 270
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now nvidia-rtx-pro-5000-power.service
+systemctl is-enabled nvidia-rtx-pro-5000-power.service
+nvidia-smi -i 00000000:21:00.0 --query-gpu=persistence_mode,power.limit --format=csv
+```
+
+`is-enabled` prints `enabled`. The query prints `Enabled, 270.00 W`. `enable` links the unit into `multi-user.target`, so the next boot runs it after `nvidia-persistenced.service` has registered `0000:21:00.0`. After a restart, the same query is the check. `journalctl -b -u nvidia-rtx-pro-5000-power.service` shows that boot run.
+
+Those commands install the unit. On this machine they have been run: the unit is enabled and active, and the bus query is `Enabled, 270.00 W`. A reboot without this unit returns the card to the 300.00 W default.
+
+Under a decode:
+
+```bash
+nvidia-smi -i 00000000:21:00.0 --query-gpu=index,name,temperature.gpu,power.draw,power.limit,clocks_event_reasons.active --format=csv
+```
+
+On a driver that rejects `clocks_event_reasons.active`, use `clocks_throttle_reasons.active`.
+
+`Unable to determine the device handle for GPU1: 0000:21:00.0` means the card has dropped off the bus. The kernel line is `NVRM: Xid (PCI:0000:21:00): 79, GPU has fallen off the bus.` Check it with `journalctl -k -b | grep -E 'NVRM: Xid|fallen off the bus'`. That state clears with a power cycle. Xid 79 also shows up on Blackwell boards when the temperature is still under the slowdown line, so a later drop with a modest temperature is a PCIe or driver event, and the watt cap is not the fix for that case.
+
 ## See also
 
+- Inkling 2 Mini on this GPU map: [RTX-PRO-5000-Inkling-2-Mini.md](RTX-PRO-5000-Inkling-2-Mini.md)
 - Measured sm_120 footprint: [Dual-RTX6000-Qwen3.8-localmaxing.md](../Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md)
 - Flags: [llama-cpp-turboquant.md](../llama-cpp-turboquant.md) · Pi: [agentic harnesses](../agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware)
 
-**Last Updated:** 2026-10-24 (build 10878: drop `--jinja` and `--no-context-shift`, both defaults)
+**Last Updated:** 2026-11-21 (power cap 270 W on the measured 250–300 W VBIOS range; serve pin unchanged, build 10878)

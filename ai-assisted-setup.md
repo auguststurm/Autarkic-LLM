@@ -64,7 +64,7 @@ llama-server, confirm, Pi models.json. Match that shape in your reply. Dual RTX 
 Qwen3.8 optional appendix (MTP, thinking, vision) and the current recipe template.
 Do not paste GGUF naming essays — link local-setup.md. M4 MacBook Air is the tight-Metal
 example (turbo2 V, fit-off, 61k), not the layout template. Windows is WSL2 (~/AIML, ~/GitHub).
-AMD RDNA3 is Vulkan (AMD-7900-XTX/). Use the closest guide's conventions as your baseline.
+AMD RDNA3 Qwen is Vulkan (AMD-7900-XTX/). Read the guide for the machine named in the request. Do not copy another machine's Inkling pin.
 The rest is judgment:
 - Optimize for the largest, highest-quality model that fits my memory with headroom to spare, tuned
   for fully-offline agentic use — and match the flags to MY hardware, not to whichever guide you read.
@@ -75,8 +75,8 @@ The rest is judgment:
   a download command — never guess a filename (the #1 failure mode).
 - (always) Default the server to loopback (`--host 127.0.0.1`); expose it to my network only if I ask,
   and warn me that's unauthenticated.
-- (always) Pin `--ctx-size` and set `--fit off` for agent use. Do not rely on bare `--fit on` — it can
-  crush context and break Pi. Prefer lowering quant/context over silent fit.
+- (always) Pin `--ctx-size`. On turboquant and PrismML guides, also set `--fit off`. Do not rely on bare `--fit on` — it can
+  crush context and break Pi. The Inkling guides use current llama.cpp master and do not pass `--fit off`. Prefer lowering quant/context over silent fit.
 - (always for Qwen3.6 / Qwen3.8 agents) `--reasoning off` and `--reasoning-budget 0` so Pi gets
   message.content (prefer this over deprecated enable_thinking chat-template-kwargs alone on
   current llama-server).
@@ -110,7 +110,20 @@ The rest is judgment:
   field-tested; DGX Spark and M5 Pro ports reuse tested 3.6 knobs but are still untested — flag
   that. RTX PRO 5000 Blackwell is Forge GPU index 1 (48935 MiB, sm_120). Its guide is the RVN Q8
   already on disk, same binary as the 6000s, and is still untested. Use a fresh turboquant build (arch qwen35). Confirm exact UD- quant filenames on
-  unsloth/Qwen3.8-27B-GGUF.
+  unsloth/Qwen3.8-27B-GGUF. The same guide caps that blower card at 270 W (`nvidia-smi -i` on bus 00000000:21:00.0 only; this host’s VBIOS accepts 250–300 W).
+- (Inkling 2 Mini, released 2026-11-20) One model, a separate pin per machine. Do not reuse a context, quant, backend, or path from another guide.
+  Workstation only, one sm_120 tree at ~/Documents/GitHub/llama.cpp-inkling (CMAKE_CUDA_ARCHITECTURES=120, build 12625). turboquant cannot load inkling2_loop.
+  RTX PRO 5000: RTX-PRO-5000-48GB/RTX-PRO-5000-Inkling-2-Mini.md, CUDA_VISIBLE_DEVICES=1, port 8083, UD-Q8_K_XL, ctx 262144, --parallel 1, contextWindow 262144.
+  One RTX PRO 6000: Dual-RTX6000-192GB/Dual-RTX6000-Inkling-2-Mini.md, CUDA_VISIBLE_DEVICES=2, port 8084
+  (the other 6000 is mask 3, port 8085). Same Q8 file. --ctx-size 2097152 --parallel 4 --no-kv-unified, so each slot is 524288. Pi contextWindow on that 6000 server is 524288, not 2097152 and not the 5000's 262144.
+  On this workstation index 0 is the desktop 2000 and index 1 is the 5000. Do not copy an older Dual RTX command that assumes the 6000s are index 0 and 1.
+  Sampler on these Q8 files is temp 1.0 / top_p 1.0 / top_k 0 / min_p 0.0. `--n-gpu-layers all`. Flash attention stays auto. Batch stays 2048 on these two servers. Leave the Hub name `Inkling-2-Mini-UD-Q8_K_XL.gguf_file`. Do not pass --cpu-moe. Do not pkill.
+  Windows RTX 3090 is Win-RTX3090-24GB/Windows-RTX3090-Inkling-2-Mini.md. Do not copy the 5000 or 6000 command onto it. That card is 24576 MiB, sm_86, WSL2 paths ~/AIML and ~/GitHub. The pin is Mainline_Support UD-Q4_K_XL, ctx 65536, --parallel 1, port 8080. The Q8 file is 21.30 GiB and is not that pin.
+  DGX Spark is DGX-Spark-128GB/DGX-Spark-Inkling-2-Mini.md. Do not copy another machine's command onto it. GB10, sm_121, aarch64, 128 GB unified memory, paths ~/Documents/AIML and ~/Documents/GitHub. The pin is UD-Q8_K_XL, ctx 1048576, --parallel 1, port 8080, CMAKE_CUDA_ARCHITECTURES=121. Build on the Spark.
+  Windows RTX 4090 is Win-RTX4090-24GB/Windows-RTX4090-Inkling-2-Mini.md. Do not copy the 3090 command onto it. Ada sm_89, 24576 MiB, WSL2 paths ~/AIML and ~/GitHub. The pin is UD-Q4_K_XL, ctx 98304, --parallel 1, --load-mode none, batch 256, port 8080. Do not pass GGML_CUDA_FA_ALL_QUANTS. The Q8 file is not that pin.
+  AMD 7900 XTX is AMD-7900-XTX/7900-XTX-Inkling-2-Mini.md. Vulkan only. Do not pass GGML_CUDA or GGML_HIP. The pin is UD-Q4_K_XL, ctx 128000, --parallel 1, port 8080, paths ~/Documents/AIML and ~/Documents/GitHub. The Q8 file is not that pin. HIP stays the Bonsai guide.
+  M1 Ultra is M1-Ultra-Studio-64GB/M1-Ultra-Studio-Inkling-2-Mini.md. Metal only, arm64, 64 GB unified. The pin is UD-Q8_K_XL, ctx 1048576, --parallel 1, --n-gpu-layers all, port 8080. Do not pass --load-mode none. Do not copy a CUDA or Vulkan command onto it.
+  M5 MacBook Pro is M5-MacBook-Pro-48GB/M5-MacBook-Pro-Inkling-2-Mini.md. Metal only, 48 GB unified. Do not copy the M1 Ultra 1048576 pin. The pin is UD-Q8_K_XL, ctx 524288, --parallel 1, batch 512, n-predict 8192, port 8080. Native 1M is about 39 GiB and is the stretch, not the pin.
 - (Dual RTX 6000, both cards) Dual-RTX6000-Qwen3.8-localmaxing.md — one isolated llama-server
   per GPU, one Pi provider key per baseUrl. The Q8 primary is one card. Packs: two 27B, or
   27B + Coder-30B (code small), or 27B + 35B-A3B (general small). Do not invent a four-model

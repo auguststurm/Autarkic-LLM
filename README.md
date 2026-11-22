@@ -23,7 +23,8 @@ Grok is the assistant this repo is written to pair with. The setup prompt still 
 - Primary engine: **llama-cpp-turboquant** (the TurboQuant fork of llama.cpp); build it via [`local-setup.md`](local-setup.md)
 - Preferred models: **Qwen3.8-27B** (dense VLM, Unsloth UD quants) on roomier boxes — **✅ tested** on Dual RTX 6000 day-of-release; **Qwen3-Coder-Next** (80B-A3B coding MoE, Unsloth UD; ⚠️ Dual RTX untested, **one 96 GB card**, Q6 @ 262k); **Ternary Bonsai 2 27B** (PrismML ternary pack of the same Qwen3.8 backbone; ⚠️ Dual RTX untested, **PrismML llama.cpp fork** — not turboquant); **Muse Glimmer 30B** (Meta, Apache 2.0, Unsloth UD) as a Dual RTX starting point (⚠️ untested); **Qwen3.6** dense + MoE where still the tested path; **Gemma 4 E2B** for edge devices — **✅ tested** on Jetson Orin Nano Super; **LFM2.5-2.6B** — **✅ tested** on the same Jetson (official Liquid GGUF, always-on thinking, 64k q8/q8); **⚠️ untested** ports on Windows RTX 3090 WSL2 (native **128k** q8/q8, **FA on**, no `FA_ALL_QUANTS`), Windows RTX 4090 WSL2 (native **128k** q8/q8, **FA on**, Ada `"89"` + `FA_ALL_QUANTS`, `--no-mmap`), and DGX Spark (native **128k** q8/q8, **FA on**, GB10 `"121"`); **MiniCPM5-2B** on the same Jetson — ⚠️ untested (official OpenBMB GGUF, PRIMARY think **off**, 32k q8/q8)
 - **Forge Trinity** (RTX Pro 2000 Blackwell 16 GB + two RTX Pro 6000 Max-Q 96 GB): one `llama-server` per GPU on the existing `sm_120` binary — LFM2.5-2.6B Q8_0 @ 128k on the 16 GB card, Qwen3.8 Q8 and Qwen3-Coder-Next Q6 each on one 96 GB card. ⚠️ untested. Pi runs on other LAN machines through a ufw allowlist. SSH manages the box, including the headless session switch: [Forge-Trinity.md](Forge-Trinity/Forge-Trinity.md)
-- **RTX PRO 5000 Blackwell (48 GB, Forge GPU 1):** same `sm_120` binary as the RTX PRO 6000s. Qwen3.8-27B RVN Q8 @ 262k q8/q8 on `CUDA_VISIBLE_DEVICES=1`. No `--main-gpu`, no `--threads`, no `kv-cache` directory. ⚠️ untested. [RTX-PRO-5000-Qwen3.8.md](RTX-PRO-5000-48GB/RTX-PRO-5000-Qwen3.8.md)
+- **RTX PRO 5000 Blackwell (48 GB, Forge GPU 1):** same `sm_120` binary as the RTX PRO 6000s. Qwen3.8-27B RVN Q8 @ 262k q8/q8 on `CUDA_VISIBLE_DEVICES=1`. No `--main-gpu`, no `--threads`, no `kv-cache` directory. The blower card’s software cap is **270 W** on bus `00000000:21:00.0` (VBIOS range on this host is 250–300 W; systemd unit in the guide). ⚠️ untested. [RTX-PRO-5000-Qwen3.8.md](RTX-PRO-5000-48GB/RTX-PRO-5000-Qwen3.8.md)
+- **Inkling 2 Mini** (Thinking Machines, 2026-11-20, `inkling2_loop`): upstream llama.cpp **master**, not turboquant. The pin is per machine. On this workstation the shared tree is `sm_120`: the 5000 is Q8 at ctx 262144, one slot, port 8083; one 6000 is Q8 with four private slots of 524288, port 8084. 24 GB cards, the Spark, and the Macs are different rows in the table. ⚠️ untested. [RTX PRO 5000](RTX-PRO-5000-48GB/RTX-PRO-5000-Inkling-2-Mini.md) · [one RTX PRO 6000](Dual-RTX6000-192GB/Dual-RTX6000-Inkling-2-Mini.md)
 - Emphasis on KV-cache optimization (TurboQuant), flash attention, agent-friendly Qwen settings (thinking off, pinned context), Muse Glimmer / LFM2.5 settings (template thinking **cannot** be switched off — LFM Pi skills path uses `reasoning` false; traces JSON keeps clean `reasoning_content`), MiniCPM5-2B (OpenBMB documents a Think/No-think **toggle**; Jetson PRIMARY **forces off**, ⚠️ untested), and stable sampling (details in the [deep dive](llama-cpp-turboquant.md))
 - **Pi Coding Agent + dense Qwen 27B (3.6 / 3.8):** cross-hardware lessons (two token limits, no DRY, K/V policy, hybrid flags) in [agentic harnesses](agentic-harnesses.md#qwen36-27b--pi-coding-agent-cross-hardware). Dual RTX second card: [Localmaxing](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) (one model per GPU). **Muse Glimmer + Pi** is a different row: [Muse Glimmer 30B + Pi](agentic-harnesses.md#muse-glimmer-30b--pi-coding-agent). **LFM2.5-2.6B + Pi** (always-on `<think>`): [LFM2.5-2.6B + Pi](agentic-harnesses.md#lfm25-26b--pi-coding-agent). **MiniCPM5-2B + Pi** (PRIMARY think **off**; OpenBMB toggle ⚠️ untested): [MiniCPM5-2B + Pi](agentic-harnesses.md#minicpm5-2b--pi-coding-agent). Multi-agent research in [Pi graphs](_Pi-Coding-Agent-Graphs/pi-coding-agent-graphs.md)
 
@@ -85,19 +86,27 @@ Use a **fresh** turboquant build (arch tag `qwen35`). For untested ports: smoke-
 | AMD 7900 XTX | 24 GB | Vulkan | [Qwen3.6-27B IQ4_NL](https://huggingface.co/unsloth/Qwen3.6-27B-MTP-GGUF) (tight) | ✅ Tested | [guide](AMD-7900-XTX/7900-XTX-Qwen3.6-27b.md) |
 | AMD 7900 XTX | 24 GB | Vulkan | [Qwen3.6-35B-A3B IQ4_XS](https://huggingface.co/byteshape/Qwen3.6-35B-A3B-MTP-GGUF) | ✅ Tested | [guide](AMD-7900-XTX/7900-XTX-Qwen3.6-35b-a3b.md) |
 | AMD 7900 XTX | 24 GB | HIP / ROCm | [Ternary Bonsai 2 27B PQ2_0](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/tree/main) (131k q8/q8; **PrismML fork**, not Vulkan) | ⚠️ Untested | [guide](AMD-7900-XTX/7900-XTX-Bonsai-2-27B.md) |
+| AMD 7900 XTX | 24 GB | Vulkan | [Inkling 2 Mini UD-Q4_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (128000 q8/q8, one slot, llama.cpp **master**) | ⚠️ Untested | [guide](AMD-7900-XTX/7900-XTX-Inkling-2-Mini.md) |
 | MacBook Air M4 | 24 GB | Metal | [Qwen3.6-35B-A3B UD-IQ4_NL](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) (MoE, turbo2 V, 61k ctx) | ✅ Tested | [guide](M4-MacBook-Air-24GB/M4-MacBook-Air-Qwen3.6.md) |
 | Windows RTX 3090 (WSL2) | 24 GB | CUDA (sm_86) | [LFM2.5-2.6B Q8_0](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/tree/main) (128k q8/q8, **FA on**, no `FA_ALL_QUANTS`) | ⚠️ Untested | [guide](Win-RTX3090-24GB/Windows-RTX3090-LFM2.5-2.6B.md) |
 | Windows RTX 3090 (WSL2) | 24 GB | CUDA (sm_86) | [Ternary Bonsai 2 27B PQ2_0](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/tree/main) (131k q8/q8; PTQ1_0 A/B; **PrismML fork**) | ⚠️ Untested | [guide](Win-RTX3090-24GB/Windows-RTX3090-Bonsai-2-27B.md) |
+| Windows RTX 3090 (WSL2) | 24 GB | CUDA (sm_86) | [Inkling 2 Mini UD-Q4_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (65536 q8/q8, one slot, llama.cpp **master**) | ⚠️ Untested | [guide](Win-RTX3090-24GB/Windows-RTX3090-Inkling-2-Mini.md) |
 | Windows RTX 4090 (WSL2) | 24 GB | CUDA | [Qwen3.6-27B UD-Q4_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (96k q8/q8 Pi agent) | ✅ Tested | [guide](Win-RTX4090-24GB/Windows-RTX4090-Qwen3.6.md) |
+| Windows RTX 4090 (WSL2) | 24 GB | CUDA (sm_89) | [Inkling 2 Mini UD-Q4_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (98304 q8/q8, one slot, llama.cpp **master**) | ⚠️ Untested | [guide](Win-RTX4090-24GB/Windows-RTX4090-Inkling-2-Mini.md) |
 | Windows RTX 4090 (WSL2) | 24 GB | CUDA (sm_89) | [LFM2.5-2.6B Q8_0](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/tree/main) (128k q8/q8, **FA on**, `--no-mmap`) | ⚠️ Untested | [guide](Win-RTX4090-24GB/Windows-RTX4090-LFM2.5-2.6B.md) |
 | MacBook Pro M5 | 48 GB | Metal | [Qwen3.6-27B UD-Q5_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (196k ctx) | ✅ Tested | [guide](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.6.md) |
 | MacBook Pro M5 | 48 GB | Metal | [Qwen3.8-27B UD-Q5_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (196k q8/q8, ported from 3.6) | ⚠️ Untested | [guide](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Qwen3.8.md) |
-| RTX PRO 5000 Blackwell (Forge GPU 1) | 48 GB (48935 MiB) | CUDA (sm_120) | Qwen3.8-27B RVN Q8_0 + mmproj (262k q8/q8, `CUDA_VISIBLE_DEVICES=1`) | ⚠️ Untested | [guide](RTX-PRO-5000-48GB/RTX-PRO-5000-Qwen3.8.md) |
+| MacBook Pro M5 | 48 GB | Metal | [Inkling 2 Mini UD-Q8_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (524288 q8/q8, one slot, llama.cpp **master**) | ⚠️ Untested | [guide](M5-MacBook-Pro-48GB/M5-MacBook-Pro-Inkling-2-Mini.md) |
+| RTX PRO 5000 Blackwell (Forge GPU 1) | 48 GB (48935 MiB) | CUDA (sm_120) | Qwen3.8-27B RVN Q8_0 + mmproj (262k q8/q8, `CUDA_VISIBLE_DEVICES=1`; blower cap 270 W) | ⚠️ Untested | [guide](RTX-PRO-5000-48GB/RTX-PRO-5000-Qwen3.8.md) |
+| RTX PRO 5000 Blackwell (Forge GPU 1) | 48 GB (48935 MiB) | CUDA (sm_120) | [Inkling 2 Mini UD-Q8_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (262k q8/q8, llama.cpp **master**, `CUDA_VISIBLE_DEVICES=1`) | ⚠️ Untested | [guide](RTX-PRO-5000-48GB/RTX-PRO-5000-Inkling-2-Mini.md) |
+| RTX PRO 6000 Blackwell Max-Q (Forge GPU 2) | 96 GB | CUDA (sm_120) | [Inkling 2 Mini UD-Q8_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (524288 ×4 private q8/q8, llama.cpp **master**, `CUDA_VISIBLE_DEVICES=2`) | ⚠️ Untested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Inkling-2-Mini.md) |
 | M1 Ultra Mac Studio | 64 GB | Metal | [Ternary Bonsai 2 27B PQ2_0](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/tree/main) (262k q8/q8; PTQ1_0 A/B; **PrismML fork**) | ⚠️ Untested | [guide](M1-Ultra-Studio-64GB/M1-Ultra-Studio-Bonsai-2-27B.md) |
+| M1 Ultra Mac Studio | 64 GB | Metal | [Inkling 2 Mini UD-Q8_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (1048576 q8/q8, one slot, llama.cpp **master**) | ⚠️ Untested | [guide](M1-Ultra-Studio-64GB/M1-Ultra-Studio-Inkling-2-Mini.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.6-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) | ✅ Tested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.6.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Qwen3.8-27B UD-Q6_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/turbo4, ported from 3.6) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Qwen3.8.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [LFM2.5-2.6B Q8_0](https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF/tree/main) (128k q8/q8, **FA on**; GB10 `"121"`, not the Jetson/3090 cmake) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-LFM2.5-2.6B.md) |
 | DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Ternary Bonsai 2 27B PQ2_0](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/tree/main) (262k q8/q8; PTQ1_0 A/B; **PrismML fork**) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Bonsai-2-27B.md) |
+| DGX Spark Founders Edition | 128 GB | CUDA (GB10) | [Inkling 2 Mini UD-Q8_K_XL](https://huggingface.co/unsloth/Inkling-2-Mini-GGUF) (1048576 q8/q8, one slot, llama.cpp **master**, `sm_121`) | ⚠️ Untested | [guide](DGX-Spark-128GB/DGX-Spark-Inkling-2-Mini.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.6-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.6.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | [Qwen3.8-27B UD-Q8_K_XL](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main) (262k q8/q8 Pi agent) | ✅ Tested | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8.md) |
 | Dual RTX 6000 Pro Max-Q | 192 GB | CUDA | Localmaxing (one per card): 2× [Qwen3.8-27B](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/main), or 27B + [Coder-30B](https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/tree/main) / [35B-A3B](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main) | ✅ Load+decode (2× Q6) | [guide](Dual-RTX6000-192GB/Dual-RTX6000-Qwen3.8-localmaxing.md) |
@@ -139,18 +148,18 @@ Autarkic-LLM/
 │   ├── pi-coding-agent-graphs.md
 │   └── example-skills/search-topic-research/
 ├── glossary.md
-├── AMD-7900-XTX/                   # Vulkan Qwen3.6 MTP (tested) · Bonsai 2 HIP untested
-├── DGX-Spark-128GB/                # 3.6 tested · 3.8 port untested · LFM2.5 untested (128k FA on) · Bonsai 2 untested
-├── Dual-RTX6000-192GB/             # 3.6 + 3.8 tested · Localmaxing · Coder-Next / Muse / Bonsai 2 untested
+├── AMD-7900-XTX/                   # Vulkan Qwen3.6 MTP (tested) · Bonsai 2 HIP untested · Inkling 2 Mini Vulkan untested (Q4 @ 128000)
+├── DGX-Spark-128GB/                # 3.6 tested · 3.8 port untested · LFM2.5 untested (128k FA on) · Bonsai 2 untested · Inkling 2 Mini untested (1M q8/q8)
+├── Dual-RTX6000-192GB/             # 3.6 + 3.8 tested · Localmaxing · Coder-Next / Muse / Bonsai 2 / Inkling 2 Mini untested
 ├── Forge-Trinity/                  # RTX Pro 2000 16 GB + 2× RTX Pro 6000 Max-Q · LFM2.5 + Qwen3.8 + Coder-Next untested
-├── RTX-PRO-5000-48GB/              # Qwen3.8 Q8 @ 262k q8/q8 untested (sm_120)
-├── M5-MacBook-Pro-48GB/            # 3.6 tested · 3.8 port untested
-├── M1-Ultra-Studio-64GB/           # Bonsai 2 Metal untested (PrismML fork)
+├── RTX-PRO-5000-48GB/              # Qwen3.8 Q8 @ 262k untested · Inkling 2 Mini master untested · 5000 power cap
+├── M5-MacBook-Pro-48GB/            # 3.6 tested · 3.8 port untested · Inkling 2 Mini Metal untested (Q8 @ 524288)
+├── M1-Ultra-Studio-64GB/           # Bonsai 2 Metal untested (PrismML fork) · Inkling 2 Mini Metal untested (1M q8/q8)
 ├── M4-MacBook-Air-24GB/
 ├── M4-Mac-Mini-16GB/
 ├── M2-Mac-Mini-16GB/
-├── Win-RTX3090-24GB/               # WSL2 · LFM2.5 untested (128k) · Bonsai 2 untested (PrismML fork)
-├── Win-RTX4090-24GB/               # WSL2 · Qwen3.6 tested (96k) · LFM2.5 untested (128k)
+├── Win-RTX3090-24GB/               # WSL2 · LFM2.5 untested (128k) · Bonsai 2 untested (PrismML fork) · Inkling 2 Mini untested (Q4 @ 65536)
+├── Win-RTX4090-24GB/               # WSL2 · Qwen3.6 tested (96k) · LFM2.5 untested (128k) · Inkling 2 Mini untested (Q4 @ 98304)
 └── Jetson-Orin-Nano-Super/         # Gemma 4 E2B tested · LFM2.5 tested (64k) · MiniCPM5-2B untested
 ```
 
@@ -158,6 +167,6 @@ Autarkic-LLM/
 
 This repository is intentionally pragmatic. Settings for **Tested** hardware have been validated on the physical machine; **Untested** configs are careful starting points and may need tuning. Corrections and results are welcome via issues/PRs.
 
-**Last Updated:** 2026-10-24 (RTX PRO 5000 Blackwell Qwen3.8-27B Q8 @ 262k, untested)  
+**Last Updated:** 2026-11-21 (Inkling 2 Mini, one pin per machine; workstation 5000 is 262144 one slot and one 6000 is four private 524288 slots; RTX PRO 5000 power cap)  
 **Maintained by:** August Sturm  
 **License:** see [LICENSE](LICENSE)
